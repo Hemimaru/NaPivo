@@ -283,7 +283,7 @@ chips(); render();
     document.querySelectorAll(".sub").forEach(function(b){ b.hidden = !cart[b.getAttribute("data-k")]; });
     document.querySelectorAll(".add").forEach(function(b){
       var k = b.getAttribute("data-k"), n = cart[k]||0;
-      b.classList.toggle("in", n>0); b.textContent = n>0 ? "✓ "+n : "+";
+      b.classList.toggle("in", n>0); b.textContent = n>0 ? "+ "+n : "+";
       b.setAttribute("aria-label", (n>0?"В корзине "+n+". ":"")+"Добавить в корзину");
     });
   };
