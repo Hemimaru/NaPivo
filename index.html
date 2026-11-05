@@ -100,8 +100,8 @@ img.pic{cursor:zoom-in}
 .lb-tools button:hover{background:var(--surface-2)}
 .lb-tools button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .lb-tools span{min-width:52px;text-align:center;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
-ul.fl li{display:flex;align-items:center;justify-content:space-between;gap:8px}
-ul.fl li .ft{min-width:0}
+ul.fl li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px}
+ul.fl li .ft{flex:1 1 0;min-width:0}
 .acts{flex:none;display:flex;align-items:center;gap:6px}
 .sub{flex:none;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);background:none;color:var(--fg);font:inherit;font-size:18px;font-weight:800;line-height:1;cursor:pointer}
 .sub:hover{background:var(--surface-2)}
@@ -138,6 +138,14 @@ ul.fl li .ft{min-width:0}
 .buy[aria-disabled="true"]{opacity:.4;pointer-events:none}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:50;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:999px;background:var(--fg);color:var(--bg);font-size:14px;font-weight:700;text-align:center}
 .toast[hidden]{display:none}
+.stp{display:flex;align-items:center;gap:2px;border:1.5px solid var(--accent);border-radius:999px;padding:1px}
+.stp[hidden]{display:none}
+.stp .sub,.stp .add{width:28px;min-width:28px;height:28px;padding:0;border:0;background:none;color:var(--accent);font-size:18px;display:inline-flex;align-items:center;justify-content:center}
+.stp .sub:hover,.stp .add:hover{background:var(--mark)}
+.qin{width:36px;height:28px;border:0;border-radius:6px;background:transparent;color:var(--fg);text-align:center;font:inherit;font-weight:800;font-size:16px;padding:0;font-variant-numeric:tabular-nums}
+.qin:focus-visible{outline:2px solid var(--accent);outline-offset:0;background:var(--surface-2)}
+.lim{flex-basis:100%;font-size:12px;font-weight:700;color:var(--accent);padding-left:0}
+.lim[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 
@@ -215,7 +223,7 @@ function hl(text,q){
 }
 function flav(f,q,k){
   var parts = f.split(" · "), name = parts[0], qty = parts[1];
-  return '<li><span class="ft">'+hl(name,q)+(qty?'<span class="qty">'+esc(qty)+"</span>":"")+'</span><span class="acts"><button class="sub" type="button" data-k="'+k+'" aria-label="Убрать из корзины" hidden>−</button><button class="add" type="button" data-k="'+k+'" aria-label="Добавить в корзину">+</button></span></li>';
+  return '<li><span class="ft">'+hl(name,q)+(qty?'<span class="qty">'+esc(qty)+"</span>":"")+'</span><span class="acts" data-k="'+k+'"><button class="add add0" type="button" data-k="'+k+'" aria-label="Добавить в корзину">+</button><span class="stp" hidden><button class="sub" type="button" data-k="'+k+'" aria-label="Убрать один">−</button><input class="qin" type="text" inputmode="numeric" pattern="[0-9]*" value="1" data-k="'+k+'" aria-label="Количество"><button class="add" type="button" data-k="'+k+'" aria-label="Добавить ещё один">+</button></span></span><div class="lim" hidden></div></li>';
 }
 function card(it,q,single){
   var pills = (it.s?'<span>крепость '+it.s+'</span>':'')+'<span class="price">цена '+it.p+'</span>';
@@ -280,13 +288,21 @@ chips(); render();
   }
   function toast(msg){ toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(tt); tt = setTimeout(function(){ toastEl.hidden = true; }, 2600); }
   window.syncAdd = function(){
-    document.querySelectorAll(".sub").forEach(function(b){ b.hidden = !cart[b.getAttribute("data-k")]; });
-    document.querySelectorAll(".add").forEach(function(b){
-      var k = b.getAttribute("data-k"), n = cart[k]||0;
-      b.classList.toggle("in", n>0); b.textContent = n>0 ? "+ "+n : "+";
-      b.setAttribute("aria-label", (n>0?"В корзине "+n+". ":"")+"Добавить в корзину");
+    document.querySelectorAll(".acts").forEach(function(a){
+      var k = a.getAttribute("data-k"), n = cart[k]||0;
+      a.querySelector(".add0").hidden = n>0;
+      a.querySelector(".stp").hidden = n===0;
+      var inp = a.querySelector(".qin");
+      if(document.activeElement !== inp) inp.value = String(n||1);
     });
   };
+  function showLim(k, max){
+    var a = document.querySelector('.acts[data-k="'+k+'"]'); if(!a) return;
+    var li = a.parentNode, m = li.querySelector(".lim");
+    m.textContent = "Такого количества нет в наличии. Осталось: "+max+" шт";
+    m.hidden = false; clearTimeout(li._t);
+    li._t = setTimeout(function(){ m.hidden = true; }, 4500);
+  }
   function draw(){
     var keys = Object.keys(cart);
     $("fabN").textContent = count();
@@ -305,7 +321,7 @@ chips(); render();
   }
   function change(k, d){
     var n = (cart[k]||0)+d;
-    if(n > LOOK[k].max){ toast("Больше нет в наличии"); return; }
+    if(n > LOOK[k].max){ toast("Больше нет в наличии"); showLim(k, LOOK[k].max); return; }
     if(n <= 0) delete cart[k]; else cart[k] = n;
     draw();
   }
@@ -345,6 +361,23 @@ chips(); render();
     toast(done ? "Заказ скопирован. Вставьте его в чат" : "Не удалось скопировать. Заказ передан в ссылке");
   }
   $("tgnote").textContent = "Заказ скопируется, и откроется чат в Telegram @"+CFG.telegram+". Вставьте текст в сообщение и отправьте.";
+  document.addEventListener("input",function(e){
+    var i = e.target; if(!i.classList || !i.classList.contains("qin")) return;
+    var k = i.getAttribute("data-k"), v = i.value.replace(/\D/g,"");
+    if(v !== i.value) i.value = v;
+    if(v === "") return;
+    var n = parseInt(v,10), max = LOOK[k].max;
+    if(n > max){ n = max; i.value = String(max); showLim(k, max); }
+    if(n >= 1){ cart[k] = n; draw(); }
+  });
+  document.addEventListener("focusin",function(e){ if(e.target.classList && e.target.classList.contains("qin")) e.target.select(); });
+  document.addEventListener("focusout",function(e){
+    var i = e.target; if(!i.classList || !i.classList.contains("qin")) return;
+    var k = i.getAttribute("data-k");
+    if(i.value === "0") delete cart[k];
+    setTimeout(draw, 0);
+  });
+  document.addEventListener("keydown",function(e){ if(e.key==="Enter" && e.target.classList && e.target.classList.contains("qin")) e.target.blur(); });
   window.cartDraw = draw;
   draw();
 })();
