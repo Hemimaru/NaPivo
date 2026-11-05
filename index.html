@@ -422,7 +422,7 @@ chips(); render();
 (function(){
   var lb = document.getElementById("lb"), img = document.getElementById("lbImg"), tools = document.getElementById("lbTools"), zval = document.getElementById("zval");
   var s = 1, tx = 0, ty = 0, MIN = 1, MAX = 6;
-  var ptrs = {}, down = null, pinch = null, lastTap = 0, moved = false;
+  var ptrs = {}, down = null, pinch = null, lastTap = 0, moved = false, closedAt = 0;
   function apply(){
     if(s <= 1.001){ s = 1; tx = 0; ty = 0; }
     img.style.transform = "translate("+tx+"px,"+ty+"px) scale("+s+")";
@@ -438,10 +438,11 @@ chips(); render();
     lb.hidden = false; document.documentElement.style.overflow = "hidden";
   }
   function close(){
-    lb.hidden = true; ptrs = {}; pinch = null; down = null;
+    lb.hidden = true; ptrs = {}; pinch = null; down = null; closedAt = Date.now();
     document.documentElement.style.overflow = ""; img.removeAttribute("src");
   }
   document.addEventListener("click",function(e){
+    if(Date.now() - closedAt < 500) return;
     var p = e.target.closest && e.target.closest("img.pic");
     if(p) open(p.src, p.alt);
   });
