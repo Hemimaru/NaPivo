@@ -137,7 +137,7 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .buy[aria-disabled="true"]{opacity:.4;pointer-events:none}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:50;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:999px;background:var(--fg);color:var(--bg);font-size:14px;font-weight:700;text-align:center}
 .toast[hidden]{display:none}
-.stp{display:flex;align-items:center;gap:2px;padding:1px}
+.stp{display:flex;align-items:center;gap:2px;border:1.5px solid var(--accent);border-radius:999px;padding:1px}
 .stp[hidden]{display:none}
 .stp .sub,.stp .add{width:28px;min-width:28px;height:28px;padding:0;border:0;border-radius:50%;background:none;color:var(--accent);line-height:0;display:inline-flex;align-items:center;justify-content:center}
 .stp svg,.add0 svg,.step svg{display:block}
@@ -191,7 +191,7 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script src="prices.js?v=20261106d"></script>
+<script src="prices.js?v=20261106e"></script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 var CFG = {telegram:"kooot45"};
