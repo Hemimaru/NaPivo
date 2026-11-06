@@ -203,7 +203,7 @@ h1{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script src="prices.js?v=20261107a"></script>
+<script src="prices.js?v=20261107b"></script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 var CFG = {telegram:"kooot45"};
@@ -652,7 +652,7 @@ chips(); render();
   document.addEventListener("keydown", function(e){
     if((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("end")){ e.preventDefault(); say("Тут реально больше ничего нет"); }
   });
-  var items = ["Режим отладки","Сбросить кэш","Редактировать прайс","Журнал изменений","Права администратора"];
+  var items = ["Редактировать прайс","Журнал изменений","Права администратора"];
   var back = document.createElement("div"); back.className = "dev-back"; back.hidden = true;
   back.innerHTML = '<div class="dev" role="dialog" aria-modal="true" aria-label="Меню разработчика"><div class="dev-h"><h2>Меню разработчика</h2><button type="button" id="devX" aria-label="Закрыть">×</button></div>'+
     items.map(function(x){ return '<button class="mi" type="button">'+x+'</button>'; }).join("")+'</div>';
