@@ -11,20 +11,20 @@
 /* Layout: sticky bar with search + section chips, then price sections as 2-column cards (1 column on phones). */
 :root{
   --bg:#f6f3f8; --surface:#ffffff; --surface-2:#efeaf4; --line:#ddd5e6;
-  --fg:#1b1625; --muted:#6c6379; --accent:#e63a76; --accent-fg:#ffffff; --chip:#e8e0f0; --mark:#ffd9e6;
+  --fg:#1b1625; --muted:#6c6379; --accent:#e63a76; --accent-fg:#ffffff; --chip:#e8e0f0; --mark:#ffd9e6; --resv:#c26a00;
   --display:"Unbounded","Arial Black",system-ui,sans-serif;
   --body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0e0b14; --surface:#18141f; --surface-2:#221c2c; --line:#2e2639;
-    --fg:#f1ecf6; --muted:#9a90a8; --accent:#ff5c8a; --accent-fg:#1a0b13; --chip:#2a2236; --mark:#5a2140;
+    --fg:#f1ecf6; --muted:#9a90a8; --accent:#ff5c8a; --accent-fg:#1a0b13; --chip:#2a2236; --mark:#5a2140; --resv:#ffb454;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0e0b14; --surface:#18141f; --surface-2:#221c2c; --line:#2e2639;
-  --fg:#f1ecf6; --muted:#9a90a8; --accent:#ff5c8a; --accent-fg:#1a0b13; --chip:#2a2236; --mark:#5a2140;
+  --fg:#f1ecf6; --muted:#9a90a8; --accent:#ff5c8a; --accent-fg:#1a0b13; --chip:#2a2236; --mark:#5a2140; --resv:#ffb454;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -146,6 +146,8 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .qin{width:36px;height:28px;border:0;border-radius:6px;background:transparent;color:var(--fg);text-align:center;font:inherit;font-weight:800;font-size:16px;padding:0;font-variant-numeric:tabular-nums}
 .qin{-webkit-tap-highlight-color:transparent}
 .qin:focus,.qin:focus-visible{outline:none;background:var(--surface-2)}
+ul.fl li.rv .ft{color:var(--resv)}
+.qty.resv{background:transparent;color:var(--resv);box-shadow:inset 0 0 0 1px var(--resv)}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 
@@ -190,7 +192,7 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script src="prices.js?v=20261106j"></script>
+<script src="prices.js?v=20261106k"></script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 var CFG = {telegram:"kooot45"};
@@ -222,7 +224,8 @@ function hl(text,q){
   return esc(text.slice(0,i))+"<mark>"+esc(text.slice(i,i+q.length))+"</mark>"+esc(text.slice(i+q.length));
 }
 function flav(f,q,k){
-  var parts = f.split(" · "), name = parts[0], qty = parts[1];
+  var parts = f.split(" · "), name = parts[0], qty = parts[1], rv = !!qty && qty.toLowerCase() === "бронь";
+  if(rv) return '<li class="rv"><span class="ft">'+hl(name,q)+'<span class="qty resv">бронь</span></span></li>';
   return '<li><span class="ft">'+hl(name,q)+(qty?'<span class="qty">'+esc(qty)+"</span>":"")+'</span><span class="acts" data-k="'+k+'"><button class="add add0" type="button" data-k="'+k+'" aria-label="Добавить в корзину"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><span class="stp" hidden><button class="sub" type="button" data-k="'+k+'" aria-label="Убрать один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><input class="qin" type="text" inputmode="numeric" pattern="[0-9]*" value="1" data-k="'+k+'" aria-label="Количество"><button class="add" type="button" data-k="'+k+'" aria-label="Добавить ещё один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></span></span></li>';
 }
 function card(it,q,single){
@@ -295,9 +298,9 @@ chips(); render();
   var LOOK = {}, cart = {};
   DATA.forEach(function(g){ g.items.forEach(function(it){ it.f.forEach(function(x,j){
     var p = x.split(" · "), liquid = g.liq;
-    LOOK[it.id+"."+j] = {n:it.n, f:p[0], max: p[1] ? (parseInt(p[1],10)||1) : (liquid ? 1 : 9)};
+    LOOK[it.id+"."+j] = {n:it.n, f:p[0], max: (p[1] && p[1].toLowerCase()==="бронь") ? 0 : (p[1] ? (parseInt(p[1],10)||1) : (liquid ? 1 : 9))};
   }); }); });
-  try{ var sv = JSON.parse(localStorage.getItem("napivo-cart")||"{}"); Object.keys(sv).forEach(function(k){ if(LOOK[k] && sv[k]>0) cart[k] = Math.min(sv[k], LOOK[k].max); }); }catch(e){}
+  try{ var sv = JSON.parse(localStorage.getItem("napivo-cart")||"{}"); Object.keys(sv).forEach(function(k){ if(LOOK[k] && LOOK[k].max>0 && sv[k]>0) cart[k] = Math.min(sv[k], LOOK[k].max); }); }catch(e){}
   var $ = function(id){ return document.getElementById(id); };
   var listEl=$("cartList"), panel=$("cart"), back=$("cartBack"), buy=$("buy"), toastEl=$("toast"), tt;
   function save(){ try{ localStorage.setItem("napivo-cart", JSON.stringify(cart)); }catch(e){} }
