@@ -190,7 +190,7 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script src="prices.js?v=20261106i"></script>
+<script src="prices.js?v=20261106j"></script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 var CFG = {telegram:"kooot45"};
@@ -307,12 +307,26 @@ chips(); render();
     return "Хочу купить:\n"+lines.join("\n");
   }
   function toast(msg){ toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(tt); tt = setTimeout(function(){ toastEl.hidden = true; }, 2600); }
-  var reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches), stretchKey = null, cartAnim = [];
+  var reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches), stretchKey = null, shrink = {}, cartAnim = [];
   window.syncAdd = function(){
     document.querySelectorAll(".acts").forEach(function(a){
       var k = a.getAttribute("data-k"), n = cart[k]||0;
-      var stp = a.querySelector(".stp");
-      a.querySelector(".add0").hidden = n>0;
+      var stp = a.querySelector(".stp"), add0 = a.querySelector(".add0");
+      if(a._shr){
+        if(n === 0) return;
+        a._shr.cancel(); a._shr = null;
+      }
+      if(n === 0 && !stp.hidden && shrink[k] && !reduce && stp.animate){
+        add0.hidden = true;
+        var an = stp.animate([{clipPath:"inset(0 0 0 0 round 999px)"},{clipPath:"inset(0 0 0 71px round 999px)"}],{duration:260,easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"});
+        a._shr = an;
+        an.onfinish = function(){
+          if(a._shr !== an) return;
+          a._shr = null; an.cancel(); stp.hidden = true; add0.hidden = false;
+        };
+        return;
+      }
+      add0.hidden = n>0;
       stp.hidden = n===0;
       if(n>0 && stretchKey === k){
         stretchKey = null;
@@ -323,6 +337,7 @@ chips(); render();
       var inp = a.querySelector(".qin");
       if(document.activeElement !== inp) inp.value = String(n||1);
     });
+    shrink = {};
   };
   function draw(){
     var keys = Object.keys(cart);
@@ -344,6 +359,7 @@ chips(); render();
     var n = (cart[k]||0)+d;
     if(n > LOOK[k].max){ toast("Больше нет в наличии"); return; }
     if((cart[k]||0) === 0 && n > 0) stretchKey = k;
+    if((cart[k]||0) > 0 && n <= 0) shrink[k] = true;
     if(n <= 0) delete cart[k]; else cart[k] = n;
     draw();
   }
@@ -389,6 +405,7 @@ chips(); render();
     if(clearing) return;
     var items = listEl.querySelectorAll(".ci");
     function done(){
+      Object.keys(cart).forEach(function(k){ shrink[k] = true; });
       cart = {}; draw(); clearing = false;
       var em = listEl.querySelector(".cart-empty");
       if(em && !reduce && em.animate) em.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:300,easing:"ease-out"});
@@ -442,7 +459,7 @@ chips(); render();
   document.addEventListener("focusout",function(e){
     var i = e.target; if(!i.classList || !i.classList.contains("qin")) return;
     var k = i.getAttribute("data-k");
-    if(i.value === "0") delete cart[k];
+    if(i.value === "0"){ if(cart[k]) shrink[k] = true; delete cart[k]; }
     setTimeout(draw, 0);
   });
   document.addEventListener("keydown",function(e){ if(e.key==="Enter" && e.target.classList && e.target.classList.contains("qin")) e.target.blur(); });
