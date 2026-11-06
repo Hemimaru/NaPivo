@@ -114,8 +114,7 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .fab b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--accent-fg);color:var(--accent);font-size:13px;font-variant-numeric:tabular-nums}
 .intro-on .fab{opacity:0}
 .cart-back{position:fixed;inset:0;z-index:35;background:rgba(8,5,12,.6)}
-.cart{position:fixed;top:0;right:0;bottom:0;z-index:36;width:min(420px,100vw);display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);animation:cin .22s ease-out}
-@keyframes cin{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+.cart{position:fixed;top:0;right:0;bottom:0;z-index:36;width:min(420px,100vw);display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .cart[hidden],.cart-back[hidden]{display:none}
 .cart-h{display:flex;align-items:center;gap:10px;padding:16px;border-bottom:1px solid var(--line)}
 .cart-h h2{margin:0;font-family:var(--display);font-weight:500;font-size:18px;text-transform:uppercase;letter-spacing:.02em}
@@ -191,7 +190,7 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script src="prices.js?v=20261106e"></script>
+<script src="prices.js?v=20261106f"></script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 var CFG = {telegram:"kooot45"};
@@ -288,11 +287,19 @@ chips(); render();
     return "Хочу купить:\n"+lines.join("\n");
   }
   function toast(msg){ toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(tt); tt = setTimeout(function(){ toastEl.hidden = true; }, 2600); }
+  var reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches), stretchKey = null, cartAnim = [];
   window.syncAdd = function(){
     document.querySelectorAll(".acts").forEach(function(a){
       var k = a.getAttribute("data-k"), n = cart[k]||0;
+      var stp = a.querySelector(".stp");
       a.querySelector(".add0").hidden = n>0;
-      a.querySelector(".stp").hidden = n===0;
+      stp.hidden = n===0;
+      if(n>0 && stretchKey === k){
+        stretchKey = null;
+        if(!reduce && stp.animate){
+          stp.animate([{clipPath:"inset(0 0 0 71px round 999px)"},{clipPath:"inset(0 0 0 0 round 999px)"}],{duration:300,easing:"cubic-bezier(.2,.8,.2,1)"});
+        }
+      }
       var inp = a.querySelector(".qin");
       if(document.activeElement !== inp) inp.value = String(n||1);
     });
@@ -316,10 +323,30 @@ chips(); render();
   function change(k, d){
     var n = (cart[k]||0)+d;
     if(n > LOOK[k].max){ toast("Больше нет в наличии"); return; }
+    if((cart[k]||0) === 0 && n > 0) stretchKey = k;
     if(n <= 0) delete cart[k]; else cart[k] = n;
     draw();
   }
-  function openCart(o){ panel.hidden = !o; back.hidden = !o; }
+  function openCart(o){
+    cartAnim.forEach(function(a){ try{ a.cancel(); }catch(e){} }); cartAnim = [];
+    if(o){
+      panel.hidden = false; back.hidden = false;
+      if(reduce || !panel.animate) return;
+      cartAnim.push(panel.animate([{transform:"translateX(100%)"},{transform:"none"}],{duration:340,easing:"cubic-bezier(.2,.8,.2,1)"}));
+      cartAnim.push(back.animate([{opacity:0},{opacity:1}],{duration:280,easing:"ease-out"}));
+      listEl.querySelectorAll(".ci").forEach(function(el,i){
+        if(i < 8) cartAnim.push(el.animate([{opacity:0,transform:"translateX(20px)"},{opacity:1,transform:"none"}],{duration:320,delay:140+i*45,easing:"ease-out",fill:"backwards"}));
+      });
+      cartAnim.push(panel.querySelector(".cart-f").animate([{opacity:0,transform:"translateY(12px)"},{opacity:1,transform:"none"}],{duration:320,delay:200,easing:"ease-out",fill:"backwards"}));
+    } else {
+      if(panel.hidden) return;
+      if(reduce || !panel.animate){ panel.hidden = true; back.hidden = true; return; }
+      var a = panel.animate([{transform:"none"},{transform:"translateX(100%)"}],{duration:240,easing:"cubic-bezier(.5,0,.9,.5)",fill:"forwards"});
+      var b = back.animate([{opacity:1},{opacity:0}],{duration:240,fill:"forwards"});
+      cartAnim.push(a, b);
+      a.onfinish = function(){ panel.hidden = true; back.hidden = true; cartAnim.forEach(function(x){ try{ x.cancel(); }catch(e){} }); cartAnim = []; };
+    }
+  }
   document.addEventListener("click",function(e){
     var a = e.target.closest && e.target.closest(".add");
     if(a){ change(a.getAttribute("data-k"), 1); return; }
