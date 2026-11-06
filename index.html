@@ -190,7 +190,7 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script src="prices.js?v=20261106g"></script>
+<script src="prices.js?v=20261106h"></script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 var CFG = {telegram:"kooot45"};
@@ -256,16 +256,36 @@ function chips(){
   menuEl.innerHTML = MENU.map(function(c){return '<button class="mi" type="button" role="menuitem" data-id="'+c[0]+'" aria-pressed="'+(state.sec===c[0])+'">'+c[1]+'</button>';}).join("");
   menuBtn.classList.toggle("on", state.sec!=="all");
 }
-function setMenu(open){ menuEl.hidden = !open; menuBtn.setAttribute("aria-expanded", open?"true":"false"); }
-menuBtn.addEventListener("click",function(e){ e.stopPropagation(); setMenu(menuEl.hidden); });
+var menuOpen = false, menuAnim = [];
+function setMenu(open){
+  menuAnim.forEach(function(a){ try{ a.cancel(); }catch(e){} }); menuAnim = [];
+  menuOpen = open; menuBtn.setAttribute("aria-expanded", open?"true":"false");
+  var rm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if(open){
+    menuEl.hidden = false;
+    if(rm || !menuEl.animate) return;
+    menuEl.style.transformOrigin = "0 0";
+    menuAnim.push(menuEl.animate([{opacity:0,transform:"translateY(-8px) scale(.96)"},{opacity:1,transform:"none"}],{duration:230,easing:"cubic-bezier(.2,.8,.2,1)"}));
+    menuEl.querySelectorAll(".mi").forEach(function(el,i){
+      menuAnim.push(el.animate([{opacity:0,transform:"translateX(-10px)"},{opacity:1,transform:"none"}],{duration:260,delay:50+i*30,easing:"ease-out",fill:"backwards"}));
+    });
+  } else {
+    if(menuEl.hidden) return;
+    if(rm || !menuEl.animate){ menuEl.hidden = true; return; }
+    var a = menuEl.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(-8px) scale(.96)"}],{duration:170,easing:"ease-in",fill:"forwards"});
+    menuAnim.push(a);
+    a.onfinish = function(){ menuEl.hidden = true; menuAnim.forEach(function(x){ try{ x.cancel(); }catch(e){} }); menuAnim = []; };
+  }
+}
+menuBtn.addEventListener("click",function(e){ e.stopPropagation(); setMenu(!menuOpen); });
 menuEl.addEventListener("click",function(e){
   var b = e.target.closest(".mi"); if(!b) return;
   state.sec = b.getAttribute("data-id");
   try{ localStorage.setItem("napivo-sec",state.sec); }catch(err){}
   chips(); render(); setMenu(false); window.scrollTo({top:0});
 });
-document.addEventListener("click",function(e){ if(!menuEl.hidden && !menuEl.contains(e.target)) setMenu(false); });
-document.addEventListener("keydown",function(e){ if(e.key==="Escape" && !menuEl.hidden){ setMenu(false); menuBtn.focus(); } });
+document.addEventListener("click",function(e){ if(menuOpen && !menuEl.contains(e.target)) setMenu(false); });
+document.addEventListener("keydown",function(e){ if(e.key==="Escape" && menuOpen){ setMenu(false); menuBtn.focus(); } });
 document.getElementById("q").addEventListener("input",function(e){ state.q = e.target.value; render(); });
 
 chips(); render();
