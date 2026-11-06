@@ -190,7 +190,7 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script src="prices.js?v=20261106h"></script>
+<script src="prices.js?v=20261106i"></script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 var CFG = {telegram:"kooot45"};
@@ -384,7 +384,30 @@ chips(); render();
   $("fab").addEventListener("click",function(){ openCart(true); });
   $("cx").addEventListener("click",function(){ openCart(false); });
   back.addEventListener("click",function(){ openCart(false); });
-  $("clr").addEventListener("click",function(){ cart = {}; draw(); });
+  var clearing = false;
+  $("clr").addEventListener("click",function(){
+    if(clearing) return;
+    var items = listEl.querySelectorAll(".ci");
+    function done(){
+      cart = {}; draw(); clearing = false;
+      var em = listEl.querySelector(".cart-empty");
+      if(em && !reduce && em.animate) em.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:300,easing:"ease-out"});
+    }
+    if(!items.length || reduce || !items[0].animate){ done(); return; }
+    clearing = true;
+    var last = null;
+    items.forEach(function(el,i){
+      var h = el.offsetHeight;
+      el.style.overflow = "hidden";
+      var an = el.animate([
+        {opacity:1, transform:"none", height:h+"px", paddingTop:"12px", paddingBottom:"12px", borderBottomWidth:"1px"},
+        {opacity:0, transform:"translateX(70px)", height:h+"px", paddingTop:"12px", paddingBottom:"12px", borderBottomWidth:"1px", offset:.6},
+        {opacity:0, transform:"translateX(70px)", height:"0px", paddingTop:"0px", paddingBottom:"0px", borderBottomWidth:"0px"}
+      ],{duration:480, delay:Math.min(i,7)*70, easing:"cubic-bezier(.4,0,.2,1)", fill:"forwards"});
+      if(i === items.length-1 || i === 7) last = an;
+    });
+    last.onfinish = done;
+  });
   document.addEventListener("keydown",function(e){ if(e.key==="Escape" && !panel.hidden) openCart(false); });
   buy.addEventListener("click",function(e){
     if(!count()){ e.preventDefault(); return; }
