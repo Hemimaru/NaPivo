@@ -192,7 +192,7 @@ ul.fl li.rv .ft{color:var(--resv)}
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script src="prices.js?v=20261106l"></script>
+<script src="prices.js?v=20261106m"></script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 var CFG = {telegram:"kooot45"};
@@ -404,7 +404,7 @@ chips(); render();
   $("cx").addEventListener("click",function(){ openCart(false); });
   back.addEventListener("click",function(){ openCart(false); });
   var clearing = false;
-  $("clr").addEventListener("click",function(){
+  function clearCart(){
     if(clearing) return;
     var items = listEl.querySelectorAll(".ci");
     function done(){
@@ -427,7 +427,9 @@ chips(); render();
       if(i === items.length-1 || i === 7) last = an;
     });
     last.onfinish = done;
-  });
+  }
+  $("clr").addEventListener("click", clearCart);
+  function afterBuy(){ setTimeout(clearCart, 600); }
   document.addEventListener("keydown",function(e){ if(e.key==="Escape" && !panel.hidden) openCart(false); });
   buy.addEventListener("click",function(e){
     if(!count()){ e.preventDefault(); return; }
@@ -435,7 +437,7 @@ chips(); render();
     var ok = false;
     try{
       if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(txt).then(function(){ toast("Заказ скопирован. Вставьте его в чат"); },function(){ fallback(txt); });
+        navigator.clipboard.writeText(txt).then(function(){ toast("Заказ скопирован. Вставьте его в чат"); afterBuy(); },function(){ fallback(txt); });
         ok = true;
       }
     }catch(err){}
@@ -447,6 +449,7 @@ chips(); render();
     var done = false; try{ done = document.execCommand("copy"); }catch(e){}
     ta.remove();
     toast(done ? "Заказ скопирован. Вставьте его в чат" : "Не удалось скопировать. Заказ передан в ссылке");
+    if(done) afterBuy();
   }
   $("tgnote").textContent = "Заказ скопируется, и откроется чат в Telegram @"+CFG.telegram+". Вставьте текст в сообщение и отправьте.";
   document.addEventListener("input",function(e){
