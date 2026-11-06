@@ -190,7 +190,7 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 </aside>
 <div class="toast" id="toast" hidden></div>
 
-<script src="prices.js?v=20261106f"></script>
+<script src="prices.js?v=20261106g"></script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 var CFG = {telegram:"kooot45"};
@@ -341,9 +341,13 @@ chips(); render();
     } else {
       if(panel.hidden) return;
       if(reduce || !panel.animate){ panel.hidden = true; back.hidden = true; return; }
-      var a = panel.animate([{transform:"none"},{transform:"translateX(100%)"}],{duration:240,easing:"cubic-bezier(.5,0,.9,.5)",fill:"forwards"});
-      var b = back.animate([{opacity:1},{opacity:0}],{duration:240,fill:"forwards"});
+      var a = panel.animate([{transform:"none"},{transform:"translateX(100%)"}],{duration:340,easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"});
+      var b = back.animate([{opacity:1},{opacity:0}],{duration:340,easing:"ease-in",fill:"forwards"});
       cartAnim.push(a, b);
+      listEl.querySelectorAll(".ci").forEach(function(el,i){
+        if(i < 8) cartAnim.push(el.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateX(20px)"}],{duration:220,delay:i*25,easing:"ease-in",fill:"forwards"}));
+      });
+      cartAnim.push(panel.querySelector(".cart-f").animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(12px)"}],{duration:220,easing:"ease-in",fill:"forwards"}));
       a.onfinish = function(){ panel.hidden = true; back.hidden = true; cartAnim.forEach(function(x){ try{ x.cancel(); }catch(e){} }); cartAnim = []; };
     }
   }
