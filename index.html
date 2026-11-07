@@ -210,6 +210,7 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .rv-t ul{margin:0;padding:0;list-style:none;display:grid;gap:3px}
 .rv-t li{font-size:14px;padding-left:16px;position:relative}
 .rv-t li:before{content:"";position:absolute;left:2px;top:.55em;width:7px;height:7px;border-radius:50%;background:#ffb454}
+.rude{position:fixed;z-index:90;box-sizing:border-box;padding:10px 14px;border-radius:12px;background:var(--accent);color:var(--accent-fg);font-size:14px;font-weight:800;text-align:center;pointer-events:none}
 .ed.cd{height:150px;width:calc(100% - 8px)}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
@@ -819,6 +820,21 @@ chips(); render();
     return Array.prototype.map.call(new Uint8Array(bits), function(b){ return b.toString(16).padStart(2,"0"); }).join("");
   }
   var checking = false;
+  var rudeEl = null, rudeT = 0;
+  function rudeNote(inp){
+    if(rudeEl && rudeEl.parentNode) rudeEl.parentNode.removeChild(rudeEl);
+    clearTimeout(rudeT);
+    var r = inp.getBoundingClientRect(), el = document.createElement("div");
+    el.className = "rude"; el.textContent = "Сам иди нахуй! 🖕";
+    el.style.cssText = "top:" + Math.round(r.bottom + 6) + "px;left:" + Math.round(r.left) + "px;width:" + Math.round(r.width) + "px";
+    document.body.appendChild(el); rudeEl = el;
+    if(!rm && el.animate) el.animate([{opacity:0,transform:"translateY(-6px)"},{opacity:1,transform:"none"}],{duration:200,easing:"ease-out"});
+    rudeT = setTimeout(function(){
+      var done = function(){ if(el.parentNode) el.parentNode.removeChild(el); };
+      if(rm || !el.animate){ done(); return; }
+      el.animate([{opacity:1},{opacity:0}],{duration:220,fill:"forwards"}).onfinish = done;
+    }, 4000);
+  }
   function rude(v){
     var t = String(v).toLowerCase().replace(/ё/g,"е").replace(/[^a-zа-я0-9\s]/g," ").replace(/\s+/g," ").trim();
     return /(^|\s)(иди|идите|пошел|пошла|пошли|пошло|шел|шли|катись|катитесь|вали|валите|отвали|отвалите|отъебись|отъебитесь|съебись|съебитесь|пиздуй|проваливай|свали|пшел)(\s|$)/.test(t) && /(нах|на\s?х|нахуй|нахер|в\s?жопу|в\s?пизду|к\s?черту|к\s?хуям|на\s?хуй|на\s?хер|подальше|отсюда|вон)/.test(t) ||
@@ -832,7 +848,7 @@ chips(); render();
     if(!val){ return; }
     if(rude(val)){
       inp.value = "";
-      say("Сам иди нахуй! 🖕", 4000); inp.focus();
+      rudeNote(inp); inp.focus();
       return;
     }
     if(!(window.crypto && crypto.subtle)){ err.textContent = "Проверка недоступна в этом браузере"; err.hidden = false; return; }
