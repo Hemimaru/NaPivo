@@ -1291,6 +1291,17 @@ chips(); render();
     if(!rm && body.animate) Array.prototype.forEach.call(body.querySelectorAll(".rv-i"), function(x, i){ x.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:260,delay:i*50,easing:"ease-out",fill:"backwards"}); });
   }
 
+  /* пока открыто окно, страница за ним не прокручивается */
+  var locked = false, lockY = 0;
+  function syncLock(){
+    var on = !!document.querySelector("#cart:not([hidden]), .dev-back:not([hidden]), .sheet-back, #lb:not([hidden])");
+    if(on === locked) return; locked = on;
+    var b = document.body;
+    if(on){ lockY = window.pageYOffset; b.style.position = "fixed"; b.style.top = (-lockY) + "px"; b.style.left = "0"; b.style.right = "0"; b.style.width = "100%"; }
+    else { b.style.position = b.style.top = b.style.left = b.style.right = b.style.width = ""; window.scrollTo({top:lockY, behavior:"instant"}); }
+  }
+  new MutationObserver(syncLock).observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:["hidden"]});
+
   /* пять нажатий на заголовок */
   var title = document.querySelector("header.hero h1"), taps = 0, tt2;
   if(title) title.addEventListener("click", function(){
