@@ -938,11 +938,25 @@ chips(); render();
       var o = await form("Линейка", [{k:"n", l:"Название", v:c.it.n},{k:"s", l:"Крепость (пусто, если не нужна)", v:String(c.it.s || "")},{k:"p", l:"Цена", v:c.it.p}], "Сохранить");
       if(!o) return;
       var nn = clean(o.n); if(!nn){ say("Название не может быть пустым"); return; }
-      var ns = parseInt(o.s, 10) || 0, np = clean(o.p);
+      var ns = parseInt(o.s, 10) || 0, np = clean(o.p), o0p = c.it.p;
       if(nn !== c.it.n) EDIT.log.push("Линейка переименована: " + c.it.n + " → " + nn);
       if(np !== c.it.p) EDIT.log.push("Цена изменена: " + nn + " — " + c.it.p + " → " + np);
       if(ns !== c.it.s) EDIT.log.push("Крепость изменена: " + nn + " — " + (c.it.s || "-") + " → " + (ns || "-"));
-      c.it.n = nn; c.it.s = ns; c.it.p = np; render();
+      c.it.n = nn; c.it.s = ns; c.it.p = np;
+      var moved = null;
+      if(c.g.liq && np !== o0p){
+        var tg = DATA.filter(function(g){ if(!g.liq) return false; var m = g.raw.match(/\*(\d+)\*/); return m && m[1] === np.replace(/\D/g,""); })[0];
+        if(tg && tg !== c.g){
+          c.g.items.splice(c.g.items.indexOf(c.it), 1);
+          var pos = tg.items.length;
+          for(var q = 0; q < tg.items.length; q++){ if((tg.items[q].s || 0) > ns){ pos = q; break; } }
+          tg.items.splice(pos, 0, c.it); c.it.g = tg; moved = tg;
+          EDIT.log.push("Линейка перенесена: " + nn + " → " + tg.raw.replace(/^#\s*/,"").split("|")[0].replace(/\*/g,"").trim());
+        }
+      }
+      var n = 0; DATA.forEach(function(g){ g.items.forEach(function(x){ x.id = n++; }); });
+      render();
+      if(moved){ say("Перенесено: " + moved.menu); var el = document.querySelectorAll("article.card")[0]; DATA.forEach(function(g){}); var cards = document.querySelectorAll("article.card"); for(var z = 0; z < cards.length; z++){ if(DATA[+cards[z].getAttribute("data-gi")].items[+cards[z].getAttribute("data-ii")] === c.it){ cards[z].scrollIntoView({block:"center", behavior:"smooth"}); if(!rm && cards[z].animate) cards[z].animate([{boxShadow:"0 0 0 3px var(--accent)"},{boxShadow:"0 0 0 0 transparent"}],{duration:1200}); break; } } }
     } else if(i === 1){
       if(!(await confirmDel("Удалить линейку «" + c.it.n + "» вместе со всеми вкусами (" + c.it.f.length + ")?"))) return;
       await fade(c.card);
