@@ -819,11 +819,22 @@ chips(); render();
     return Array.prototype.map.call(new Uint8Array(bits), function(b){ return b.toString(16).padStart(2,"0"); }).join("");
   }
   var checking = false;
+  function rude(v){
+    var t = String(v).toLowerCase().replace(/ё/g,"е").replace(/[^a-zа-я0-9\s]/g," ").replace(/\s+/g," ").trim();
+    return /(^|\s)(иди|идите|пошел|пошла|пошли|пошло|шел|шли|катись|катитесь|вали|валите|отвали|отвалите|отъебись|отъебитесь|съебись|съебитесь|пиздуй|проваливай|свали|пшел)(\s|$)/.test(t) && /(нах|на\s?х|нахуй|нахер|в\s?жопу|в\s?пизду|к\s?черту|к\s?хуям|на\s?хуй|на\s?хер|подальше|отсюда|вон)/.test(t) ||
+      /(^|\s)(нахуй|нахер|на хуй|на хер|похуй|пошел ты|пошла ты|иди ты|да пошел ты|хуй тебе|хуй|пизда|пидор|ебись|ебал)(\s|$)/.test(t) ||
+      /(^|\s)(go fuck|fuck you|fuck off|fuck)(\s|$)/.test(t);
+  }
   async function tryKey(){
     if(checking) return;
     var inp = $("devKey"), err = $("devErr"), val = inp.value.trim();
     err.hidden = true;
     if(!val){ return; }
+    if(rude(val)){
+      inp.value = "";
+      sheet("Сам иди нахуй! 🖕", [{t:"Ок", p:1}], true).then(function(){ inp.focus(); });
+      return;
+    }
     if(!(window.crypto && crypto.subtle)){ err.textContent = "Проверка недоступна в этом браузере"; err.hidden = false; return; }
     checking = true;
     var ok = false;
