@@ -177,6 +177,28 @@ h1{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:
 .lg-d{flex:none;width:130px;color:var(--muted);font-variant-numeric:tabular-nums}
 .lg-m{min-width:0;overflow-wrap:anywhere}
 @media (max-width:520px){.lg-i{flex-direction:column;gap:2px}.lg-d{width:auto}}
+
+body.editing .bar,body.editing .fab,body.editing footer,body.editing .hero{display:none!important}
+body.editing{padding-top:64px}
+.editbar{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
+.editbar[hidden]{display:none}
+.editbar b{flex:1;min-width:0;font-size:14px;line-height:1.2}
+.editbar button{padding:9px 14px;border-radius:12px;border:0;background:var(--accent);color:var(--accent-fg);font:inherit;font-size:14px;font-weight:800;cursor:pointer}
+.editbar button.ghost{background:var(--surface-2);color:var(--fg)}
+body.editing .card h3,body.editing ul.fl li,body.editing .pic{cursor:pointer;-webkit-tap-highlight-color:transparent}
+body.editing ul.fl li{border-radius:8px}
+body.editing ul.fl li:hover,body.editing .card h3:hover{background:var(--surface-2)}
+body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
+.pic.nopic{display:grid;place-items:center;text-align:center;font-size:11px;line-height:1.2;color:var(--muted);border:1.5px dashed var(--line);padding:4px;box-sizing:border-box;outline:0;user-select:text;-webkit-user-select:text}
+.sheet-back{position:fixed;inset:0;z-index:60;background:rgba(8,5,12,.5);display:flex;align-items:flex-end;justify-content:center}
+.sheet-back.mid{align-items:center;padding:16px}
+.sheet{width:min(420px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:14px;display:grid;gap:6px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+.mid .sheet{border-radius:18px}
+.sheet p{margin:0 4px 6px;color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.sheet .sb{padding:13px 14px;border:0;border-radius:12px;background:var(--surface-2);color:var(--fg);font:inherit;font-size:15px;font-weight:700;cursor:pointer;text-align:center}
+.sheet .sb.pri{background:var(--accent);color:var(--accent-fg)}
+.sheet .sb.dan{color:#e5484d}
+.sheet .dev-in{width:100%;box-sizing:border-box}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 
@@ -219,31 +241,51 @@ h1{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:
     <p id="tgnote">Заказ скопируется, и откроется чат в Telegram. Вставьте текст в сообщение и отправьте.</p>
   </div>
 </aside>
+<div class="editbar" id="editbar" hidden><b>Редактирование прайса</b><button class="ghost" id="ebCancel" type="button">Отмена</button><button id="ebSave" type="button">Сохранить</button></div>
 <div class="toast" id="toast" hidden></div>
 
 <script>document.write('<script src="prices.js?t='+Math.floor(Date.now()/60000)+'"><\/script>')</script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
-var CFG = {telegram:"kooot45"};
-var DATA = [], __g = null, __it = null;
-String(window.PRICE_TEXT || "").split(/\r?\n/).forEach(function(raw){
-  var line = raw.trim(), m;
-  if(!line || line.indexOf("//")===0) return;
-  if((m = line.match(/^(?:telegram|tg)\s*:\s*@?(\S+)/i))){ CFG.telegram = m[1]; return; }
-  if(line.indexOf("##")===0){
-    if(!__g) return;
-    var p = line.replace(/^##\s*/,"").split("|").map(function(x){return x.trim();});
-    __it = {n:p[0], s:parseInt(p[1],10)||0, p:p[2]||"", img:(p[3]&&p[3]!=="-")?p[3]:"", f:[], g:__g};
-    __g.items.push(__it); return;
-  }
-  if(line.charAt(0)==="#"){
-    var q = line.replace(/^#\s*/,"").split("|"), title = q[0].trim();
-    __g = {id:"s"+DATA.length, head:esc(title).replace(/\*([^*]+)\*/g,"<b>$1</b>"), menu:(q[1]||title.replace(/\*/g,"")).trim(), liq:/^жидкост/i.test(title), items:[]};
-    DATA.push(__g); __it = null; return;
-  }
-  if(line.charAt(0)==="-" && __it){ var fl = line.replace(/^-\s*/,"").trim(); if(fl) __it.f.push(fl); }
-});
-var __n = 0; DATA.forEach(function(g){ g.items.forEach(function(it){ it.id = __n++; }); });
+function parsePrice(text){
+  var cfg = {telegram:"kooot45"}, data = [], pre = [], g = null, it = null, started = false;
+  String(text || "").split(/\r?\n/).forEach(function(raw){
+    var line = raw.trim(), m;
+    if(!started && !(line.charAt(0)==="#")) pre.push(raw);
+    if(!line || line.indexOf("//")===0) return;
+    if((m = line.match(/^(?:telegram|tg)\s*:\s*@?(\S+)/i))){ cfg.telegram = m[1]; return; }
+    if(line.indexOf("##")===0){
+      if(!g) return;
+      var p = line.replace(/^##\s*/,"").split("|").map(function(x){return x.trim();});
+      it = {n:p[0], s:parseInt(p[1],10)||0, p:p[2]||"", img:(p[3]&&p[3]!=="-")?p[3]:"", f:[], g:g};
+      g.items.push(it); return;
+    }
+    if(line.charAt(0)==="#"){
+      started = true;
+      var q = line.replace(/^#\s*/,"").split("|"), title = q[0].trim();
+      g = {id:"s"+data.length, raw:line, head:esc(title).replace(/\*([^*]+)\*/g,"<b>$1</b>"), menu:(q[1]||title.replace(/\*/g,"")).trim(), liq:/^жидкост/i.test(title), items:[]};
+      data.push(g); it = null; return;
+    }
+    if(line.charAt(0)==="-" && it){ var fl = line.replace(/^-\s*/,"").trim(); if(fl) it.f.push(fl); }
+  });
+  var n = 0; data.forEach(function(gr){ gr.items.forEach(function(x){ x.id = n++; }); });
+  while(pre.length && !pre[pre.length-1].trim()) pre.pop();
+  return {cfg:cfg, data:data, pre:pre};
+}
+function serialize(){
+  var out = PRE.slice(); out.push("");
+  DATA.forEach(function(g){
+    out.push(g.raw, "");
+    g.items.forEach(function(it){
+      out.push("## " + [it.n, it.s||"-", it.p||"-", it.img||"-"].join(" | "));
+      it.f.forEach(function(f){ out.push("- " + f); });
+      out.push("");
+    });
+  });
+  return out.join("\n").replace(/\s+$/,"");
+}
+var __P = parsePrice(window.PRICE_TEXT), CFG = __P.cfg, DATA = __P.data, PRE = __P.pre, EDIT = null, PREV = {};
+function picSrc(n){ return PREV[n] || ("img/" + encodeURI(n)); }
 var state = {sec:"all", q:""};
 try{ var saved = localStorage.getItem("napivo-sec"); if(saved) state.sec = saved; }catch(e){}
 
@@ -252,17 +294,19 @@ function hl(text,q){
   var i = text.toLowerCase().indexOf(q); if(i<0) return t;
   return esc(text.slice(0,i))+"<mark>"+esc(text.slice(i,i+q.length))+"</mark>"+esc(text.slice(i+q.length));
 }
-function flav(f,q,k){
+function flav(f,q,k,j){
   var parts = f.split(" · "), name = parts[0], qty = parts[1], rv = !!qty && qty.toLowerCase() === "бронь";
+  if(EDIT) return '<li data-e="fl" data-j="'+j+'"'+(rv?' class="rv"':'')+'><span class="ft">'+esc(name)+(qty?'<span class="qty'+(rv?' resv':'')+'">'+esc(qty)+"</span>":"")+'</span></li>';
   if(rv) return '<li class="rv"><span class="ft">'+hl(name,q)+'<span class="qty resv">бронь</span></span></li>';
   return '<li><span class="ft">'+hl(name,q)+(qty?'<span class="qty">'+esc(qty)+"</span>":"")+'</span><span class="acts" data-k="'+k+'"><button class="add add0" type="button" data-k="'+k+'" aria-label="Добавить в корзину"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><span class="stp" hidden><button class="sub" type="button" data-k="'+k+'" aria-label="Убрать один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><input class="qin" type="text" inputmode="numeric" pattern="[0-9]*" value="1" data-k="'+k+'" aria-label="Количество"><button class="add" type="button" data-k="'+k+'" aria-label="Добавить ещё один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></span></span></li>';
 }
 function card(it,q,single){
   var pills = (it.s?'<span>крепость '+it.s+'</span>':'')+'<span class="price">цена '+it.p+'</span>';
-  var img = it.img ? '<img class="pic" alt="'+esc(it.n)+'" loading="lazy" src="img/'+encodeURI(it.img)+'">' : '<div class="pic"></div>';
+  var img = it.img ? '<img class="pic"'+(EDIT?' data-e="pic"':'')+' alt="'+esc(it.n)+'" loading="lazy" src="'+picSrc(it.img)+'">' : (EDIT ? '<div class="pic nopic" data-e="pic" contenteditable="true" spellcheck="false">Без изображения</div>' : '<div class="pic"></div>');
+  var gi = DATA.indexOf(it.g), ii = it.g.items.indexOf(it);
   var nameMatch = q && it.n.toLowerCase().indexOf(q)>=0;
   var list = it.f.map(function(x,j){return [x,j];}).filter(function(a){return !q || nameMatch || a[0].toLowerCase().indexOf(q)>=0;});
-  return '<article class="card'+(single?' one':'')+'">'+img+'<div><div class="top"><h3>'+hl(it.n,q)+'</h3><div class="pills">'+pills+'</div></div><ul class="fl">'+list.map(function(a){return flav(a[0],q,it.id+"."+a[1]);}).join("")+'</ul></div></article>';
+  return '<article class="card'+(single?' one':'')+'" data-gi="'+gi+'" data-ii="'+ii+'">'+img+'<div><div class="top"><h3'+(EDIT?' data-e="line"':'')+'>'+hl(it.n,q)+'</h3><div class="pills">'+pills+'</div></div><ul class="fl">'+list.map(function(a){return flav(a[0],q,it.id+"."+a[1],a[1]);}).join("")+'</ul></div></article>';
 }
 function render(){
   var q = state.q.trim().toLowerCase(), html = "", shown = 0;
@@ -277,7 +321,7 @@ function render(){
     html += '<section class="group" id="s-'+g.id+'"><div class="ghead"><h2>'+head+'</h2><span>'+items.length+' '+(g.liq?"линеек":"поз.")+'</span></div><div class="grid">'+
       items.map(function(it,k){return card(it,q,items.length%2===1 && k===items.length-1 && items.length>1 && false);}).join("")+'</div></section>';
   });
-  if(state.sec === "all" && !q && shown > 0) html += '<p class="end" role="button" tabindex="0">Больше ничего нет</p>';
+  if(state.sec === "all" && !q && shown > 0 && !EDIT) html += '<p class="end" role="button" tabindex="0">Больше ничего нет</p>';
   document.getElementById("main").innerHTML = html;
   document.getElementById("empty").hidden = shown>0;
   if(window.syncAdd) window.syncAdd();
@@ -326,10 +370,11 @@ chips(); render();
 /* Корзина: добавление вкусов, количество, «Купить» копирует заказ и открывает Telegram */
 (function(){
   var LOOK = {}, cart = {};
-  DATA.forEach(function(g){ g.items.forEach(function(it){ it.f.forEach(function(x,j){
+  function buildLook(){ LOOK = {}; DATA.forEach(function(g){ g.items.forEach(function(it){ it.f.forEach(function(x,j){
     var p = x.split(" · "), liquid = g.liq;
     LOOK[it.id+"."+j] = {n:it.n, f:p[0], max: (p[1] && p[1].toLowerCase()==="бронь") ? 0 : (p[1] ? (parseInt(p[1],10)||1) : (liquid ? 1 : 9))};
-  }); }); });
+  }); }); }); }
+  buildLook();
   try{ var sv = JSON.parse(localStorage.getItem("napivo-cart")||"{}"); Object.keys(sv).forEach(function(k){ if(LOOK[k] && LOOK[k].max>0 && sv[k]>0) cart[k] = Math.min(sv[k], LOOK[k].max); }); }catch(e){}
   var $ = function(id){ return document.getElementById(id); };
   var listEl=$("cartList"), panel=$("cart"), back=$("cartBack"), buy=$("buy"), toastEl=$("toast"), tt;
@@ -501,6 +546,7 @@ chips(); render();
   });
   document.addEventListener("keydown",function(e){ if(e.key==="Enter" && e.target.classList && e.target.classList.contains("qin")) e.target.blur(); });
   window.cartDraw = draw;
+  window.rebuildLook = function(){ buildLook(); cart = {}; draw(); };
   draw();
 })();
 
@@ -597,7 +643,7 @@ chips(); render();
     document.documentElement.style.overflow = ""; img.removeAttribute("src");
   }
   document.addEventListener("click",function(e){
-    if(Date.now() - closedAt < 500) return;
+    if(Date.now() - closedAt < 500 || EDIT) return;
     var p = e.target.closest && e.target.closest("img.pic");
     if(p) open(p.src, p.alt);
   });
@@ -662,7 +708,7 @@ chips(); render();
 (function(){
   var REPO = "Hemimaru/NaPivo", SALT = "napivo-daf2357395a3e65a", HASH = "77db77465597f9c02025520f2f362cd2726897eba3d6e70b8e89211149bd5e38", ITER = 150000;
   var rm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  function say(msg){ if(window.toast) window.toast(msg, 2000); }
+  function say(msg, ms){ if(window.toast) window.toast(msg, ms || 2000); }
   var END = "Тут реально больше ничего нет";
   document.addEventListener("click", function(e){ if(e.target.closest && e.target.closest(".end")) say(END); });
   document.addEventListener("keydown", function(e){
@@ -678,7 +724,7 @@ chips(); render();
     var box = back.firstChild, anims = [], o = {back:back, box:box, open:false, onBackdrop:null};
     o.set = function(on){
       anims.forEach(function(a){ try{ a.cancel(); }catch(e){} }); anims = [];
-      o.open = on;
+      var was = o.open; o.open = on;
       var i = stack.indexOf(o); if(i >= 0) stack.splice(i,1);
       if(on){
         stack.push(o); back.hidden = false;
@@ -686,6 +732,7 @@ chips(); render();
         anims.push(back.animate([{opacity:0},{opacity:1}],{duration:220,easing:"ease-out"}));
         anims.push(box.animate([{opacity:0,transform:"translateY(14px) scale(.95)"},{opacity:1,transform:"none"}],{duration:280,easing:"cubic-bezier(.2,.8,.2,1)"}));
       } else {
+        if(was && o.onClose) o.onClose();
         if(back.hidden) return;
         if(rm || !box.animate){ back.hidden = true; return; }
         var a = box.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateY(14px) scale(.95)"}],{duration:180,easing:"ease-in",fill:"forwards"});
@@ -703,13 +750,16 @@ chips(); render();
   /* меню разработчика */
   var dev = overlay('<div class="dev" role="dialog" aria-modal="true" aria-label="Меню разработчика"><div class="dev-h"><h2>Меню разработчика</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div><div id="devBody"></div></div>');
   var devBody = dev.box.querySelector("#devBody");
+  var devView = "menu";
   function drawMenu(){
+    devView = "menu";
     devBody.innerHTML =
       '<button class="mi" type="button" data-act="edit">Редактировать прайс</button>'+
       '<button class="mi" type="button" data-act="log">Журнал изменений</button>'+
       '<button class="mi" type="button" data-act="admin">Права администратора'+(isAdmin?' ✓':'')+'</button>';
   }
   function drawKey(){
+    devView = "key";
     devBody.innerHTML =
       '<label class="dev-l" for="devKey">Ключ доступа</label>'+
       '<input id="devKey" class="dev-in" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Вставьте ключ">'+
@@ -743,92 +793,230 @@ chips(); render();
   }
   dev.box.addEventListener("click", function(e){
     var t = e.target;
-    if(t.getAttribute && t.getAttribute("data-close")){ dev.set(false); return; }
+    if(t.getAttribute && t.getAttribute("data-close")){ if(devView === "key"){ drawMenu(); return; } dev.set(false); return; }
     var act = t.getAttribute && t.getAttribute("data-act");
     if(act === "admin"){ if(isAdmin) say("Права уже получены"); else drawKey(); return; }
-    if(act === "edit"){ if(!isAdmin) say("Вы не разработчик"); else openEditor(); return; }
+    if(act === "edit"){ if(!isAdmin) say("Вы не разработчик"); else startEdit(); return; }
     if(act === "log"){ if(!isAdmin) say("Вы не разработчик"); else openLog(); return; }
     if(t.id === "devGo") tryKey();
     if(t.id === "devBackBtn") drawMenu();
   });
   dev.box.addEventListener("keydown", function(e){ if(e.key === "Enter" && e.target.id === "devKey"){ e.preventDefault(); tryKey(); } });
 
-  /* редактор прайса */
-  var ed = overlay('<div class="dev adm" role="dialog" aria-modal="true" aria-label="Редактор прайса"><div class="dev-h"><h2>Редактор прайса</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div>'+
-    '<p class="dev-note">Правьте текст и нажмите «Сохранить». Изменения появятся на сайте примерно через минуту.</p>'+
-    '<textarea id="edText" class="ed" spellcheck="false" autocomplete="off" disabled>Загрузка…</textarea>'+
-    '<div id="edTokBox" hidden><label class="dev-l" for="edTok">Токен GitHub (нужен один раз, хранится только в этом браузере)</label><input id="edTok" class="dev-in" type="password" autocomplete="off" placeholder="github_pat_…"></div>'+
-    '<p class="dev-err" id="edMsg" hidden></p>'+
-    '<div class="dev-row"><button class="dev-btn" id="edSave" type="button">Сохранить</button><button class="dev-btn ghost" id="edClose" type="button">Закрыть</button><button class="dev-btn ghost" id="edForget" type="button" hidden>Забыть токен</button></div></div>');
-  var edText = ed.box.querySelector("#edText"), edMsg = ed.box.querySelector("#edMsg"), dirty = false, orig = "";
-  function msg(t, good){ edMsg.textContent = t; edMsg.hidden = !t; edMsg.className = "dev-err" + (good ? " good" : ""); }
+  /* визуальный редактор прайса */
   function getTok(){ try{ return localStorage.getItem("napivo-gh") || ""; }catch(e){ return ""; } }
-  function tokUi(){ var has = !!getTok(); ed.box.querySelector("#edTokBox").hidden = has; ed.box.querySelector("#edForget").hidden = !has; }
-  ed.onBackdrop = function(){ return !dirty; };
-  edText.addEventListener("input", function(){ dirty = edText.value !== orig; });
-  async function openEditor(){
-    dev.set(false); ed.set(true); msg(""); tokUi(); dirty = false;
-    edText.disabled = true; edText.value = "Загрузка…";
-    try{
-      var r = await fetch("prices.js?x=" + Date.now(), {cache:"no-store"});
-      var txt = await r.text();
-      var m = txt.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/);
-      if(!m) throw new Error("format");
-      orig = m[1].replace(/^\n/,"").replace(/\s+$/,"");
-      edText.value = orig; edText.disabled = false;
-    }catch(e){ edText.value = ""; msg("Не удалось загрузить прайс. Обновите страницу и попробуйте снова."); }
-  }
   function b64(s){ return btoa(unescape(encodeURIComponent(s))); }
-  var saving = false;
-  async function saveEd(){
-    if(saving || edText.disabled) return;
-    var text = edText.value.replace(/\r\n/g,"\n").replace(/\s+$/,"");
-    if(!text){ msg("Прайс не может быть пустым."); return; }
-    if(/[`\\]|\$\{/.test(text)){ msg("Уберите из текста символы ` \\ и ${ : они ломают файл."); return; }
-    var tok = getTok() || ed.box.querySelector("#edTok").value.trim();
-    if(!tok){ msg("Вставьте токен GitHub."); return; }
-    saving = true; msg("Сохраняю…", true);
-    try{
-      var api = "https://api.github.com/repos/" + REPO + "/contents/prices.js";
-      var cur = await fetch(api + "?ref=main&x=" + Date.now(), {headers:{Accept:"application/vnd.github+json"}});
-      if(!cur.ok) throw new Error("sha " + cur.status);
-      var sha = (await cur.json()).sha;
-      var body = {message:"Правка прайса с сайта", content:b64("window.PRICE_TEXT = `\n" + text + "\n`;\n"), sha:sha, branch:"main"};
-      var res = await fetch(api, {method:"PUT", headers:{Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, body:JSON.stringify(body)});
-      if(res.ok){
-        try{ localStorage.setItem("napivo-gh", tok); }catch(e){}
-        orig = text; dirty = false; ed.set(false); say("Сохранено. Сайт обновится через минуту");
-      } else if(res.status === 401 || res.status === 403 || res.status === 404){
-        msg("GitHub не принял токен. Нужен доступ к NaPivo: Contents → Read and write.");
-        try{ localStorage.removeItem("napivo-gh"); }catch(e){} tokUi();
-      } else if(res.status === 409 || res.status === 422){
-        msg("Файл на сайте уже изменился. Закройте редактор и откройте его заново.");
-      } else { msg("Не удалось сохранить (ошибка " + res.status + ")."); }
-    }catch(e){ msg("Нет связи с GitHub. Проверьте интернет и попробуйте снова."); }
-    saving = false;
+  function clean(v){ return String(v||"").replace(/[`\\]/g,"").replace(/\$\{/g,"").replace(/\|/g,"/").replace(/·/g,"-").replace(/\s+/g," ").trim(); }
+  function pop(html, mid){
+    var back = document.createElement("div"); back.className = "sheet-back" + (mid ? " mid" : ""); back.innerHTML = '<div class="sheet" role="dialog" aria-modal="true">' + html + '</div>';
+    document.body.appendChild(back);
+    var box = back.firstChild;
+    if(!rm && box.animate){ back.animate([{opacity:0},{opacity:1}],{duration:160}); box.animate([{transform:mid?"scale(.95)":"translateY(40px)",opacity:.4},{transform:"none",opacity:1}],{duration:220,easing:"cubic-bezier(.2,.8,.2,1)"}); }
+    return {back:back, box:box, close:function(){ if(back.parentNode) back.parentNode.removeChild(back); }};
   }
-  ed.box.addEventListener("click", function(e){
-    var t = e.target;
-    if((t.getAttribute && t.getAttribute("data-close")) || t.id === "edClose"){ if(!dirty || edText.disabled || confirmClose()) ed.set(false); return; }
-    if(t.id === "edSave") saveEd();
-    if(t.id === "edForget"){ try{ localStorage.removeItem("napivo-gh"); }catch(err){} tokUi(); msg("Токен удалён из этого браузера.", true); }
+  function sheet(title, btns, mid){
+    return new Promise(function(res){
+      var p = pop('<p>' + esc(title) + '</p>' + btns.map(function(b,i){ return '<button type="button" class="sb' + (b.d ? ' dan' : '') + (b.p ? ' pri' : '') + '" data-i="' + i + '">' + esc(b.t) + '</button>'; }).join(""), mid);
+      p.back.addEventListener("click", function(e){
+        var i = e.target.getAttribute && e.target.getAttribute("data-i");
+        if(i !== null && i !== undefined){ p.close(); res(+i); } else if(e.target === p.back){ p.close(); res(-1); }
+      });
+    });
+  }
+  function confirmDel(text){ return sheet(text, [{t:"Да, удалить", d:1},{t:"Отмена"}], true).then(function(i){ return i === 0; }); }
+  function form(title, fields, ok){
+    return new Promise(function(res){
+      var p = pop('<p>' + esc(title) + '</p>' + fields.map(function(f,i){ return '<label class="dev-l" for="fm' + i + '">' + esc(f.l) + '</label><input id="fm' + i + '" class="dev-in" type="' + (f.type || "text") + '" autocomplete="off" spellcheck="false" placeholder="' + esc(f.ph || "") + '" value="' + esc(f.v || "") + '">'; }).join("") + '<button type="button" class="sb pri" data-ok="1">' + esc(ok || "Готово") + '</button><button type="button" class="sb" data-no="1">Отмена</button>', true);
+      var ins = p.box.querySelectorAll("input"); if(ins[0]) setTimeout(function(){ ins[0].focus(); ins[0].select(); }, 30);
+      function done(){ var o = {}; fields.forEach(function(f,i){ o[f.k] = ins[i].value; }); p.close(); res(o); }
+      p.back.addEventListener("click", function(e){
+        if(e.target.getAttribute("data-ok")) done();
+        else if(e.target.getAttribute("data-no") || e.target === p.back){ p.close(); res(null); }
+      });
+      p.box.addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); done(); } else if(e.key === "Escape"){ p.close(); res(null); } });
+    });
+  }
+  var fileIn = document.createElement("input"); fileIn.type = "file"; fileIn.accept = "image/*"; fileIn.hidden = true; document.body.appendChild(fileIn);
+  function pickFile(){ return new Promise(function(res){ fileIn.value = ""; fileIn.onchange = function(){ res(fileIn.files && fileIn.files[0] || null); }; fileIn.click(); }); }
+  function toJpeg(file){
+    return new Promise(function(res, rej){
+      var u = URL.createObjectURL(file), im = new Image();
+      im.onload = function(){
+        var s = Math.min(im.width, im.height), c = document.createElement("canvas"), x;
+        c.width = c.height = 440; x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0,0,440,440);
+        x.drawImage(im, (im.width - s)/2, (im.height - s)/2, s, s, 0, 0, 440, 440);
+        URL.revokeObjectURL(u); res(c.toDataURL("image/jpeg", .85));
+      };
+      im.onerror = function(){ URL.revokeObjectURL(u); rej(new Error("img")); };
+      im.src = u;
+    });
+  }
+  function setImage(it, file){
+    return toJpeg(file).then(function(data){
+      var name = "u" + Date.now().toString(36) + ".jpg";
+      PREV[name] = data; EDIT.imgs[name] = data;
+      EDIT.log.push((it.img ? "Заменено изображение: " : "Добавлено изображение: ") + it.n);
+      it.img = name; render();
+    }, function(){ say("Не удалось прочитать картинку"); });
+  }
+  function ctx(el){
+    var card = el.closest("article.card"); if(!card) return null;
+    var gi = +card.getAttribute("data-gi"), ii = +card.getAttribute("data-ii"), g = DATA[gi], it = g && g.items[ii];
+    var li = el.closest("li[data-e]");
+    return it ? {g:g, it:it, j: li ? +li.getAttribute("data-j") : -1, li:li, card:card} : null;
+  }
+  function fade(el){ return new Promise(function(res){ if(rm || !el || !el.animate) return res(); var a = el.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateX(18px)"}],{duration:170,fill:"forwards"}); a.onfinish = res; setTimeout(res, 260); }); }
+  async function onFlavor(c){
+    var f = c.it.f[c.j], parts = f.split(" · "), name = parts[0], qty = parts[1] || "", rv = qty.toLowerCase() === "бронь";
+    var i = await sheet(c.it.n + " — " + name, [{t:"Редактировать"},{t: rv ? "Снять бронь" : "Отметить как забронированный"},{t:"Удалить", d:1}]);
+    if(i === 0){
+      var o = await form("Вкус", [{k:"n", l:"Название вкуса", v:name},{k:"q", l:"Пометка (например: 2 шт; необязательно)", v: rv ? "" : qty, ph:"2 шт"}], "Сохранить");
+      if(!o) return;
+      var nn = clean(o.n); if(!nn){ say("Название не может быть пустым"); return; }
+      var nq = rv ? "бронь" : clean(o.q);
+      c.it.f[c.j] = nn + (nq ? " · " + nq : "");
+      if(nn !== name) EDIT.log.push("Вкус переименован: " + c.it.n + " — " + name + " → " + nn);
+      if(!rv && nq !== qty) EDIT.log.push("Изменено количество: " + c.it.n + " — " + nn + (nq ? " (" + nq + ")" : " (без пометки)"));
+      render();
+    } else if(i === 1){
+      if(rv){ c.it.f[c.j] = name; EDIT.log.push("Снята бронь: " + c.it.n + " — " + name); }
+      else { c.it.f[c.j] = name + " · бронь"; EDIT.log.push("Забронирован: " + c.it.n + " — " + name); }
+      render();
+    } else if(i === 2){
+      if(!(await confirmDel("Удалить вкус «" + name + "» из линейки «" + c.it.n + "»?"))) return;
+      await fade(c.li);
+      c.it.f.splice(c.j, 1); EDIT.log.push("Удалён вкус: " + c.it.n + " — " + name); render();
+    }
+  }
+  async function onPic(c, el){
+    if(!c.it.img){ var f0 = await pickFile(); if(f0) await setImage(c.it, f0); return; }
+    var i = await sheet("Изображение: " + c.it.n, [{t:"Заменить"},{t:"Удалить", d:1}]);
+    if(i === 0){ var f = await pickFile(); if(f) await setImage(c.it, f); }
+    else if(i === 1){
+      if(!(await confirmDel("Удалить изображение линейки «" + c.it.n + "»?"))) return;
+      await fade(el); c.it.img = ""; EDIT.log.push("Удалено изображение: " + c.it.n); render();
+    }
+  }
+  async function onLine(c){
+    var i = await sheet("Линейка «" + c.it.n + "»", [{t:"Редактировать"},{t:"Удалить линейку", d:1}]);
+    if(i === 0){
+      var o = await form("Линейка", [{k:"n", l:"Название", v:c.it.n},{k:"s", l:"Крепость (пусто, если не нужна)", v:String(c.it.s || "")},{k:"p", l:"Цена", v:c.it.p}], "Сохранить");
+      if(!o) return;
+      var nn = clean(o.n); if(!nn){ say("Название не может быть пустым"); return; }
+      var ns = parseInt(o.s, 10) || 0, np = clean(o.p);
+      if(nn !== c.it.n) EDIT.log.push("Линейка переименована: " + c.it.n + " → " + nn);
+      if(np !== c.it.p) EDIT.log.push("Цена изменена: " + nn + " — " + c.it.p + " → " + np);
+      if(ns !== c.it.s) EDIT.log.push("Крепость изменена: " + nn + " — " + (c.it.s || "-") + " → " + (ns || "-"));
+      c.it.n = nn; c.it.s = ns; c.it.p = np; render();
+    } else if(i === 1){
+      if(!(await confirmDel("Удалить линейку «" + c.it.n + "» вместе со всеми вкусами (" + c.it.f.length + ")?"))) return;
+      await fade(c.card);
+      c.g.items.splice(c.g.items.indexOf(c.it), 1); EDIT.log.push("Удалена линейка: " + c.it.n); render();
+    }
+  }
+  var mainEl = document.getElementById("main"), busy = false;
+  mainEl.addEventListener("click", async function(e){
+    if(!EDIT || busy) return;
+    var t = e.target.closest && e.target.closest("[data-e]"); if(!t) return;
+    var c = ctx(t); if(!c) return;
+    var k = t.getAttribute("data-e");
+    busy = true;
+    try{
+      if(k === "fl" && c.j >= 0) await onFlavor(c);
+      else if(k === "pic") await onPic(c, t);
+      else if(k === "line") await onLine(c);
+    }finally{ busy = false; }
   });
-  function confirmClose(){ if(!ed.box._warn){ ed.box._warn = true; msg("Есть несохранённые правки. Нажмите «Закрыть» ещё раз, чтобы выйти без сохранения."); setTimeout(function(){ ed.box._warn = false; }, 4000); return false; } ed.box._warn = false; return true; }
+  mainEl.addEventListener("beforeinput", function(e){ if(EDIT && e.target.closest && e.target.closest(".nopic")) e.preventDefault(); });
+  mainEl.addEventListener("paste", function(e){
+    if(!EDIT) return;
+    var t = e.target.closest && e.target.closest(".nopic"); if(!t) return;
+    e.preventDefault();
+    var c = ctx(t), items = (e.clipboardData && e.clipboardData.items) || [], file = null;
+    for(var i = 0; i < items.length; i++){ if(items[i].type.indexOf("image/") === 0){ file = items[i].getAsFile(); break; } }
+    if(c && file) setImage(c.it, file); else say("В буфере нет картинки");
+  });
 
-  /* журнал изменений */
+  var bar = $("editbar");
+  async function startEdit(){
+    dev.set(false); say("Загружаю прайс…");
+    var text = "", sha = "";
+    try{
+      var r = await fetch("https://api.github.com/repos/" + REPO + "/contents/prices.js?ref=main&x=" + Date.now(), {headers:{Accept:"application/vnd.github+json"}});
+      if(!r.ok) throw new Error("api");
+      var j = await r.json(); sha = j.sha; text = decodeURIComponent(escape(atob(String(j.content).replace(/\s/g,""))));
+    }catch(e){
+      try{ text = await (await fetch("prices.js?x=" + Date.now(), {cache:"no-store"})).text(); }catch(e2){}
+    }
+    var m = text.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/);
+    if(!m){ say("Не удалось загрузить прайс. Попробуйте позже"); return; }
+    var P = parsePrice(m[1].replace(/^\n/,""));
+    EDIT = {log:[], imgs:{}, sha:sha, back:{d:DATA, p:PRE, g:state.sec, q:state.q}};
+    DATA = P.data; PRE = P.pre; state.sec = "all"; state.q = ""; document.getElementById("q").value = "";
+    document.body.classList.add("editing"); bar.hidden = false; render(); window.scrollTo(0, 0);
+    say("Нажимайте на вкус, картинку или название линейки", 3200);
+  }
+  function leave(restore){
+    if(restore && EDIT){ DATA = EDIT.back.d; PRE = EDIT.back.p; }
+    EDIT = null; document.body.classList.remove("editing"); bar.hidden = true;
+    state.sec = "all"; render(); if(window.rebuildLook) window.rebuildLook();
+  }
+  $("ebCancel").addEventListener("click", async function(){
+    if(EDIT.log.length){ var i = await sheet("Выйти без сохранения? Все правки пропадут.", [{t:"Выйти без сохранения", d:1},{t:"Продолжить редактирование"}], true); if(i !== 0) return; }
+    leave(true);
+  });
+  var saving = false;
+  $("ebSave").addEventListener("click", async function(){
+    if(saving) return;
+    if(!EDIT.log.length){ leave(true); say("Изменений нет"); return; }
+    var tok = getTok();
+    if(!tok){
+      var o = await form("Токен GitHub (нужен один раз, хранится только в этом браузере)", [{k:"t", l:"Токен", type:"password", ph:"github_pat_…"}], "Сохранить");
+      if(!o || !o.t.trim()) return; tok = o.t.trim();
+    }
+    saving = true; say("Сохраняю…", 6000);
+    var H = {Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, base = "https://api.github.com/repos/" + REPO + "/contents/";
+    try{
+      var sha = EDIT.sha;
+      if(!sha){ var cur = await fetch(base + "prices.js?ref=main&x=" + Date.now(), {headers:{Accept:"application/vnd.github+json"}}); if(!cur.ok) throw new Error("sha"); sha = (await cur.json()).sha; }
+      var used = Object.keys(EDIT.imgs).filter(function(n){ return DATA.some(function(g){ return g.items.some(function(it){ return it.img === n; }); }); });
+      for(var i = 0; i < used.length; i++){
+        var ri = await fetch(base + "img/" + used[i], {method:"PUT", headers:H, body:JSON.stringify({message:"Фото для прайса", content:EDIT.imgs[used[i]].split(",")[1], branch:"main"})});
+        if(!ri.ok) throw {status:ri.status};
+      }
+      var msg = "Правка прайса: " + EDIT.log.length + " изм.\n\n" + EDIT.log.join("\n");
+      var res = await fetch(base + "prices.js", {method:"PUT", headers:H, body:JSON.stringify({message:msg, content:b64("window.PRICE_TEXT = `\n" + serialize() + "\n`;\n"), sha:sha, branch:"main"})});
+      if(!res.ok) throw {status:res.status};
+      try{ localStorage.setItem("napivo-gh", tok); }catch(e){}
+      leave(false); say("Сохранено. На сайте обновится через минуту", 3200);
+    }catch(e){
+      var st = e && e.status;
+      if(st === 401 || st === 403 || st === 404){ try{ localStorage.removeItem("napivo-gh"); }catch(x){} say("GitHub не принял токен. Нужен доступ Contents → Read and write", 4500); }
+      else if(st === 409 || st === 422){ say("Прайс на сайте уже изменился. Отмените и откройте редактор заново", 4500); }
+      else say("Не удалось сохранить. Проверьте интернет и попробуйте снова", 3500);
+    }
+    saving = false;
+  });
+  window.addEventListener("beforeunload", function(e){ if(EDIT && EDIT.log.length){ e.preventDefault(); e.returnValue = ""; } });
+
+  /* журнал изменений: только правки прайса */
   var lg = overlay('<div class="dev adm" role="dialog" aria-modal="true" aria-label="Журнал изменений"><div class="dev-h"><h2>Журнал изменений</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div><div id="lgBody" class="lg"></div></div>');
+  lg.onClose = function(){ drawMenu(); dev.set(true); };
   lg.box.addEventListener("click", function(e){ if(e.target.getAttribute && e.target.getAttribute("data-close")) lg.set(false); });
   async function openLog(){
     dev.set(false); lg.set(true);
     var body = lg.box.querySelector("#lgBody"); body.textContent = "Загрузка…";
     try{
-      var r = await fetch("https://api.github.com/repos/" + REPO + "/commits?per_page=25", {headers:{Accept:"application/vnd.github+json"}});
+      var r = await fetch("https://api.github.com/repos/" + REPO + "/commits?path=prices.js&per_page=40", {headers:{Accept:"application/vnd.github+json"}});
       if(!r.ok) throw new Error(r.status);
       var list = await r.json();
       body.innerHTML = list.map(function(c){
-        var d = new Date(c.commit.author.date), line = String(c.commit.message).split("\n")[0];
+        var d = new Date(c.commit.author.date);
+        var ls = String(c.commit.message).split("\n").map(function(x){ return x.trim(); }).filter(function(x){ return x && !/^(Co-Authored-By|Claude-Session):/i.test(x); });
+        if(ls.length > 1 && /^Правка прайса/.test(ls[0])) ls.shift();
+        if(!ls.length) return "";
         var ds = d.toLocaleDateString("ru-RU",{day:"numeric",month:"long"}) + ", " + d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
-        return '<div class="lg-i"><span class="lg-d">' + ds + '</span><span class="lg-m">' + line.replace(/[&<>"]/g,function(ch){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]; }) + '</span></div>';
+        return '<div class="lg-i"><span class="lg-d">' + ds + '</span><span class="lg-m">' + ls.map(esc).join("<br>") + '</span></div>';
       }).join("") || "Пока пусто.";
     }catch(e){ body.textContent = "Не удалось загрузить журнал. Попробуйте позже."; }
   }
