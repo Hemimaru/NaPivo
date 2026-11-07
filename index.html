@@ -1015,12 +1015,29 @@ chips(); render();
     return Array.prototype.map.call(new Uint8Array(bits), function(b){ return b.toString(16).padStart(2,"0"); }).join("");
   }
   var checking = false;
+  var fails = 0, lockUntil = 0, lastPick = "";
+  var WRONG = ["ну да, почти","Нет","Холодно","Ещё холоднее","Тепло... нет, показалось","Почти, но нет","Мимо","Не угадали","Нет-нет-нет","Ключ другой","Увы","Попробуйте ещё раз","Это не он","Далеко от истины","Близко... к чему-то другому","Хорошая попытка","Не тот ключ","Лучше вставлять, а не вспоминать","Сейф не открылся","Почти попали, но нет","Ключ не подошёл к замку","Замок задумался и отказал","Не-а","Ну нет же"];
+  var ENOUGH = ["Может, хватит?","Это уже не смешно","Вы точно тот, за кого себя выдаёте?","Попытки закончатся раньше, чем пиво","Я начинаю нервничать","Ключ не станет подходящим от количества попыток","Так он не подбирается","Давайте сделаем паузу","Подбор ключа — не ваш конёк","Замок вас уже запомнил"];
+  var EMPTY = ["Сначала введите ключ","Поле пустое","Ключ сам себя не впишет","Тут ничего нет","Пустота ключ не открывает"];
+  function pick(a){ var x, g = 0; do { x = a[Math.floor(Math.random() * a.length)]; } while(x === lastPick && a.length > 1 && ++g < 12); lastPick = x; return x; }
+  var EGGS = {
+    "пиво":"Пиво в другой вкладке", "на пиво":"Пиво в другой вкладке",
+    "привет":"Привет! Но это не ключ", "здравствуйте":"Здравствуйте! Но это не ключ", "hello":"Hello! Но это не ключ", "hi":"Hi! Но это не ключ",
+    "пароль":"Слово «пароль» не пароль", "password":"Слово «password» не пароль", "ключ":"Слово «ключ» не ключ", "key":"Слово «key» не ключ",
+    "123456":"Серьёзно? Нет", "12345":"Серьёзно? Нет", "1234":"Серьёзно? Нет", "123":"Серьёзно? Нет", "qwerty":"Серьёзно? Нет", "admin":"Серьёзно? Нет", "admin123":"Серьёзно? Нет", "000000":"Серьёзно? Нет",
+    "кошачий гарем":"Хозяин, вы? Ключ нужен всё равно", "жидкость":"Жидкость в прайсе, а не здесь", "вейп":"Вейп в прайсе, а не здесь",
+    "спасибо":"Пожалуйста, но это не ключ", "пожалуйста":"Хорошо, но ключ нужен", "помогите":"Тут не помогут. Нужен ключ"
+  };
+  function eggFor(v){
+    var t = String(v).toLowerCase().replace(/ё/g,"е").replace(/[^a-zа-я0-9\s]/g," ").replace(/\s+/g," ").trim();
+    return Object.prototype.hasOwnProperty.call(EGGS, t) ? EGGS[t] : null;
+  }
   var rudeEl = null, rudeT = 0;
-  function rudeNote(inp){
+  function rudeNote(inp, text){
     if(rudeEl && rudeEl.parentNode) rudeEl.parentNode.removeChild(rudeEl);
     clearTimeout(rudeT);
     var r = inp.getBoundingClientRect(), el = document.createElement("div");
-    el.className = "rude"; el.textContent = "Сам иди нахуй! 🖕";
+    el.className = "rude"; el.textContent = text || "Сам иди нахуй! 🖕";
     el.style.cssText = "top:" + Math.round(r.bottom + 6) + "px;left:" + Math.round(r.left) + "px;width:" + Math.round(r.width) + "px";
     document.body.appendChild(el); rudeEl = el;
     if(!rm && el.animate) el.animate([{opacity:0,transform:"translateY(-6px)"},{opacity:1,transform:"none"}],{duration:200,easing:"ease-out"});
@@ -1040,7 +1057,10 @@ chips(); render();
     if(checking) return;
     var inp = $("devKey"), err = $("devErr"), val = inp.value.trim();
     err.hidden = true;
-    if(!val){ return; }
+    if(Date.now() < lockUntil) return;
+    if(!val){ err.textContent = pick(EMPTY); err.hidden = false; shake(inp); inp.focus(); return; }
+    var egg = eggFor(val);
+    if(egg){ inp.value = ""; rudeNote(inp, egg); inp.focus(); return; }
     if(rude(val)){
       inp.value = "";
       rudeNote(inp); inp.focus();
@@ -1053,9 +1073,23 @@ chips(); render();
     checking = false;
     if(ok){
       isAdmin = true; try{ sessionStorage.setItem("napivo-admin","1"); }catch(e){}
-      say("Права получены"); drawMenu(true);
+      fails = 0; say("Права получены"); drawMenu(true);
     } else {
-      err.textContent = "ну да, почти"; err.hidden = false; inp.value = ""; shake(inp); inp.focus();
+      fails++; inp.value = "";
+      if(fails >= 5){
+        fails = 0; lockUntil = Date.now() + 6000;
+        var goBtn = $("devGo"); inp.disabled = true; if(goBtn) goBtn.disabled = true;
+        var left = 6; err.textContent = "Подождите " + left + "…"; err.hidden = false; shake(inp);
+        var iv = setInterval(function(){
+          left--;
+          if(left <= 0 || !document.body.contains(inp)){
+            clearInterval(iv); inp.disabled = false; if(goBtn) goBtn.disabled = false; err.hidden = true;
+            if(document.body.contains(inp)) inp.focus();
+          } else err.textContent = "Подождите " + left + "…";
+        }, 1000);
+        return;
+      }
+      err.textContent = pick(fails >= 3 ? ENOUGH : WRONG); err.hidden = false; shake(inp); inp.focus();
     }
   }
   dev.box.addEventListener("click", function(e){
