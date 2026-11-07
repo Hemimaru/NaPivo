@@ -894,6 +894,23 @@ chips(); render();
       it.img = name; render();
     }, function(){ say("Не удалось прочитать картинку"); });
   }
+  function gtitle(g){ return g.raw.replace(/^#\s*/,"").split("|")[0].replace(/\*/g,"").trim(); }
+  function fixup(){
+    DATA.forEach(function(g){ if(g.liq) g.items = g.items.filter(function(it){ if(it.f.length) return true; EDIT.log.push("Вкусы закончились, линейка удалена: " + it.n); return false; }); });
+    DATA = DATA.filter(function(g){ if(g.items.length) return true; EDIT.log.push("Раздел опустел и удалён: " + gtitle(g)); return false; });
+    var n = 0; DATA.forEach(function(g, i){ g.id = "s" + i; g.items.forEach(function(x){ x.g = g; x.id = n++; }); });
+  }
+  function focusItem(it){
+    var cards = document.querySelectorAll("article.card");
+    for(var z = 0; z < cards.length; z++){
+      var g = DATA[+cards[z].getAttribute("data-gi")];
+      if(g && g.items[+cards[z].getAttribute("data-ii")] === it){
+        cards[z].scrollIntoView({block:"center", behavior:"smooth"});
+        if(!rm && cards[z].animate) cards[z].animate([{boxShadow:"0 0 0 3px var(--accent)"},{boxShadow:"0 0 0 0 transparent"}],{duration:1200});
+        break;
+      }
+    }
+  }
   function ctx(el){
     var card = el.closest("article.card"); if(!card) return null;
     var gi = +card.getAttribute("data-gi"), ii = +card.getAttribute("data-ii"), g = DATA[gi], it = g && g.items[ii];
@@ -920,7 +937,7 @@ chips(); render();
     } else if(i === 2){
       if(!(await confirmDel("Удалить вкус «" + name + "» из линейки «" + c.it.n + "»?"))) return;
       await fade(c.li);
-      c.it.f.splice(c.j, 1); EDIT.log.push("Удалён вкус: " + c.it.n + " — " + name); render();
+      c.it.f.splice(c.j, 1); EDIT.log.push("Удалён вкус: " + c.it.n + " — " + name); fixup(); render();
     }
   }
   async function onPic(c, el){
@@ -939,28 +956,38 @@ chips(); render();
       if(!o) return;
       var nn = clean(o.n); if(!nn){ say("Название не может быть пустым"); return; }
       var ns = parseInt(o.s, 10) || 0, np = clean(o.p), o0p = c.it.p;
-      if(nn !== c.it.n) EDIT.log.push("Линейка переименована: " + c.it.n + " → " + nn);
-      if(np !== c.it.p) EDIT.log.push("Цена изменена: " + nn + " — " + c.it.p + " → " + np);
-      if(ns !== c.it.s) EDIT.log.push("Крепость изменена: " + nn + " — " + (c.it.s || "-") + " → " + (ns || "-"));
+      var oldN = c.it.n, oldP = c.it.p, oldS = c.it.s;
       c.it.n = nn; c.it.s = ns; c.it.p = np;
-      var moved = null;
-      if(c.g.liq && np !== o0p){
-        var tg = DATA.filter(function(g){ if(!g.liq) return false; var m = g.raw.match(/\*(\d+)\*/); return m && m[1] === np.replace(/\D/g,""); })[0];
-        if(tg && tg !== c.g){
-          c.g.items.splice(c.g.items.indexOf(c.it), 1);
-          var pos = tg.items.length;
-          for(var q = 0; q < tg.items.length; q++){ if((tg.items[q].s || 0) > ns){ pos = q; break; } }
-          tg.items.splice(pos, 0, c.it); c.it.g = tg; moved = tg;
-          EDIT.log.push("Линейка перенесена: " + nn + " → " + tg.raw.replace(/^#\s*/,"").split("|")[0].replace(/\*/g,"").trim());
+      if(nn !== oldN) EDIT.log.push("Линейка переименована: " + oldN + " → " + nn);
+      if(ns !== oldS) EDIT.log.push("Крепость изменена: " + nn + " — " + (oldS || "-") + " → " + (ns || "-"));
+      var moved = null, note = "";
+      if(np !== oldP && c.g.liq){
+        var num = np.replace(/\D/g, "");
+        if(num){
+          var tg = DATA.filter(function(g){ if(!g.liq) return false; var m = g.raw.match(/\*(\d+)\*/); return m && m[1] === num; })[0];
+          if(!tg){
+            tg = {id:"", raw:"# Жидкости за *" + num + "* | За " + num, head:"Жидкости за <b>" + num + "</b>", menu:"За " + num, liq:true, items:[]};
+            var at = -1;
+            DATA.forEach(function(g, k){ if(!g.liq) return; var m = g.raw.match(/\*(\d+)\*/); if(m && +m[1] < +num) at = k; });
+            if(at < 0){ DATA.forEach(function(g, k){ if(g.liq && at < 0) at = k - 1; }); }
+            DATA.splice(at + 1, 0, tg);
+            note = "создан раздел «Жидкости за " + num + "»";
+          } else if(tg !== c.g){ note = "перенесена в «Жидкости за " + num + "»"; }
+          if(tg !== c.g){
+            c.g.items.splice(c.g.items.indexOf(c.it), 1);
+            var pos = tg.items.length;
+            for(var q = 0; q < tg.items.length; q++){ if((tg.items[q].s || 0) > ns){ pos = q; break; } }
+            tg.items.splice(pos, 0, c.it); c.it.g = tg; moved = tg;
+          }
         }
       }
-      var n = 0; DATA.forEach(function(g){ g.items.forEach(function(x){ x.id = n++; }); });
-      render();
-      if(moved){ say("Перенесено: " + moved.menu); var el = document.querySelectorAll("article.card")[0]; DATA.forEach(function(g){}); var cards = document.querySelectorAll("article.card"); for(var z = 0; z < cards.length; z++){ if(DATA[+cards[z].getAttribute("data-gi")].items[+cards[z].getAttribute("data-ii")] === c.it){ cards[z].scrollIntoView({block:"center", behavior:"smooth"}); if(!rm && cards[z].animate) cards[z].animate([{boxShadow:"0 0 0 3px var(--accent)"},{boxShadow:"0 0 0 0 transparent"}],{duration:1200}); break; } } }
+      if(np !== oldP) EDIT.log.push("Цена изменена: " + nn + " — " + oldP + " → " + np + (note ? " (" + note + ")" : ""));
+      fixup(); render();
+      if(moved){ say(note.charAt(0).toUpperCase() + note.slice(1)); focusItem(c.it); }
     } else if(i === 1){
       if(!(await confirmDel("Удалить линейку «" + c.it.n + "» вместе со всеми вкусами (" + c.it.f.length + ")?"))) return;
       await fade(c.card);
-      c.g.items.splice(c.g.items.indexOf(c.it), 1); EDIT.log.push("Удалена линейка: " + c.it.n); render();
+      c.g.items.splice(c.g.items.indexOf(c.it), 1); EDIT.log.push("Удалена линейка: " + c.it.n); fixup(); render();
     }
   }
   var mainEl = document.getElementById("main"), busy = false;
@@ -1011,7 +1038,8 @@ chips(); render();
       an.forEach(function(x){ try{ x.cancel(); }catch(e){} });
       if(restore && EDIT){ DATA = EDIT.back.d; PRE = EDIT.back.p; }
       EDIT = null; document.body.classList.remove("editing"); bar.hidden = true;
-      state.sec = "all"; render(); if(window.rebuildLook) window.rebuildLook();
+      state.sec = "all"; MENU = [["all","Всё"]].concat(DATA.map(function(g){ return [g.id, g.menu]; })); chips();
+      render(); if(window.rebuildLook) window.rebuildLook();
       window.scrollTo(0, 0);
       if(!rm && mainEl.animate) mainEl.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:320,easing:"ease-out"});
     };
