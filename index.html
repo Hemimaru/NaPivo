@@ -1386,6 +1386,7 @@ chips(); render();
     });
   }, {rootMargin:"0px 0px -6% 0px"}) : null;
   window.revealCards = function(){
+    return; /* появление карточек при прокрутке отключено */
     if(!io || rm || EDIT) return;
     Array.prototype.forEach.call(document.querySelectorAll("#main article.card"), function(c){
       if(c.getBoundingClientRect().top > window.innerHeight * .9){ c.style.opacity = "0"; io.observe(c); }
