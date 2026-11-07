@@ -751,12 +751,18 @@ chips(); render();
   var dev = overlay('<div class="dev" role="dialog" aria-modal="true" aria-label="Меню разработчика"><div class="dev-h"><h2>Меню разработчика</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div><div id="devBody"></div></div>');
   var devBody = dev.box.querySelector("#devBody");
   var devView = "menu";
+  function swapAnim(){
+    if(rm || !devBody.animate) return;
+    devBody.animate([{opacity:0,transform:"translateX(14px)"},{opacity:1,transform:"none"}],{duration:240,easing:"cubic-bezier(.2,.8,.2,1)"});
+    Array.prototype.forEach.call(devBody.querySelectorAll(".mi"), function(m,i){ m.animate([{opacity:0,transform:"translateY(8px)"},{opacity:1,transform:"none"}],{duration:260,delay:50+i*55,easing:"ease-out",fill:"backwards"}); });
+  }
   function drawMenu(){
     devView = "menu";
     devBody.innerHTML =
       '<button class="mi" type="button" data-act="edit">Редактировать прайс</button>'+
       '<button class="mi" type="button" data-act="log">Журнал изменений</button>'+
       '<button class="mi" type="button" data-act="admin">Права администратора'+(isAdmin?' ✓':'')+'</button>';
+    swapAnim();
   }
   function drawKey(){
     devView = "key";
@@ -765,7 +771,7 @@ chips(); render();
       '<input id="devKey" class="dev-in" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Вставьте ключ">'+
       '<p class="dev-err" id="devErr" hidden></p>'+
       '<div class="dev-row"><button class="dev-btn" id="devGo" type="button">Войти</button><button class="dev-btn ghost" id="devBackBtn" type="button">Назад</button></div>';
-    $("devKey").focus();
+    swapAnim(); $("devKey").focus();
   }
   async function hashKey(k){
     var enc = new TextEncoder();
@@ -812,7 +818,15 @@ chips(); render();
     document.body.appendChild(back);
     var box = back.firstChild;
     if(!rm && box.animate){ back.animate([{opacity:0},{opacity:1}],{duration:160}); box.animate([{transform:mid?"scale(.95)":"translateY(40px)",opacity:.4},{transform:"none",opacity:1}],{duration:220,easing:"cubic-bezier(.2,.8,.2,1)"}); }
-    return {back:back, box:box, close:function(){ if(back.parentNode) back.parentNode.removeChild(back); }};
+    return {back:back, box:box, close:function(){
+      if(!back.parentNode) return;
+      if(rm || !box.animate){ back.parentNode.removeChild(back); return; }
+      back.style.pointerEvents = "none";
+      var a = box.animate([{transform:"none",opacity:1},{transform:mid?"scale(.95)":"translateY(40px)",opacity:0}],{duration:160,easing:"ease-in",fill:"forwards"});
+      back.animate([{opacity:1},{opacity:0}],{duration:160,fill:"forwards"});
+      a.onfinish = function(){ if(back.parentNode) back.parentNode.removeChild(back); };
+      setTimeout(function(){ if(back.parentNode) back.parentNode.removeChild(back); }, 400);
+    }};
   }
   function sheet(title, btns, mid){
     return new Promise(function(res){
@@ -954,12 +968,23 @@ chips(); render();
     EDIT = {log:[], imgs:{}, sha:sha, back:{d:DATA, p:PRE, g:state.sec, q:state.q}};
     DATA = P.data; PRE = P.pre; state.sec = "all"; state.q = ""; document.getElementById("q").value = "";
     document.body.classList.add("editing"); bar.hidden = false; render(); window.scrollTo(0, 0);
+    if(!rm && bar.animate){ bar.animate([{transform:"translateY(-100%)"},{transform:"none"}],{duration:300,easing:"cubic-bezier(.2,.8,.2,1)"}); mainEl.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,easing:"ease-out"}); }
     say("Нажимайте на вкус, картинку или название линейки", 3200);
   }
   function leave(restore){
-    if(restore && EDIT){ DATA = EDIT.back.d; PRE = EDIT.back.p; }
-    EDIT = null; document.body.classList.remove("editing"); bar.hidden = true;
-    state.sec = "all"; render(); if(window.rebuildLook) window.rebuildLook();
+    var an = [], go = function(){
+      an.forEach(function(x){ try{ x.cancel(); }catch(e){} });
+      if(restore && EDIT){ DATA = EDIT.back.d; PRE = EDIT.back.p; }
+      EDIT = null; document.body.classList.remove("editing"); bar.hidden = true;
+      state.sec = "all"; render(); if(window.rebuildLook) window.rebuildLook();
+      window.scrollTo(0, 0);
+      if(!rm && mainEl.animate) mainEl.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:320,easing:"ease-out"});
+    };
+    if(rm || !bar.animate){ go(); return; }
+    an.push(bar.animate([{transform:"none"},{transform:"translateY(-100%)"}],{duration:220,easing:"ease-in",fill:"forwards"}));
+    var a = mainEl.animate([{opacity:1},{opacity:0}],{duration:220,fill:"forwards"}); an.push(a);
+    a.onfinish = function(){ go(); };
+    setTimeout(function(){ if(EDIT) go(); }, 600);
   }
   $("ebCancel").addEventListener("click", async function(){
     if(EDIT.log.length){ var i = await sheet("Выйти без сохранения? Все правки пропадут.", [{t:"Выйти без сохранения", d:1},{t:"Продолжить редактирование"}], true); if(i !== 0) return; }
