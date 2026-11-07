@@ -832,7 +832,7 @@ chips(); render();
     if(!val){ return; }
     if(rude(val)){
       inp.value = "";
-      sheet("Сам иди нахуй! 🖕", [{t:"Ок", p:1}], true).then(function(){ inp.focus(); });
+      say("Сам иди нахуй! 🖕", 4000); inp.focus();
       return;
     }
     if(!(window.crypto && crypto.subtle)){ err.textContent = "Проверка недоступна в этом браузере"; err.hidden = false; return; }
