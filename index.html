@@ -615,7 +615,7 @@ chips(); render();
     toast(done ? "Заказ скопирован. Вставьте его в чат" : "Не удалось скопировать. Заказ передан в ссылке");
     if(done) afterBuy();
   }
-  $("tgnote").textContent = "Заказ скопируется, и откроется чат в Telegram @"+CFG.telegram+". Вставьте текст в сообщение и отправьте.";
+  $("tgnote").textContent = "Заказ скопируется, и откроется чат в Telegram: Кошачий Гарем. Вставьте текст в сообщение и отправьте.";
   document.addEventListener("input",function(e){
     var i = e.target; if(!i.classList || !i.classList.contains("qin")) return;
     var k = i.getAttribute("data-k"), v = i.value.replace(/\D/g,"");
