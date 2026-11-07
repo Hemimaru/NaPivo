@@ -385,11 +385,9 @@ chips(); render();
   var listEl=$("cartList"), panel=$("cart"), back=$("cartBack"), buy=$("buy"), toastEl=$("toast"), tt;
   function save(){ try{ localStorage.setItem("napivo-cart", JSON.stringify(cart)); }catch(e){} }
   function count(){ return Object.keys(cart).reduce(function(a,k){ return a+cart[k]; },0); }
-  var curCode = null;
   function orderText(){
-    if(!curCode) curCode = String(10000 + Math.floor(Math.random()*90000));
     var lines = Object.keys(cart).map(function(k){ return LOOK[k].n+" — "+LOOK[k].f+(cart[k]>1 ? " × "+cart[k] : ""); });
-    return "Хочу купить:\n"+lines.join("\n")+"\n\nКод товара: "+curCode;
+    return "Хочу купить:\n"+lines.join("\n");
   }
   function toast(msg, ms){ toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(tt); tt = setTimeout(function(){ toastEl.hidden = true; }, ms || 2600); }
   window.toast = toast;
@@ -492,7 +490,7 @@ chips(); render();
     var items = listEl.querySelectorAll(".ci");
     function done(){
       Object.keys(cart).forEach(function(k){ shrink[k] = true; });
-      cart = {}; curCode = null; draw(); clearing = false;
+      cart = {}; draw(); clearing = false;
       var em = listEl.querySelector(".cart-empty");
       if(em && !reduce && em.animate) em.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:300,easing:"ease-out"});
     }
@@ -785,7 +783,7 @@ chips(); render();
     devBody.innerHTML =
       '<button class="mi" type="button" data-act="edit">Редактировать прайс</button>'+
       '<button class="mi" type="button" data-act="log">Журнал изменений</button>'+
-      '<button class="mi" type="button" data-act="code">Код товара</button>'+
+      '<button class="mi" type="button" data-act="code">Бронь заказа</button>'+
       '<button class="mi" type="button" data-act="admin">Права администратора'+(isAdmin?' ✓':'')+'</button>';
     swapAnim();
   }
@@ -1116,9 +1114,9 @@ chips(); render();
 
 
   /* код товара: бронь заказа по коду из сообщения покупателя */
-  var cd = overlay('<div class="dev adm" role="dialog" aria-modal="true" aria-label="Код товара"><div class="dev-h"><h2>Код товара</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div>'+
-    '<p class="dev-note">Вставьте код из сообщения покупателя. Первый раз лучше вставить сообщение целиком (со списком): жидкости из него отметятся бронью. Тот же код ещё раз снимает бронь.</p>'+
-    '<textarea id="cdText" class="ed cd" spellcheck="false" autocomplete="off" placeholder="Код товара: 12345"></textarea>'+
+  var cd = overlay('<div class="dev adm" role="dialog" aria-modal="true" aria-label="Бронь заказа"><div class="dev-h"><h2>Бронь заказа</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div>'+
+    '<p class="dev-note">Вставьте сообщение покупателя целиком: жидкости из него отметятся бронью. Если вставить то же сообщение ещё раз, бронь снимется.</p>'+
+    '<textarea id="cdText" class="ed cd" spellcheck="false" autocomplete="off" placeholder="Хочу купить:&#10;Линейка — Вкус"></textarea>'+
     '<p class="dev-err" id="cdMsg" hidden></p>'+
     '<div class="dev-row"><button class="dev-btn" id="cdGo" type="button">Применить</button><button class="dev-btn ghost" id="cdBack" type="button">Назад</button></div></div>');
   cd.onClose = function(){ drawMenu(); dev.set(true); };
@@ -1148,12 +1146,14 @@ chips(); render();
   }
   async function applyCode(){
     if(cdBusy) return;
-    var raw = cdText.value, cm = raw.match(/Код товара:\s*(\d{5})/i) || raw.trim().match(/^(\d{5})$/);
-    if(!cm){ cmsg("Не нашёл код из 5 цифр."); return; }
-    var code = cm[1], want = [];
+    var raw = cdText.value, want = [];
     raw.split(/\r?\n/).forEach(function(l){
       var m = l.trim().match(/^(.+?)\s+—\s+(.+?)(?:\s+×\s*(\d+))?$/); if(m) want.push({line:m[1], fl:m[2], n:parseInt(m[3], 10) || 1});
     });
+    if(!want.length){ cmsg("Не нашёл в тексте список жидкостей. Вставьте сообщение покупателя целиком."); return; }
+    var hs = want.map(function(w){ return norm(w.line) + "|" + norm(w.fl) + "|" + w.n; }).sort().join(";"), hv = 7;
+    for(var hi = 0; hi < hs.length; hi++) hv = (hv * 31 + hs.charCodeAt(hi)) % 90000;
+    var code = String(10000 + hv);
     var tok = getTok();
     if(!tok){
       var o = await form("Токен GitHub (нужен один раз, хранится только в этом браузере)", [{k:"t", l:"Токен", type:"password", ph:"github_pat_…"}], "Дальше");
@@ -1168,20 +1168,16 @@ chips(); render();
       var m = text.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/); if(!m) throw {status:0};
       var P = parsePrice(m[1].replace(/^\n/,"")), codes = readCodes(P.pre), log = [], head = "";
       if(codes[code]){
-        if(want.length && want.some(function(w){ return !codes[code].some(function(e){ return norm(e.line) === norm(w.line) && norm(e.fl) === norm(w.fl); }); })){
-          cdBusy = false; cmsg("Этот код уже занят другим заказом. Покупатель должен прислать новый."); return;
-        }
         codes[code].forEach(function(e){
           var f = findFl(P.data, e.line, e.fl); if(!f) return;
           var parts = f.it.f[f.j].split(" · "), name = parts[0];
           if(e.k === "r"){ f.it.f[f.j] = name + (e.v ? " · " + e.v : ""); }
           else { var cur = parseInt(parts[1], 10) || 0; f.it.f[f.j] = name + " · " + (cur + (parseInt(e.v, 10) || 0)) + " шт"; }
-          log.push("Снята бронь по коду " + code + ": " + e.line + " — " + e.fl);
+          log.push("Снята бронь по заказу: " + e.line + " — " + e.fl);
         });
         P.pre = P.pre.filter(function(l){ return !new RegExp("^//\\s*код\\s+" + code + "\\b").test(l.trim()); });
         head = "Бронь снята";
       } else {
-        if(!want.length){ cdBusy = false; cmsg("Этот код ещё не использовался. Вставьте сообщение покупателя целиком, со списком."); return; }
         var ents = [], miss = [];
         want.forEach(function(w){
           var f = findFl(P.data, w.line, w.fl);
@@ -1193,7 +1189,7 @@ chips(); render();
           } else {
             f.it.f[f.j] = name + " · бронь"; ents.push("r:" + f.it.n + " :: " + name + " :: " + qty);
           }
-          log.push("Забронировано по коду " + code + ": " + f.it.n + " — " + name + (w.n > 1 ? " × " + w.n : ""));
+          log.push("Забронировано по заказу: " + f.it.n + " — " + name + (w.n > 1 ? " × " + w.n : ""));
         });
         if(!ents.length){ cdBusy = false; cmsg("Ничего не нашлось в прайсе: " + miss.join("; ")); return; }
         P.pre.push("//код " + code + " | " + ents.join(" | "));
