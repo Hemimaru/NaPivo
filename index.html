@@ -386,7 +386,15 @@ chips(); render();
   function save(){ try{ localStorage.setItem("napivo-cart", JSON.stringify(cart)); }catch(e){} }
   function count(){ return Object.keys(cart).reduce(function(a,k){ return a+cart[k]; },0); }
   function orderText(){
-    var lines = Object.keys(cart).map(function(k){ return LOOK[k].n+" — "+LOOK[k].f+(cart[k]>1 ? " × "+cart[k] : ""); });
+    var order = [], by = {};
+    Object.keys(cart).forEach(function(k){ var n = LOOK[k].n; if(!by[n]){ by[n] = []; order.push(n); } by[n].push(k); });
+    var lines = [];
+    order.forEach(function(n){
+      var ks = by[n];
+      if(ks.length === 1){ var k = ks[0]; lines.push(n+" — "+LOOK[k].f+(cart[k]>1 ? " × "+cart[k] : "")); return; }
+      lines.push(n);
+      ks.forEach(function(k){ lines.push("— "+LOOK[k].f+(cart[k]>1 ? " × "+cart[k] : "")); });
+    });
     return "Хочу купить:\n"+lines.join("\n");
   }
   function toast(msg, ms){ toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(tt); tt = setTimeout(function(){ toastEl.hidden = true; }, ms || 2600); }
@@ -1147,8 +1155,14 @@ chips(); render();
   async function applyCode(){
     if(cdBusy) return;
     var raw = cdText.value, want = [];
+    var curLine = "";
     raw.split(/\r?\n/).forEach(function(l){
-      var m = l.trim().match(/^(.+?)\s+—\s+(.+?)(?:\s+×\s*(\d+))?$/); if(m) want.push({line:m[1], fl:m[2], n:parseInt(m[3], 10) || 1});
+      l = l.trim(); if(!l || /^Хочу купить/i.test(l)) return;
+      var sub = l.match(/^[—–-]\s+(.+?)(?:\s+×\s*(\d+))?$/);
+      if(sub && curLine){ want.push({line:curLine, fl:sub[1], n:parseInt(sub[2], 10) || 1}); return; }
+      var m = l.match(/^(.+?)\s+—\s+(.+?)(?:\s+×\s*(\d+))?$/);
+      if(m){ want.push({line:m[1], fl:m[2], n:parseInt(m[3], 10) || 1}); curLine = ""; }
+      else curLine = l;
     });
     if(!want.length){ cmsg("Не нашёл в тексте список жидкостей. Вставьте сообщение покупателя целиком."); return; }
     var hs = want.map(function(w){ return norm(w.line) + "|" + norm(w.fl) + "|" + w.n; }).sort().join(";"), hv = 7;
