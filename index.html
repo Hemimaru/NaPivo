@@ -393,7 +393,7 @@ chips(); render();
       var ks = by[n];
       if(ks.length === 1){ var k = ks[0]; lines.push(n+" — "+LOOK[k].f+(cart[k]>1 ? " × "+cart[k] : "")); return; }
       lines.push(n);
-      ks.forEach(function(k){ lines.push("— "+LOOK[k].f+(cart[k]>1 ? " × "+cart[k] : "")); });
+      ks.forEach(function(k){ lines.push("• "+LOOK[k].f+(cart[k]>1 ? " × "+cart[k] : "")); });
     });
     return "Хочу купить:\n"+lines.join("\n");
   }
@@ -1158,7 +1158,7 @@ chips(); render();
     var curLine = "";
     raw.split(/\r?\n/).forEach(function(l){
       l = l.trim(); if(!l || /^Хочу купить/i.test(l)) return;
-      var sub = l.match(/^[—–-]\s+(.+?)(?:\s+×\s*(\d+))?$/);
+      var sub = l.match(/^[—–•·-]\s+(.+?)(?:\s+×\s*(\d+))?$/);
       if(sub && curLine){ want.push({line:curLine, fl:sub[1], n:parseInt(sub[2], 10) || 1}); return; }
       var m = l.match(/^(.+?)\s+—\s+(.+?)(?:\s+×\s*(\d+))?$/);
       if(m){ want.push({line:m[1], fl:m[2], n:parseInt(m[3], 10) || 1}); curLine = ""; }
