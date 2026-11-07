@@ -203,6 +203,7 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .sheet .sb.pri{background:var(--accent);color:var(--accent-fg)}
 .sheet .sb.dan{color:#e5484d}
 .sheet .dev-in{width:100%;box-sizing:border-box}
+.ed.cd{height:150px;width:calc(100% - 8px)}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 
@@ -384,9 +385,11 @@ chips(); render();
   var listEl=$("cartList"), panel=$("cart"), back=$("cartBack"), buy=$("buy"), toastEl=$("toast"), tt;
   function save(){ try{ localStorage.setItem("napivo-cart", JSON.stringify(cart)); }catch(e){} }
   function count(){ return Object.keys(cart).reduce(function(a,k){ return a+cart[k]; },0); }
+  var curCode = null;
   function orderText(){
+    if(!curCode) curCode = String(10000 + Math.floor(Math.random()*90000));
     var lines = Object.keys(cart).map(function(k){ return LOOK[k].n+" — "+LOOK[k].f+(cart[k]>1 ? " × "+cart[k] : ""); });
-    return "Хочу купить:\n"+lines.join("\n");
+    return "Хочу купить:\n"+lines.join("\n")+"\n\nКод товара: "+curCode;
   }
   function toast(msg, ms){ toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(tt); tt = setTimeout(function(){ toastEl.hidden = true; }, ms || 2600); }
   window.toast = toast;
@@ -489,7 +492,7 @@ chips(); render();
     var items = listEl.querySelectorAll(".ci");
     function done(){
       Object.keys(cart).forEach(function(k){ shrink[k] = true; });
-      cart = {}; draw(); clearing = false;
+      cart = {}; curCode = null; draw(); clearing = false;
       var em = listEl.querySelector(".cart-empty");
       if(em && !reduce && em.animate) em.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:300,easing:"ease-out"});
     }
@@ -782,6 +785,7 @@ chips(); render();
     devBody.innerHTML =
       '<button class="mi" type="button" data-act="edit">Редактировать прайс</button>'+
       '<button class="mi" type="button" data-act="log">Журнал изменений</button>'+
+      '<button class="mi" type="button" data-act="code">Код товара</button>'+
       '<button class="mi" type="button" data-act="admin">Права администратора'+(isAdmin?' ✓':'')+'</button>';
     swapAnim();
   }
@@ -824,6 +828,7 @@ chips(); render();
     var act = t.getAttribute && t.getAttribute("data-act");
     if(act === "admin"){ if(isAdmin) say("Права уже получены"); else drawKey(); return; }
     if(act === "edit"){ if(!isAdmin) say("Вы не разработчик"); else startEdit(); return; }
+    if(act === "code"){ if(!isAdmin) say("Вы не разработчик"); else openCode(); return; }
     if(act === "log"){ if(!isAdmin) say("Вы не разработчик"); else openLog(); return; }
     if(t.id === "devGo") tryKey();
     if(t.id === "devBackBtn") drawMenu();
@@ -1107,6 +1112,109 @@ chips(); render();
         return '<div class="lg-i"><span class="lg-d">' + ds + '</span><span class="lg-m">' + ls.map(esc).join("<br>") + '</span></div>';
       }).join("") || "Пока пусто.";
     }catch(e){ body.textContent = "Не удалось загрузить журнал. Попробуйте позже."; }
+  }
+
+
+  /* код товара: бронь заказа по коду из сообщения покупателя */
+  var cd = overlay('<div class="dev adm" role="dialog" aria-modal="true" aria-label="Код товара"><div class="dev-h"><h2>Код товара</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div>'+
+    '<p class="dev-note">Вставьте код из сообщения покупателя. Первый раз лучше вставить сообщение целиком (со списком): жидкости из него отметятся бронью. Тот же код ещё раз снимает бронь.</p>'+
+    '<textarea id="cdText" class="ed cd" spellcheck="false" autocomplete="off" placeholder="Код товара: 12345"></textarea>'+
+    '<p class="dev-err" id="cdMsg" hidden></p>'+
+    '<div class="dev-row"><button class="dev-btn" id="cdGo" type="button">Применить</button><button class="dev-btn ghost" id="cdBack" type="button">Назад</button></div></div>');
+  cd.onClose = function(){ drawMenu(); dev.set(true); };
+  var cdText = cd.box.querySelector("#cdText"), cdMsg = cd.box.querySelector("#cdMsg"), cdBusy = false;
+  function cmsg(t, good){ cdMsg.textContent = t; cdMsg.hidden = !t; cdMsg.className = "dev-err" + (good ? " good" : ""); }
+  function openCode(){ dev.set(false); cd.set(true); cmsg(""); cdText.value = ""; setTimeout(function(){ cdText.focus(); }, 80); }
+  cd.box.addEventListener("click", function(e){
+    var t = e.target;
+    if((t.getAttribute && t.getAttribute("data-close")) || t.id === "cdBack"){ cd.set(false); return; }
+    if(t.id === "cdGo") applyCode();
+  });
+  function readCodes(pre){
+    var out = {};
+    pre.forEach(function(l){
+      var m = l.trim().match(/^\/\/\s*код\s+(\d{5})\s*\|(.*)$/); if(!m) return;
+      out[m[1]] = m[2].split("|").map(function(x){ var q = x.trim().match(/^([rq]):(.*)$/); if(!q) return null; var a = q[2].split("::").map(function(y){ return y.trim(); }); return {k:q[1], line:a[0], fl:a[1], v:a[2] || ""}; }).filter(Boolean);
+    });
+    return out;
+  }
+  function norm(x){ return String(x || "").trim().toLowerCase().replace(/ё/g,"е"); }
+  function findFl(data, line, fl){
+    for(var a = 0; a < data.length; a++) for(var b = 0; b < data[a].items.length; b++){
+      var it = data[a].items[b]; if(norm(it.n) !== norm(line)) continue;
+      for(var j = 0; j < it.f.length; j++) if(norm(it.f[j].split(" · ")[0]) === norm(fl)) return {it:it, j:j};
+    }
+    return null;
+  }
+  async function applyCode(){
+    if(cdBusy) return;
+    var raw = cdText.value, cm = raw.match(/Код товара:\s*(\d{5})/i) || raw.trim().match(/^(\d{5})$/);
+    if(!cm){ cmsg("Не нашёл код из 5 цифр."); return; }
+    var code = cm[1], want = [];
+    raw.split(/\r?\n/).forEach(function(l){
+      var m = l.trim().match(/^(.+?)\s+—\s+(.+?)(?:\s+×\s*(\d+))?$/); if(m) want.push({line:m[1], fl:m[2], n:parseInt(m[3], 10) || 1});
+    });
+    var tok = getTok();
+    if(!tok){
+      var o = await form("Токен GitHub (нужен один раз, хранится только в этом браузере)", [{k:"t", l:"Токен", type:"password", ph:"github_pat_…"}], "Дальше");
+      if(!o || !o.t.trim()) return; tok = o.t.trim();
+    }
+    cdBusy = true; cmsg("Применяю…", true);
+    var api = "https://api.github.com/repos/" + REPO + "/contents/prices.js";
+    try{
+      var r = await fetch(api + "?ref=main&x=" + Date.now(), {headers:{Accept:"application/vnd.github+json"}});
+      if(!r.ok) throw {status:r.status};
+      var j = await r.json(), sha = j.sha, text = decodeURIComponent(escape(atob(String(j.content).replace(/\s/g,""))));
+      var m = text.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/); if(!m) throw {status:0};
+      var P = parsePrice(m[1].replace(/^\n/,"")), codes = readCodes(P.pre), log = [], head = "";
+      if(codes[code]){
+        if(want.length && want.some(function(w){ return !codes[code].some(function(e){ return norm(e.line) === norm(w.line) && norm(e.fl) === norm(w.fl); }); })){
+          cdBusy = false; cmsg("Этот код уже занят другим заказом. Покупатель должен прислать новый."); return;
+        }
+        codes[code].forEach(function(e){
+          var f = findFl(P.data, e.line, e.fl); if(!f) return;
+          var parts = f.it.f[f.j].split(" · "), name = parts[0];
+          if(e.k === "r"){ f.it.f[f.j] = name + (e.v ? " · " + e.v : ""); }
+          else { var cur = parseInt(parts[1], 10) || 0; f.it.f[f.j] = name + " · " + (cur + (parseInt(e.v, 10) || 0)) + " шт"; }
+          log.push("Снята бронь по коду " + code + ": " + e.line + " — " + e.fl);
+        });
+        P.pre = P.pre.filter(function(l){ return !new RegExp("^//\\s*код\\s+" + code + "\\b").test(l.trim()); });
+        head = "Бронь снята";
+      } else {
+        if(!want.length){ cdBusy = false; cmsg("Этот код ещё не использовался. Вставьте сообщение покупателя целиком, со списком."); return; }
+        var ents = [], miss = [];
+        want.forEach(function(w){
+          var f = findFl(P.data, w.line, w.fl);
+          if(!f){ miss.push(w.line + " — " + w.fl); return; }
+          var parts = f.it.f[f.j].split(" · "), name = parts[0], qty = parts[1] || "", qn = parseInt(qty, 10);
+          if(qty.toLowerCase() === "бронь"){ miss.push(w.line + " — " + w.fl + " (уже в брони)"); return; }
+          if(qn && /^\d+\s*шт/i.test(qty) && qn > w.n){
+            f.it.f[f.j] = name + " · " + (qn - w.n) + " шт"; ents.push("q:" + f.it.n + " :: " + name + " :: " + w.n);
+          } else {
+            f.it.f[f.j] = name + " · бронь"; ents.push("r:" + f.it.n + " :: " + name + " :: " + qty);
+          }
+          log.push("Забронировано по коду " + code + ": " + f.it.n + " — " + name + (w.n > 1 ? " × " + w.n : ""));
+        });
+        if(!ents.length){ cdBusy = false; cmsg("Ничего не нашлось в прайсе: " + miss.join("; ")); return; }
+        P.pre.push("//код " + code + " | " + ents.join(" | "));
+        head = "Забронировано" + (miss.length ? ". Не нашлось: " + miss.join("; ") : "");
+      }
+      if(!log.length){ cdBusy = false; cmsg("Нечего менять: вкусы из кода уже убраны из прайса."); return; }
+      var ser = (function(){ var oD = DATA, oP = PRE; DATA = P.data; PRE = P.pre; var t = serialize(); DATA = oD; PRE = oP; return t; })();
+      var res = await fetch(api, {method:"PUT", headers:{Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, body:JSON.stringify({message:"Правка прайса: " + log.length + " изм.\n\n" + log.join("\n"), content:b64("window.PRICE_TEXT = `\n" + ser + "\n`;\n"), sha:sha, branch:"main"})});
+      if(!res.ok) throw {status:res.status};
+      try{ localStorage.setItem("napivo-gh", tok); }catch(e){}
+      DATA = P.data; PRE = P.pre; EDIT = null;
+      var nn = 0; DATA.forEach(function(g){ g.items.forEach(function(x){ x.id = nn++; }); });
+      render(); if(window.rebuildLook) window.rebuildLook();
+      cdText.value = ""; cmsg(head + ". На сайте обновится через минуту.", true);
+    }catch(e){
+      var st = e && e.status;
+      if(st === 401 || st === 403 || st === 404){ try{ localStorage.removeItem("napivo-gh"); }catch(x){} cmsg("GitHub не принял токен. Нужен доступ Contents → Read and write."); }
+      else if(st === 409 || st === 422){ cmsg("Прайс только что изменился. Нажмите «Применить» ещё раз."); }
+      else cmsg("Не удалось применить. Проверьте интернет и попробуйте снова.");
+    }
+    cdBusy = false;
   }
 
   /* пять нажатий на заголовок */
