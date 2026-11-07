@@ -909,6 +909,10 @@ chips(); render();
   function fixup(){
     DATA.forEach(function(g){ if(g.liq) g.items = g.items.filter(function(it){ if(it.f.length) return true; EDIT.log.push("Вкусы закончились, линейка удалена: " + it.n); return false; }); });
     DATA = DATA.filter(function(g){ if(g.items.length) return true; EDIT.log.push("Раздел опустел и удалён: " + gtitle(g)); return false; });
+    var num = function(g){ var m = g.liq && g.raw.match(/\*(\d+)\*/); return m ? +m[1] : null; };
+    var liqs = DATA.filter(function(g){ return g.liq; }).map(function(g, i){ return {g:g, i:i}; });
+    liqs.sort(function(x, y){ var a1 = num(x.g), b1 = num(y.g); if(a1 === null || b1 === null) return x.i - y.i; return a1 - b1 || x.i - y.i; });
+    DATA = liqs.map(function(x){ return x.g; }).concat(DATA.filter(function(g){ return !g.liq; }));
     var n = 0; DATA.forEach(function(g, i){ g.id = "s" + i; g.items.forEach(function(x){ x.g = g; x.id = n++; }); });
   }
   function focusItem(it){
@@ -978,10 +982,7 @@ chips(); render();
           var tg = DATA.filter(function(g){ if(!g.liq) return false; var m = g.raw.match(/\*(\d+)\*/); return m && m[1] === num; })[0];
           if(!tg){
             tg = {id:"", raw:"# Жидкости за *" + num + "* | За " + num, head:"Жидкости за <b>" + num + "</b>", menu:"За " + num, liq:true, items:[]};
-            var at = -1;
-            DATA.forEach(function(g, k){ if(!g.liq) return; var m = g.raw.match(/\*(\d+)\*/); if(m && +m[1] < +num) at = k; });
-            if(at < 0){ DATA.forEach(function(g, k){ if(g.liq && at < 0) at = k - 1; }); }
-            DATA.splice(at + 1, 0, tg);
+            DATA.push(tg);
             note = "создан раздел «Жидкости за " + num + "»";
           } else if(tg !== c.g){ note = "перенесена в «Жидкости за " + num + "»"; }
           if(tg !== c.g){
