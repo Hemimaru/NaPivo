@@ -203,6 +203,13 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .sheet .sb.pri{background:var(--accent);color:var(--accent-fg)}
 .sheet .sb.dan{color:#e5484d}
 .sheet .dev-in{width:100%;box-sizing:border-box}
+.rvl{display:grid;gap:10px;padding:0 4px 4px;color:var(--muted);font-size:14px;max-height:62vh;overflow:auto}
+.rv-i{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:14px;background:var(--surface-2);color:var(--fg)}
+.rv-p{width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none;background:var(--bg)}
+.rv-t{min-width:0}.rv-t b{display:block;font-size:15px;margin-bottom:4px}
+.rv-t ul{margin:0;padding:0;list-style:none;display:grid;gap:3px}
+.rv-t li{font-size:14px;padding-left:16px;position:relative}
+.rv-t li:before{content:"";position:absolute;left:2px;top:.55em;width:7px;height:7px;border-radius:50%;background:#ffb454}
 .ed.cd{height:150px;width:calc(100% - 8px)}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
@@ -792,6 +799,7 @@ chips(); render();
       '<button class="mi" type="button" data-act="edit">Редактировать прайс</button>'+
       '<button class="mi" type="button" data-act="log">Журнал изменений</button>'+
       '<button class="mi" type="button" data-act="code">Бронь заказа</button>'+
+      '<button class="mi" type="button" data-act="resv">Все брони</button>'+
       '<button class="mi" type="button" data-act="admin">Права администратора'+(isAdmin?' ✓':'')+'</button>';
     swapAnim();
   }
@@ -834,6 +842,7 @@ chips(); render();
     var act = t.getAttribute && t.getAttribute("data-act");
     if(act === "admin"){ if(isAdmin) say("Права уже получены"); else drawKey(); return; }
     if(act === "edit"){ if(!isAdmin) say("Вы не разработчик"); else startEdit(); return; }
+    if(act === "resv"){ if(!isAdmin) say("Вы не разработчик"); else openResv(); return; }
     if(act === "code"){ if(!isAdmin) say("Вы не разработчик"); else openCode(); return; }
     if(act === "log"){ if(!isAdmin) say("Вы не разработчик"); else openLog(); return; }
     if(t.id === "devGo") tryKey();
@@ -1226,6 +1235,33 @@ chips(); render();
       else cmsg("Не удалось применить. Проверьте интернет и попробуйте снова.");
     }
     cdBusy = false;
+  }
+
+
+  /* все брони */
+  var rv = overlay('<div class="dev adm" role="dialog" aria-modal="true" aria-label="Все брони"><div class="dev-h"><h2>Все брони</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div><div id="rvBody" class="rvl"></div></div>');
+  rv.onClose = function(){ drawMenu(); dev.set(true); };
+  rv.box.addEventListener("click", function(e){ if(e.target.getAttribute && e.target.getAttribute("data-close")) rv.set(false); });
+  async function openResv(){
+    dev.set(false); rv.set(true);
+    var body = rv.box.querySelector("#rvBody"); body.textContent = "Загрузка…";
+    var data = DATA;
+    try{
+      var r = await fetch("https://api.github.com/repos/" + REPO + "/contents/prices.js?ref=main&x=" + Date.now(), {headers:{Accept:"application/vnd.github+json"}});
+      if(r.ok){
+        var j = await r.json(), t = decodeURIComponent(escape(atob(String(j.content).replace(/\s/g,"")))), m = t.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/);
+        if(m) data = parsePrice(m[1].replace(/^\n/,"")).data;
+      }
+    }catch(e){}
+    var html = "", total = 0;
+    data.forEach(function(g){ g.items.forEach(function(it){
+      var fl = it.f.filter(function(f){ var q = f.split(" · ")[1]; return q && q.toLowerCase() === "бронь"; });
+      if(!fl.length) return; total += fl.length;
+      html += '<div class="rv-i">' + (it.img ? '<img class="rv-p" alt="" src="' + picSrc(it.img) + '">' : '<div class="rv-p rv-n"></div>') +
+        '<div class="rv-t"><b>' + esc(it.n) + '</b><ul>' + fl.map(function(f){ return '<li>' + esc(f.split(" · ")[0]) + '</li>'; }).join("") + '</ul></div></div>';
+    }); });
+    body.innerHTML = html || "Забронированных вкусов нет.";
+    if(!rm && body.animate) Array.prototype.forEach.call(body.querySelectorAll(".rv-i"), function(x, i){ x.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:260,delay:i*50,easing:"ease-out",fill:"backwards"}); });
   }
 
   /* пять нажатий на заголовок */
