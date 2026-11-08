@@ -85,6 +85,7 @@ h1 i{font-style:normal;color:var(--accent)}
 .tginfo{margin:8px 2px 0;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 body.editing .fbtn,body.editing .tagw{display:none}
 .rv-u{color:var(--muted);font-size:12px;margin:0 6px}
+.rv-x.rv-s{margin-left:4px}
 .rv-sum{display:flex;justify-content:space-between;align-items:baseline;margin:14px 4px 4px;padding:12px 14px;border-radius:12px;background:var(--surface-2);font-weight:700}
 .rv-sum b{font-size:20px;color:var(--accent);font-variant-numeric:tabular-nums}
 .rv-u.ex{color:var(--resv)}
@@ -1854,8 +1855,8 @@ chips(); render();
       if(!fl.length) return;
       fl.forEach(function(a){ if(a[3]){ cnt += a[3]; sum += a[3] * (parseFloat(String(it.p).replace(",", ".")) || 0); } else if(!a[2].expired){ cnt++; sum += parseFloat(String(it.p).replace(",", ".")) || 0; } });
       html += '<div class="rv-i">' + (it.img ? '<img class="rv-p" alt="" src="' + picSrc(it.img) + '">' : '<div class="rv-p rv-n"></div>') +
-        '<div class="rv-t"><b>' + esc(it.n) + '</b><ul>' + fl.map(function(a){ if(a[3]) return '<li>' + esc(a[0].split(" · ")[0]) + ' <span class="rv-u">× ' + a[3] + '</span> <button type="button" class="rv-x" data-q="1" data-n="' + a[3] + '" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Снять бронь</button></li>';
-        return '<li>' + esc(a[0].split(" · ")[0]) + (a[2].until ? ' <span class="rv-u' + (a[2].expired ? ' ex' : '') + '">' + (a[2].expired ? 'срок истёк' : esc(rvLabel(a[2]).replace("бронь ", ""))) + '</span>' : '') + ' <button type="button" class="rv-x" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Снять бронь</button></li>'; }).join("") + '</ul></div></div>';
+        '<div class="rv-t"><b>' + esc(it.n) + '</b><ul>' + fl.map(function(a){ if(a[3]) return '<li>' + esc(a[0].split(" · ")[0]) + ' <span class="rv-u">× ' + a[3] + '</span> <button type="button" class="rv-x" data-q="1" data-n="' + a[3] + '" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Снять бронь</button> <button type="button" class="rv-x rv-s" data-q="1" data-n="' + a[3] + '" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Продано</button></li>';
+        return '<li>' + esc(a[0].split(" · ")[0]) + (a[2].until ? ' <span class="rv-u' + (a[2].expired ? ' ex' : '') + '">' + (a[2].expired ? 'срок истёк' : esc(rvLabel(a[2]).replace("бронь ", ""))) + '</span>' : '') + ' <button type="button" class="rv-x" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Снять бронь</button> <button type="button" class="rv-x rv-s" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Продано</button></li>'; }).join("") + '</ul></div></div>';
     }); });
     if(html) html += '<div class="rv-sum"><span>Итого по броням: ' + cnt + ' шт</span><b>' + (Math.round(sum * 100) / 100) + '</b></div>';
     body.innerHTML = html || "Забронированных вкусов нет.";
@@ -1870,6 +1871,8 @@ chips(); render();
   var rvBusy = false;
   rv.box.addEventListener("click", async function(e){
     var bt = e.target.closest && e.target.closest(".rv-x"); if(!bt || rvBusy) return;
+    var sold = bt.classList.contains("rv-s"), btLabel = bt.textContent;
+    if(sold && (await sheet("Отметить проданным? Вкус уберётся из прайса на сайте.", [{t:"Да, продано", d:1},{t:"Отмена"}], true)) !== 0) return;
     var tok = getTok();
     if(!tok){
       var o = await form("Токен GitHub (нужен один раз, хранится только в этом браузере)", [{k:"t", l:"Токен", type:"password", ph:"github_pat_…"}], "Дальше");
@@ -1884,22 +1887,28 @@ chips(); render();
       Object.keys(codes).forEach(function(c){
         codes[c] = codes[c].filter(function(en){ if(en.k === (isQ ? "q" : "r") && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ back = en.v; return false; } return true; });
       });
-      if(isQ) it.f[+bt.getAttribute("data-j")] = name + " · " + ((parseInt(nm.split(" · ")[1], 10) || 0) + qn) + " шт";
+      if(sold){
+        if(!isQ) it.f.splice(+bt.getAttribute("data-j"), 1);
+        var gg = it.g; if(!isQ && !it.f.length && gg.liq) gg.items.splice(gg.items.indexOf(it), 1);
+        if(!gg.items.length) P.data.splice(P.data.indexOf(gg), 1);
+      }
+      else if(isQ) it.f[+bt.getAttribute("data-j")] = name + " · " + ((parseInt(nm.split(" · ")[1], 10) || 0) + qn) + " шт";
       else it.f[+bt.getAttribute("data-j")] = name + (back ? " · " + back : "");
       P.pre = P.pre.filter(function(l){ return !/^\/\/\s*код\s+\d{5}\b/.test(l.trim()); });
       Object.keys(codes).forEach(function(c){ if(codes[c].length) P.pre.push("//код " + c + " | " + codes[c].map(function(en){ return en.k + ":" + en.line + " :: " + en.fl + " :: " + en.v; }).join(" | ")); });
       var ser = (function(){ var oD = DATA, oP = PRE; DATA = P.data; PRE = P.pre; var t = serialize(); DATA = oD; PRE = oP; return t; })();
-      var res = await fetch("https://api.github.com/repos/" + REPO + "/contents/prices.js", {method:"PUT", headers:{Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, body:JSON.stringify({message:"Правка прайса: 1 изм.\n\nСнята бронь: " + it.n + " — " + name + (isQ ? " × " + qn : ""), content:b64("window.PRICE_TEXT = `\n" + ser + "\n`;\n"), sha:L.sha, branch:"main"})});
+      var res = await fetch("https://api.github.com/repos/" + REPO + "/contents/prices.js", {method:"PUT", headers:{Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, body:JSON.stringify({message:"Правка прайса: 1 изм.\n\n" + (sold ? "Продано: " : "Снята бронь: ") + it.n + " — " + name + (isQ ? " × " + qn : ""), content:b64("window.PRICE_TEXT = `\n" + ser + "\n`;\n"), sha:L.sha, branch:"main"})});
       if(!res.ok) throw {status:res.status};
       try{ localStorage.setItem("napivo-gh", tok); }catch(x){}
-      DATA = P.data; PRE = P.pre; var nn = 0; DATA.forEach(function(g){ g.items.forEach(function(x){ x.id = nn++; }); });
+      DATA = P.data; PRE = P.pre; var nn = 0; DATA.forEach(function(g, gx){ g.id = "s" + gx; g.items.forEach(function(x){ x.g = g; x.id = nn++; }); });
+      if(sold){ MENU = DATA.map(function(g){ return [g.id, g.menu]; }); chips(); }
       render(); if(window.rebuildLook) window.rebuildLook();
-      drawResv(DATA, PRE); checkmark(); say("Бронь снята. На сайте обновится через минуту", 3000);
+      drawResv(DATA, PRE); checkmark(); say(sold ? "Отмечено проданным. На сайте обновится через минуту" : "Бронь снята. На сайте обновится через минуту", 3000);
     }catch(err){
       var st = err && err.status;
       if(st === 401 || st === 403 || st === 404){ try{ localStorage.removeItem("napivo-gh"); }catch(x){} say("GitHub не принял токен", 3500); }
       else say("Не удалось снять бронь. Попробуйте ещё раз", 3000);
-      bt.textContent = "Снять бронь";
+      bt.textContent = btLabel;
     }
     rvBusy = false;
   });
