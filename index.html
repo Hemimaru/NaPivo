@@ -1827,15 +1827,17 @@ chips(); render();
     if(!m) throw {status:0};
     return {P:parsePrice(m[1].replace(/^\n/,"")), sha:j.sha};
   }
-  function drawResv(data){
-    var body = rv.box.querySelector("#rvBody"), html = "", sum = 0, cnt = 0;
+  function drawResv(data, pre){
+    var body = rv.box.querySelector("#rvBody"), html = "", sum = 0, cnt = 0, qs = {}, cds = readCodes(pre || PRE);
+    Object.keys(cds).forEach(function(c){ cds[c].forEach(function(e){ if(e.k !== "q") return; var key = norm(e.line) + "|" + norm(e.fl); qs[key] = (qs[key] || 0) + (parseInt(e.v, 10) || 0); }); });
     data.forEach(function(g, gi){ g.items.forEach(function(it, ii){
       var fl = [];
-      it.f.forEach(function(f, j){ var q = rvOf(f.split(" · ")[1]); if(q) fl.push([f, j, q]); });
+      it.f.forEach(function(f, j){ var q = rvOf(f.split(" · ")[1]), n = qs[norm(it.n) + "|" + norm(f.split(" · ")[0])] || 0; if(q) fl.push([f, j, q, 0]); else if(n > 0) fl.push([f, j, null, n]); });
       if(!fl.length) return;
-      fl.forEach(function(a){ if(!a[2].expired){ cnt++; sum += parseFloat(String(it.p).replace(",", ".")) || 0; } });
+      fl.forEach(function(a){ if(a[3]){ cnt += a[3]; sum += a[3] * (parseFloat(String(it.p).replace(",", ".")) || 0); } else if(!a[2].expired){ cnt++; sum += parseFloat(String(it.p).replace(",", ".")) || 0; } });
       html += '<div class="rv-i">' + (it.img ? '<img class="rv-p" alt="" src="' + picSrc(it.img) + '">' : '<div class="rv-p rv-n"></div>') +
-        '<div class="rv-t"><b>' + esc(it.n) + '</b><ul>' + fl.map(function(a){ return '<li>' + esc(a[0].split(" · ")[0]) + (a[2].until ? ' <span class="rv-u' + (a[2].expired ? ' ex' : '') + '">' + (a[2].expired ? 'срок истёк' : esc(rvLabel(a[2]).replace("бронь ", ""))) + '</span>' : '') + ' <button type="button" class="rv-x" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Снять бронь</button></li>'; }).join("") + '</ul></div></div>';
+        '<div class="rv-t"><b>' + esc(it.n) + '</b><ul>' + fl.map(function(a){ if(a[3]) return '<li>' + esc(a[0].split(" · ")[0]) + ' <span class="rv-u">× ' + a[3] + '</span> <button type="button" class="rv-x" data-q="1" data-n="' + a[3] + '" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Снять бронь</button></li>';
+        return '<li>' + esc(a[0].split(" · ")[0]) + (a[2].until ? ' <span class="rv-u' + (a[2].expired ? ' ex' : '') + '">' + (a[2].expired ? 'срок истёк' : esc(rvLabel(a[2]).replace("бронь ", ""))) + '</span>' : '') + ' <button type="button" class="rv-x" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Снять бронь</button></li>'; }).join("") + '</ul></div></div>';
     }); });
     if(html) html += '<div class="rv-sum"><span>Итого по броням: ' + cnt + ' шт</span><b>' + (Math.round(sum * 100) / 100) + '</b></div>';
     body.innerHTML = html || "Забронированных вкусов нет.";
@@ -1844,7 +1846,7 @@ chips(); render();
   async function openResv(){
     dev.set(false); rv.set(true);
     var body = rv.box.querySelector("#rvBody"); body.textContent = "Загрузка…";
-    try{ var L = await loadPrices(); rvCtx = L; drawResv(L.P.data); }
+    try{ var L = await loadPrices(); rvCtx = L; drawResv(L.P.data, L.P.pre); }
     catch(e){ rvCtx = null; drawResv(DATA); }
   }
   var rvBusy = false;
@@ -1860,19 +1862,21 @@ chips(); render();
       var L = await loadPrices(), P = L.P, it = P.data[+bt.getAttribute("data-gi")] && P.data[+bt.getAttribute("data-gi")].items[+bt.getAttribute("data-ii")];
       var nm = it && it.f[+bt.getAttribute("data-j")]; if(!nm) throw {status:-1};
       var name = nm.split(" · ")[0], codes = readCodes(P.pre), back = "";
+      var isQ = !!bt.getAttribute("data-q"), qn = +bt.getAttribute("data-n") || 0;
       Object.keys(codes).forEach(function(c){
-        codes[c] = codes[c].filter(function(en){ if(en.k === "r" && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ back = en.v; return false; } return true; });
+        codes[c] = codes[c].filter(function(en){ if(en.k === (isQ ? "q" : "r") && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ back = en.v; return false; } return true; });
       });
-      it.f[+bt.getAttribute("data-j")] = name + (back ? " · " + back : "");
+      if(isQ) it.f[+bt.getAttribute("data-j")] = name + " · " + ((parseInt(nm.split(" · ")[1], 10) || 0) + qn) + " шт";
+      else it.f[+bt.getAttribute("data-j")] = name + (back ? " · " + back : "");
       P.pre = P.pre.filter(function(l){ return !/^\/\/\s*код\s+\d{5}\b/.test(l.trim()); });
       Object.keys(codes).forEach(function(c){ if(codes[c].length) P.pre.push("//код " + c + " | " + codes[c].map(function(en){ return en.k + ":" + en.line + " :: " + en.fl + " :: " + en.v; }).join(" | ")); });
       var ser = (function(){ var oD = DATA, oP = PRE; DATA = P.data; PRE = P.pre; var t = serialize(); DATA = oD; PRE = oP; return t; })();
-      var res = await fetch("https://api.github.com/repos/" + REPO + "/contents/prices.js", {method:"PUT", headers:{Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, body:JSON.stringify({message:"Правка прайса: 1 изм.\n\nСнята бронь: " + it.n + " — " + name, content:b64("window.PRICE_TEXT = `\n" + ser + "\n`;\n"), sha:L.sha, branch:"main"})});
+      var res = await fetch("https://api.github.com/repos/" + REPO + "/contents/prices.js", {method:"PUT", headers:{Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, body:JSON.stringify({message:"Правка прайса: 1 изм.\n\nСнята бронь: " + it.n + " — " + name + (isQ ? " × " + qn : ""), content:b64("window.PRICE_TEXT = `\n" + ser + "\n`;\n"), sha:L.sha, branch:"main"})});
       if(!res.ok) throw {status:res.status};
       try{ localStorage.setItem("napivo-gh", tok); }catch(x){}
       DATA = P.data; PRE = P.pre; var nn = 0; DATA.forEach(function(g){ g.items.forEach(function(x){ x.id = nn++; }); });
       render(); if(window.rebuildLook) window.rebuildLook();
-      drawResv(DATA); checkmark(); say("Бронь снята. На сайте обновится через минуту", 3000);
+      drawResv(DATA, PRE); checkmark(); say("Бронь снята. На сайте обновится через минуту", 3000);
     }catch(err){
       var st = err && err.status;
       if(st === 401 || st === 403 || st === 404){ try{ localStorage.removeItem("napivo-gh"); }catch(x){} say("GitHub не принял токен", 3500); }
