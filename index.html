@@ -252,6 +252,13 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .addl{display:block;width:100%;margin:12px 0 4px;padding:13px;border-radius:14px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font:inherit;font-size:14px;font-weight:800;cursor:pointer}
 .ck{position:fixed;left:50%;top:50%;z-index:95;width:92px;height:92px;margin:-46px 0 0 -46px;border-radius:50%;background:var(--accent);display:grid;place-items:center;pointer-events:none}
 .ck path{stroke:var(--accent-fg);stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;stroke-dashoffset:40}
+.bk{border:1px solid var(--line);border-radius:16px;padding:12px;margin:0 0 12px;background:var(--surface);display:grid;gap:8px}
+.bk-h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}.bk-h b{font-size:15px}.bk-n{font-weight:800;color:var(--accent)}
+.bk-f{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700;padding:2px 4px}.bk-f b{font-size:17px;font-variant-numeric:tabular-nums}
+.bk-a{display:flex;flex-wrap:wrap;gap:8px}
+.rv-g{padding:9px 14px;border:0;border-radius:10px;background:var(--bg);color:var(--fg);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.rv-g.rv-l{padding:3px 8px;background:none;color:var(--muted);text-decoration:underline;font-weight:600}
+.rv-c{width:18px;height:18px;accent-color:var(--accent);vertical-align:-3px;margin-right:4px}
 .rv-x{margin-top:6px;padding:7px 12px;border:0;border-radius:10px;background:var(--bg);color:var(--fg);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .empty .mg{display:block;margin:0 auto 10px;width:150px;max-width:60%;height:auto;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .empty:not([hidden]){animation:emin .4s cubic-bezier(.2,.8,.2,1)}
@@ -1440,13 +1447,13 @@ chips(); render();
       var take = pk === btn.length - 2 ? have : pk + 1;
       if(take < have){
         c.it.f[c.j] = name + " · " + (have - take) + " шт";
-        PRE.push("//код " + String(10000 + Date.now() % 90000) + " | q:" + c.it.n + " :: " + name + " :: " + take);
+        PRE.push("//код " + String(10000 + Date.now() % 90000) + " | рука | q:" + c.it.n + " :: " + name + " :: " + take);
         EDIT.log.push("Забронировано " + take + " шт: " + c.it.n + " — " + name + " (осталось " + (have - take) + ")");
         render(); return;
       }
       var u0 = await askTerm(); if(u0 === null) return;
       c.it.f[c.j] = name + " · " + rvText(u0);
-      PRE.push("//код " + String(10000 + Date.now() % 90000) + " | r:" + c.it.n + " :: " + name + " :: " + qty);
+      PRE.push("//код " + String(10000 + Date.now() % 90000) + " | рука | r:" + c.it.n + " :: " + name + " :: " + qty);
       EDIT.log.push("Забронирован: " + c.it.n + " — " + name + " (все " + have + " шт" + (u0 ? ", до " + mskStr(u0) : "") + ")");
       render();
     } else if(act === "on" || act === "term"){
@@ -1721,6 +1728,7 @@ chips(); render();
   /* код товара: бронь заказа по коду из сообщения покупателя */
   var cd = overlay('<div class="dev adm" role="dialog" aria-modal="true" aria-label="Бронь заказа"><div class="dev-h"><h2>Бронь заказа</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div>'+
     '<p class="dev-note">Вставьте сообщение покупателя целиком: жидкости из него отметятся бронью. Если вставить то же сообщение ещё раз, бронь снимется. Когда срок выйдет, вкус сам вернётся в продажу.</p>'+
+    '<input id="cdName" class="dev-in" maxlength="40" autocomplete="off" placeholder="Имя или ник покупателя (необязательно)" style="margin-bottom:10px">'+
     '<textarea id="cdText" class="ed cd" spellcheck="false" autocomplete="off" placeholder="Хочу купить:&#10;Линейка — Вкус"></textarea>'+
     '<label class="dev-l" for="cdTerm" style="margin-top:10px">Срок брони (по Минску)</label><select id="cdTerm" class="dev-in"><option value="">Без срока</option><option value="1h">1 час</option><option value="3h">3 часа</option><option value="eod">До конца дня</option><option value="1d">1 день</option><option value="3d">3 дня</option><option value="custom">Выбрать дату и время</option></select>'+
     '<input id="cdWhen" class="dev-in" type="datetime-local" hidden style="margin-top:8px">'+
@@ -1734,7 +1742,7 @@ chips(); render();
     if(!cdWhen.hidden && !cdWhen.value){ var d = new Date(Date.now() + MSK + 24*3600e3); cdWhen.value = d.getUTCFullYear() + "-" + pad2(d.getUTCMonth()+1) + "-" + pad2(d.getUTCDate()) + "T18:00"; }
     try{ localStorage.setItem("napivo-term", cdTerm.value); }catch(e){}
   });
-  var cdText = cd.box.querySelector("#cdText"), cdMsg = cd.box.querySelector("#cdMsg"), cdBusy = false;
+  var cdName = cd.box.querySelector("#cdName"), cdText = cd.box.querySelector("#cdText"), cdMsg = cd.box.querySelector("#cdMsg"), cdBusy = false;
   function cmsg(t, good){ cdMsg.textContent = t; cdMsg.hidden = !t; cdMsg.className = "dev-err" + (good ? " good" : ""); }
   function openCode(){ dev.set(false); cd.set(true); cmsg(""); cdText.value = ""; setTimeout(function(){ cdText.focus(); }, 80); }
   cd.box.addEventListener("click", function(e){
@@ -1746,9 +1754,26 @@ chips(); render();
     var out = {};
     pre.forEach(function(l){
       var m = l.trim().match(/^\/\/\s*код\s+(\d{5})\s*\|(.*)$/); if(!m) return;
-      out[m[1]] = m[2].split("|").map(function(x){ var q = x.trim().match(/^([rq]):(.*)$/); if(!q) return null; var a = q[2].split("::").map(function(y){ return y.trim(); }); return {k:q[1], line:a[0], fl:a[1], v:a[2] || ""}; }).filter(Boolean);
+      var arr = [];
+      m[2].split("|").forEach(function(x){
+        x = x.trim();
+        if(x === "рука"){ arr.man = true; return; }
+        var nm = x.match(/^имя:(.*)$/); if(nm){ arr.nm = nm[1].trim(); return; }
+        var tm = x.match(/^t:(\d+)$/); if(tm){ arr.ts = +tm[1]; return; }
+        var q = x.match(/^([rq]):(.*)$/); if(!q) return;
+        var a = q[2].split("::").map(function(y){ return y.trim(); });
+        arr.push({k:q[1], line:a[0], fl:a[1], v:a[2] || ""});
+      });
+      out[m[1]] = arr;
     });
     return out;
+  }
+  function codeLine(c, arr){
+    var head = [];
+    if(arr.man) head.push("рука");
+    if(arr.nm) head.push("имя:" + String(arr.nm).replace(/[|]/g, " ").trim());
+    if(arr.ts) head.push("t:" + arr.ts);
+    return "//код " + c + " | " + head.concat(arr.map(function(en){ return en.k + ":" + en.line + " :: " + en.fl + " :: " + en.v; })).join(" | ");
   }
   function norm(x){ return String(x || "").trim().toLowerCase().replace(/ё/g,"е"); }
   function findFl(data, line, fl){
@@ -1816,7 +1841,7 @@ chips(); render();
           log.push("Забронировано по заказу: " + f.it.n + " — " + name + (w.n > 1 ? " × " + w.n : "") + (until ? " (до " + mskStr(until) + ")" : ""));
         });
         if(!ents.length){ cdBusy = false; cmsg("Ничего не нашлось в прайсе: " + miss.join("; ")); return; }
-        P.pre.push("//код " + code + " | " + ents.join(" | "));
+        P.pre.push("//код " + code + " | " + (cdName.value.trim() ? "имя:" + cdName.value.replace(/[|]/g, " ").trim() + " | " : "") + "t:" + Math.floor(Date.now() / 1000) + " | " + ents.join(" | "));
         head = "Забронировано" + (miss.length ? ". Не нашлось: " + miss.join("; ") : "");
       }
       if(!log.length){ cdBusy = false; cmsg("Нечего менять: вкусы из кода уже убраны из прайса."); return; }
@@ -1828,7 +1853,7 @@ chips(); render();
       DATA = P.data; PRE = P.pre; EDIT = null;
       var nn = 0; DATA.forEach(function(g){ g.items.forEach(function(x){ x.id = nn++; }); });
       render(); if(window.rebuildLook) window.rebuildLook();
-      cdText.value = ""; cmsg(head + ". На сайте обновится через минуту.", true); checkmark();
+      cdText.value = ""; cdName.value = ""; cmsg(head + ". На сайте обновится через минуту.", true); checkmark();
     }catch(e){
       var st = e && e.status;
       if(st === 401 || st === 403 || st === 404){ try{ localStorage.removeItem("napivo-gh"); }catch(x){} cmsg("GitHub не принял токен. Нужен доступ Contents → Read and write."); }
@@ -1940,20 +1965,60 @@ chips(); render();
     return {P:parsePrice(m[1].replace(/^\n/,"")), sha:j.sha};
   }
   function drawResv(data, pre){
-    var body = rv.box.querySelector("#rvBody"), html = "", sum = 0, cnt = 0, qs = {}, cds = readCodes(pre || PRE);
-    Object.keys(cds).forEach(function(c){ cds[c].forEach(function(e){ if(e.k !== "q") return; var key = norm(e.line) + "|" + norm(e.fl); qs[key] = (qs[key] || 0) + (parseInt(e.v, 10) || 0); }); });
-    data.forEach(function(g, gi){ g.items.forEach(function(it, ii){
-      var fl = [];
-      it.f.forEach(function(f, j){ var q = rvOf(f.split(" · ")[1]), n = qs[norm(it.n) + "|" + norm(f.split(" · ")[0])] || 0; if(q) fl.push([f, j, q, 0]); else if(n > 0) fl.push([f, j, null, n]); });
-      if(!fl.length) return;
-      fl.forEach(function(a){ if(a[3]){ cnt += a[3]; sum += a[3] * (parseFloat(String(it.p).replace(",", ".")) || 0); } else if(!a[2].expired){ cnt++; sum += parseFloat(String(it.p).replace(",", ".")) || 0; } });
-      html += '<div class="rv-i">' + (it.img ? '<img class="rv-p" alt="" src="' + picSrc(it.img) + '">' : '<div class="rv-p rv-n"></div>') +
-        '<div class="rv-t"><b>' + esc(it.n) + '</b><ul>' + fl.map(function(a){ if(a[3]) return '<li>' + esc(a[0].split(" · ")[0]) + ' <span class="rv-u">× ' + a[3] + '</span> <button type="button" class="rv-x" data-q="1" data-n="' + a[3] + '" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Снять бронь</button> <button type="button" class="rv-x rv-s" data-q="1" data-n="' + a[3] + '" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Продано</button></li>';
-        return '<li>' + esc(a[0].split(" · ")[0]) + (a[2].until ? ' <span class="rv-u' + (a[2].expired ? ' ex' : '') + '">' + (a[2].expired ? 'срок истёк' : esc(rvLabel(a[2]).replace("бронь ", ""))) + '</span>' : '') + ' <button type="button" class="rv-x" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Снять бронь</button> <button type="button" class="rv-x rv-s" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Продано</button></li>'; }).join("") + '</ul></div></div>';
-    }); });
-    if(html) html += '<div class="rv-sum"><span>Итого по броням: ' + cnt + ' шт</span><b>' + (Math.round(sum * 100) / 100) + '</b></div>';
+    var body = rv.box.querySelector("#rvBody"), cds = readCodes(pre || PRE), idx = {}, claimed = {}, groups = [], i;
+    data.forEach(function(g, gi){ g.items.forEach(function(it, ii){ it.f.forEach(function(f, j){
+      idx[norm(it.n) + "|" + norm(f.split(" · ")[0])] = {gi:gi, ii:ii, j:j, it:it, ri:rvOf(f.split(" · ")[1])};
+    }); }); });
+    var manQ = {};
+    Object.keys(cds).forEach(function(c){
+      var arr = cds[c], key;
+      if(arr.man){ arr.forEach(function(e){ if(e.k === "q"){ key = norm(e.line) + "|" + norm(e.fl); manQ[key] = (manQ[key] || 0) + (parseInt(e.v, 10) || 0); } }); return; }
+      var gr = {code:c, nm:arr.nm, ts:arr.ts || 0, rows:[]};
+      arr.forEach(function(e){
+        key = norm(e.line) + "|" + norm(e.fl); var ref = idx[key]; if(!ref) return;
+        if(e.k === "q"){ var n = parseInt(e.v, 10) || 0; if(n > 0) gr.rows.push({ref:ref, n:n, ri:null}); }
+        else if(ref.ri){ claimed[key] = 1; gr.rows.push({ref:ref, n:0, ri:ref.ri}); }
+      });
+      if(gr.rows.length) groups.push(gr);
+    });
+    groups.sort(function(a, b){ return b.ts - a.ts; });
+    var free = [];
+    Object.keys(idx).forEach(function(key){ var ref = idx[key]; if(ref.ri && !claimed[key]) free.push({ref:ref, n:0, ri:ref.ri}); });
+    Object.keys(manQ).forEach(function(key){ if(idx[key]) for(var u = 0; u < manQ[key]; u++) free.push({ref:idx[key], n:1, ri:null}); });
+    free.sort(function(a, b){ return a.ref.gi - b.ref.gi || a.ref.ii - b.ref.ii || a.ref.j - b.ref.j; });
+    function price(r){ return parseFloat(String(r.ref.it.p).replace(",", ".")) || 0; }
+    function cnt(r){ return r.n ? r.n : (r.ri && r.ri.expired ? 0 : 1); }
+    function rowsHtml(rows, selectable, code){
+      var order = [], by = {};
+      rows.forEach(function(r){ var k = r.ref.gi + "-" + r.ref.ii; if(!by[k]){ by[k] = []; order.push(k); } by[k].push(r); });
+      return order.map(function(k){
+        var it = by[k][0].ref.it, a0 = by[k][0].ref;
+        return '<div class="rv-i">' + (it.img ? '<img class="rv-p" alt="" src="' + picSrc(it.img) + '">' : '<div class="rv-p rv-n"></div>') +
+          '<div class="rv-t"><b>' + esc(it.n) + '</b><ul>' + by[k].map(function(r){
+            var ref = r.ref, at = 'data-gi="' + ref.gi + '" data-ii="' + ref.ii + '" data-j="' + ref.j + '"' + (r.n ? ' data-q="1" data-n="' + r.n + '"' : '') + (code ? ' data-c="' + code + '"' : ''), nm = ref.it.f[ref.j].split(" · ")[0];
+            return '<li>' + (selectable ? '<input type="checkbox" class="rv-c" aria-label="Выбрать" ' + at + '> ' : '') + esc(nm) +
+              (r.n ? ' <span class="rv-u">× ' + r.n + '</span>' : (r.ri && r.ri.until ? ' <span class="rv-u' + (r.ri.expired ? ' ex' : '') + '">' + (r.ri.expired ? 'срок истёк' : esc(rvLabel(r.ri).replace("бронь ", ""))) + '</span>' : '')) +
+              ' <button type="button" class="rv-x" ' + at + '>Снять бронь</button> <button type="button" class="rv-x rv-s" ' + at + '>Продано</button></li>';
+          }).join("") + '</ul></div></div>';
+      }).join("");
+    }
+    function tot(rows){ var c = 0, sm = 0; rows.forEach(function(r){ var n = cnt(r); c += n; sm += n * price(r); }); return {c:c, s:Math.round(sm * 100) / 100}; }
+    var html = "", all = {c:0, s:0};
+    groups.forEach(function(g){
+      var t = tot(g.rows); all.c += t.c; all.s += t.s;
+      html += '<section class="bk" data-c="' + g.code + '" data-l="' + esc((g.nm || "")) + '"><div class="bk-h"><b>Бронь №' + g.code + '</b>' + (g.nm ? ' <span class="bk-n">' + esc(g.nm) + '</span>' : '') + (g.ts ? ' <span class="rv-u">' + esc(mskStr(g.ts * 1000).replace(/^\d{4}-(\d{2})-(\d{2})/, "$2.$1")) + '</span>' : '') +
+        ' <button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">' + (g.nm ? "Имя" : "Добавить имя") + '</button></div>' + rowsHtml(g.rows, false, g.code) +
+        '<div class="bk-f"><span>' + t.c + ' шт</span><b>' + t.s + '</b></div>' +
+        '<div class="bk-a"><button type="button" class="rv-g" data-g="off" data-c="' + g.code + '">Снять всю бронь</button><button type="button" class="rv-g rv-s" data-g="sold" data-c="' + g.code + '">Продано всё</button></div></section>';
+    });
+    if(free.length){
+      var tf = tot(free); all.c += tf.c; all.s += tf.s;
+      html += '<section class="bk bk-free"><div class="bk-h"><b>Без заказа</b> <span class="rv-u">отметьте галочками и объедините в одну бронь</span></div>' + rowsHtml(free, true) +
+        '<div class="bk-f"><span>' + tf.c + ' шт</span><b>' + tf.s + '</b></div><div class="bk-a"><button type="button" class="rv-g" data-g="merge">Объединить выбранные</button></div></section>';
+    }
+    if(html) html += '<div class="rv-sum"><span>Итого по броням: ' + all.c + ' шт</span><b>' + (Math.round(all.s * 100) / 100) + '</b></div>';
     body.innerHTML = html || "Забронированных вкусов нет.";
-    if(!rm && body.animate) Array.prototype.forEach.call(body.querySelectorAll(".rv-i"), function(x, i){ x.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:260,delay:i*50,easing:"ease-out",fill:"backwards"}); });
+    if(!rm && body.animate) Array.prototype.forEach.call(body.querySelectorAll(".bk"), function(x, n){ x.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:280,delay:n*60,easing:"ease-out",fill:"backwards"}); });
   }
   async function openResv(){
     dev.set(false); rv.set(true);
@@ -1962,49 +2027,149 @@ chips(); render();
     catch(e){ rvCtx = null; drawResv(DATA); }
   }
   var rvBusy = false;
-  rv.box.addEventListener("click", async function(e){
-    var bt = e.target.closest && e.target.closest(".rv-x"); if(!bt || rvBusy) return;
-    var sold = bt.classList.contains("rv-s"), btLabel = bt.textContent;
-    if(sold && (await sheet("Отметить проданным? Вкус уберётся из прайса на сайте.", [{t:"Да, продано", d:1},{t:"Отмена"}], true)) !== 0) return;
+  function cleanData(P){
+    P.data.forEach(function(g){ if(g.liq) g.items = g.items.filter(function(it){ return it.f.length; }); });
+    P.data = P.data.filter(function(g){ return g.items.length; });
+  }
+  function takeQ(codes, line, fl, n, code){
+    var left = n;
+    Object.keys(codes).forEach(function(c){
+      if(left <= 0) return; var arr = codes[c];
+      if(code ? c !== code : !arr.man) return;
+      for(var i = 0; i < arr.length && left > 0; i++){
+        var en = arr[i]; if(en.k !== "q" || norm(en.line) !== norm(line) || norm(en.fl) !== norm(fl)) continue;
+        var have = parseInt(en.v, 10) || 0, t = Math.min(have, left); left -= t; en.v = String(have - t);
+      }
+      codes[c] = Object.assign(arr.filter(function(en){ return !(en.k === "q" && (parseInt(en.v, 10) || 0) <= 0); }), {man:arr.man, nm:arr.nm, ts:arr.ts});
+      if(!codes[c].length) delete codes[c];
+    });
+    return n - left;
+  }
+  function freeCode(codes){ var c; do{ c = String(10000 + Math.floor(Math.random() * 90000)); }while(codes[c]); return c; }
+  async function rvRun(mutate, okMsg, errMsg, restore){
+    if(rvBusy) return;
     var tok = getTok();
     if(!tok){
       var o = await form("Токен GitHub (нужен один раз, хранится только в этом браузере)", [{k:"t", l:"Токен", type:"password", ph:"github_pat_…"}], "Дальше");
       if(!o || !o.t.trim()) return; tok = o.t.trim();
     }
-    rvBusy = true; bt.textContent = "…";
+    rvBusy = true;
     try{
-      var L = await loadPrices(), P = L.P, sBefore = snapLines(P.data), it = P.data[+bt.getAttribute("data-gi")] && P.data[+bt.getAttribute("data-gi")].items[+bt.getAttribute("data-ii")];
-      var nm = it && it.f[+bt.getAttribute("data-j")]; if(!nm) throw {status:-1};
-      var name = nm.split(" · ")[0], codes = readCodes(P.pre), back = "";
-      var isQ = !!bt.getAttribute("data-q"), qn = +bt.getAttribute("data-n") || 0;
-      Object.keys(codes).forEach(function(c){
-        codes[c] = codes[c].filter(function(en){ if(en.k === (isQ ? "q" : "r") && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ back = en.v; return false; } return true; });
-      });
-      if(sold){
-        if(!isQ) it.f.splice(+bt.getAttribute("data-j"), 1);
-        var gg = it.g; if(!isQ && !it.f.length && gg.liq) gg.items.splice(gg.items.indexOf(it), 1);
-        if(!gg.items.length) P.data.splice(P.data.indexOf(gg), 1);
-      }
-      else if(isQ) it.f[+bt.getAttribute("data-j")] = name + " · " + ((parseInt(nm.split(" · ")[1], 10) || 0) + qn) + " шт";
-      else it.f[+bt.getAttribute("data-j")] = name + (back ? " · " + back : "");
+      var L = await loadPrices(), P = L.P, sBefore = snapLines(P.data), codes = readCodes(P.pre);
+      var log = mutate(P, codes); if(!log || !log.length) throw {status:-1};
+      cleanData(P);
       P.pre = P.pre.filter(function(l){ return !/^\/\/\s*код\s+\d{5}\b/.test(l.trim()); });
-      Object.keys(codes).forEach(function(c){ if(codes[c].length) P.pre.push("//код " + c + " | " + codes[c].map(function(en){ return en.k + ":" + en.line + " :: " + en.fl + " :: " + en.v; }).join(" | ")); });
+      Object.keys(codes).forEach(function(c){ if(codes[c].length) P.pre.push(codeLine(c, codes[c])); });
       var ser = (function(){ var oD = DATA, oP = PRE; DATA = P.data; PRE = P.pre; var t = serialize(); DATA = oD; PRE = oP; return t; })();
-      var res = await fetch("https://api.github.com/repos/" + REPO + "/contents/prices.js", {method:"PUT", headers:{Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, body:JSON.stringify({message:"Правка прайса: 1 изм.\n\n" + (sold ? "Продано: " : "Снята бронь: ") + it.n + " — " + name + (isQ ? " × " + qn : ""), content:b64("window.PRICE_TEXT = `\n" + ser + "\n`;\n"), sha:L.sha, branch:"main"})});
+      var res = await fetch("https://api.github.com/repos/" + REPO + "/contents/prices.js", {method:"PUT", headers:{Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, body:JSON.stringify({message:"Правка прайса: " + log.length + " изм.\n\n" + log.join("\n"), content:b64("window.PRICE_TEXT = `\n" + ser + "\n`;\n"), sha:L.sha, branch:"main"})});
       if(!res.ok) throw {status:res.status};
       try{ localStorage.setItem("napivo-gh", tok); }catch(x){}
       syncSheet(sBefore, snapLines(P.data, false));
       DATA = P.data; PRE = P.pre; var nn = 0; DATA.forEach(function(g, gx){ g.id = "s" + gx; g.items.forEach(function(x){ x.g = g; x.id = nn++; }); });
-      if(sold){ MENU = DATA.map(function(g){ return [g.id, g.menu]; }); chips(); }
+      MENU = DATA.map(function(g){ return [g.id, g.menu]; }); chips();
       render(); if(window.rebuildLook) window.rebuildLook();
-      drawResv(DATA, PRE); checkmark(); say(sold ? "Отмечено проданным. На сайте обновится через минуту" : "Бронь снята. На сайте обновится через минуту", 3000);
+      drawResv(DATA, PRE); checkmark(); say(okMsg, 3000);
     }catch(err){
       var st = err && err.status;
       if(st === 401 || st === 403 || st === 404){ try{ localStorage.removeItem("napivo-gh"); }catch(x){} say("GitHub не принял токен", 3500); }
-      else say("Не удалось снять бронь. Попробуйте ещё раз", 3000);
-      bt.textContent = btLabel;
+      else say(errMsg, 3000);
+      if(restore) restore();
     }
     rvBusy = false;
+  }
+  function putBack(P, e){   // вернуть вкус из брони обратно в продажу
+    var f = findFl(P.data, e.line, e.fl); if(!f) return false;
+    var parts = f.it.f[f.j].split(" · "), name = parts[0];
+    if(e.k === "r") f.it.f[f.j] = name + (e.v ? " · " + e.v : "");
+    else f.it.f[f.j] = name + " · " + ((parseInt(parts[1], 10) || 0) + (parseInt(e.v, 10) || 0)) + " шт";
+    return true;
+  }
+  rv.box.addEventListener("click", async function(e){
+    var gb = e.target.closest && e.target.closest(".rv-g");
+    if(gb && !rvBusy){
+      var kind = gb.getAttribute("data-g"), code = gb.getAttribute("data-c");
+      if(kind === "rn"){
+        var cur = readCodes((rvCtx && rvCtx.P.pre) || PRE)[code], o = await form("Имя или ник покупателя", [{k:"n", l:"Имя", v:(cur && cur.nm) || ""}], "Сохранить");
+        if(!o) return; var nm = o.n.trim();
+        await rvRun(function(P, codes){ if(!codes[code]) return null; codes[code].nm = nm; return ["Бронь №" + code + ": имя «" + nm + "»"]; }, "Имя сохранено", "Не удалось сохранить имя");
+      } else if(kind === "off"){
+        if((await sheet("Снять всю бронь №" + code + "? Все вкусы вернутся в продажу.", [{t:"Снять бронь", d:1},{t:"Отмена"}], true)) !== 0) return;
+        await rvRun(function(P, codes){ var arr = codes[code], log = []; if(!arr) return null; arr.forEach(function(en){ if(putBack(P, en)) log.push("Снята бронь: " + en.line + " — " + en.fl); }); delete codes[code]; return log.length ? log : ["Бронь №" + code + " снята"]; }, "Бронь снята. На сайте обновится через минуту", "Не удалось снять бронь");
+      } else if(kind === "sold"){
+        if((await sheet("Отметить бронь №" + code + " проданной? Вкусы уберутся из прайса на сайте.", [{t:"Да, продано", d:1},{t:"Отмена"}], true)) !== 0) return;
+        await rvRun(function(P, codes){
+          var arr = codes[code], log = []; if(!arr) return null;
+          arr.forEach(function(en){
+            var f = findFl(P.data, en.line, en.fl); if(!f) return;
+            if(en.k === "r") f.it.f.splice(f.j, 1);
+            log.push("Продано: " + en.line + " — " + en.fl + (en.k === "q" ? " × " + en.v : ""));
+          });
+          delete codes[code]; return log.length ? log : ["Бронь №" + code + " закрыта"];
+        }, "Отмечено проданным. На сайте обновится через минуту", "Не удалось отметить проданным");
+      } else if(kind === "merge"){
+        var pick = {};
+        Array.prototype.forEach.call(rv.box.querySelectorAll(".rv-c:checked"), function(c){
+          var key = c.getAttribute("data-gi") + "-" + c.getAttribute("data-ii") + "-" + c.getAttribute("data-j");
+          if(!pick[key]) pick[key] = {gi:+c.getAttribute("data-gi"), ii:+c.getAttribute("data-ii"), j:+c.getAttribute("data-j"), q:!!c.getAttribute("data-q"), n:0};
+          pick[key].n += +c.getAttribute("data-n") || 1;
+        });
+        var refs = Object.keys(pick).map(function(k){ return pick[k]; }), total = refs.reduce(function(a, r){ return a + r.n; }, 0);
+        if(!refs.length){ say("Отметьте вкусы галочками", 2500); return; }
+        var existing = Array.prototype.map.call(rv.box.querySelectorAll(".bk[data-c]"), function(x){ return {c:x.getAttribute("data-c"), l:x.getAttribute("data-l")}; });
+        var target = "", nameNew = "";
+        if(existing.length){
+          var opts = [{t:"Новая бронь"}].concat(existing.map(function(x){ return {t:"К брони №" + x.c + (x.l ? " · " + x.l : "")}; })).concat([{t:"Отмена"}]);
+          var pk = await sheet("Куда добавить " + total + " шт?", opts, true);
+          if(pk < 0 || pk >= opts.length - 1) return;
+          if(pk > 0) target = existing[pk - 1].c;
+        }
+        if(!target){
+          var o2 = await form("Новая бронь: " + total + " шт", [{k:"n", l:"Имя или ник покупателя (необязательно)", v:""}], "Создать");
+          if(!o2) return; nameNew = o2.n.trim();
+        }
+        await rvRun(function(P, codes){
+          var arr = target ? codes[target] : [], log = [];
+          if(!arr) return null;
+          refs.forEach(function(ref){
+            var it = P.data[ref.gi] && P.data[ref.gi].items[ref.ii], f = it && it.f[ref.j]; if(!f) return;
+            var name = f.split(" · ")[0], v;
+            if(ref.q){ v = takeQ(codes, it.n, name, ref.n); if(v <= 0) return; }
+            else {
+              var taken = "";
+              Object.keys(codes).forEach(function(c){ if(!codes[c].man) return; codes[c] = Object.assign(codes[c].filter(function(en){ if(en.k === "r" && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ taken = en.v; return false; } return true; }), {man:codes[c].man, nm:codes[c].nm, ts:codes[c].ts}); if(!codes[c].length) delete codes[c]; });
+              v = taken;
+            }
+            var ex = null; arr.forEach(function(en){ if(en.k === (ref.q ? "q" : "r") && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)) ex = en; });
+            if(ex){ if(ref.q) ex.v = String((parseInt(ex.v, 10) || 0) + v); }
+            else arr.push({k:ref.q ? "q" : "r", line:it.n, fl:name, v:ref.q ? String(v) : v});
+            log.push("В бронь: " + it.n + " — " + name + (ref.q ? " × " + v : ""));
+          });
+          if(!log.length) return null;
+          if(!target){ arr.nm = nameNew; arr.ts = Math.floor(Date.now() / 1000); codes[freeCode(codes)] = arr; }
+          return log;
+        }, target ? "Добавлено в бронь №" + target : "Объединено в одну бронь", "Не удалось объединить");
+      }
+      return;
+    }
+    var bt = e.target.closest && e.target.closest(".rv-x"); if(!bt || rvBusy) return;
+    var sold = bt.classList.contains("rv-s"), btLabel = bt.textContent;
+    if(sold && (await sheet("Отметить проданным? Вкус уберётся из прайса на сайте.", [{t:"Да, продано", d:1},{t:"Отмена"}], true)) !== 0) return;
+    bt.textContent = "…";
+    var gi = +bt.getAttribute("data-gi"), ii = +bt.getAttribute("data-ii"), jj = +bt.getAttribute("data-j"), isQ = !!bt.getAttribute("data-q"), qn = +bt.getAttribute("data-n") || 0;
+    var bcode = bt.getAttribute("data-c") || "";
+    await rvRun(function(P, codes){
+      var it = P.data[gi] && P.data[gi].items[ii], nm = it && it.f[jj]; if(!nm) return null;
+      var name = nm.split(" · ")[0], back = "", took = qn;
+      if(isQ) took = takeQ(codes, it.n, name, qn, bcode);
+      else Object.keys(codes).forEach(function(c){
+        codes[c] = Object.assign(codes[c].filter(function(en){ if(en.k === "r" && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ back = en.v; return false; } return true; }), {man:codes[c].man, nm:codes[c].nm, ts:codes[c].ts});
+        if(!codes[c].length) delete codes[c];
+      });
+      if(sold){ if(!isQ) it.f.splice(jj, 1); }
+      else if(isQ) it.f[jj] = name + " · " + ((parseInt(nm.split(" · ")[1], 10) || 0) + took) + " шт";
+      else it.f[jj] = name + (back ? " · " + back : "");
+      return [(sold ? "Продано: " : "Снята бронь: ") + it.n + " — " + name + (isQ ? " × " + took : "")];
+    }, sold ? "Отмечено проданным. На сайте обновится через минуту" : "Бронь снята. На сайте обновится через минуту", sold ? "Не удалось отметить проданным" : "Не удалось снять бронь", function(){ bt.textContent = btLabel; });
   });
 
   /* анимации: появление карточек при прокрутке и галочка успеха */
