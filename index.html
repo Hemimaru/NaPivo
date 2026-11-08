@@ -250,7 +250,7 @@ ul.fl li.dragging{position:relative;z-index:5;background:var(--surface-2);box-sh
 body.editing .card{position:relative}
 body.editing .card .top{padding-right:34px}
 .cgrip{position:absolute;top:8px;right:6px;padding:8px;color:var(--muted);cursor:grab;touch-action:none;display:inline-flex;z-index:2}
-.card.dragging{z-index:6;box-shadow:0 14px 34px rgba(0,0,0,.45);cursor:grabbing}
+.card.dragging{will-change:transform;z-index:6;box-shadow:0 14px 34px rgba(0,0,0,.45);cursor:grabbing}
 .ed.cd{height:150px;width:calc(100% - 8px)}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
@@ -1386,9 +1386,10 @@ chips(); render();
   }
   function cdrLoop(){
     if(!cdr) return;
-    var v = 0, h = window.innerHeight;
-    if(cdrY < 90) v = -Math.ceil((90 - cdrY) / 6); else if(cdrY > h - 90) v = Math.ceil((cdrY - (h - 90)) / 6);
-    if(v){ window.scrollBy(0, v); cdrApply(); }
+    var v = 0, h = window.innerHeight, Z = 130;
+    if(cdrY < Z) v = -Math.ceil(Math.pow(Math.min(1, (Z - cdrY) / Z), 1.4) * 34);
+    else if(cdrY > h - Z) v = Math.ceil(Math.pow(Math.min(1, (cdrY - (h - Z)) / Z), 1.4) * 34);
+    if(v){ window.scrollTo({top:window.pageYOffset + v, behavior:"instant"}); cdrApply(); }
     cdrRaf = requestAnimationFrame(cdrLoop);
   }
   mainEl.addEventListener("pointerdown", function(e){
@@ -1401,7 +1402,7 @@ chips(); render();
     var i0 = cards.indexOf(card);
     var gap = cards.length > 1 ? (i0 < cards.length - 1 ? rects[i0 + 1].top - rects[i0].bottom : rects[i0].top - rects[i0 - 1].bottom) : 0;
     cdr = {card:card, cards:cards, from:i0, to:i0, y0:e.clientY, s0:sy, id:e.pointerId, tops:rects.map(function(r){ return r.top + sy + r.height/2; }), step:rects[i0].height + gap};
-    cdrY = e.clientY; card.classList.add("dragging");
+    cdrY = e.clientY; card.classList.add("dragging"); document.documentElement.style.scrollBehavior = "auto";
     cards.forEach(function(x){ if(x !== card) x.style.transition = "transform .2s ease"; });
     cdrRaf = requestAnimationFrame(cdrLoop);
   });
@@ -1409,7 +1410,7 @@ chips(); render();
   function endCdr(e){
     if(!cdr || e.pointerId !== cdr.id) return;
     cancelAnimationFrame(cdrRaf);
-    var d = cdr; cdr = null;
+    var d = cdr; cdr = null; document.documentElement.style.scrollBehavior = "";
     d.cards.forEach(function(x){ x.style.transform = ""; x.style.transition = ""; }); d.card.classList.remove("dragging");
     if(d.to !== d.from){
       var gi = +d.card.getAttribute("data-gi"), g = DATA[gi];
