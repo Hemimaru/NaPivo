@@ -45,7 +45,6 @@ telegram: kooot45
 
 ## Rick And Morty & Catswill | 50 | 15 | 04.jpg
 - Черника яблоко
-- Яблоко груша · бронь
 
 ## Podonki Arcade | 50 | 15 | 05.jpg
 - Киви персик
