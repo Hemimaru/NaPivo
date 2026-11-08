@@ -1386,9 +1386,12 @@ chips(); render();
   }
   function cdrLoop(){
     if(!cdr) return;
-    var v = 0, h = window.innerHeight, Z = 130;
-    if(cdrY < Z) v = -Math.ceil(Math.pow(Math.min(1, (Z - cdrY) / Z), 1.4) * 34);
-    else if(cdrY > h - Z) v = Math.ceil(Math.pow(Math.min(1, (cdrY - (h - Z)) / Z), 1.4) * 34);
+    var v = 0, h = window.innerHeight, Z = 130, raw = cdrY - cdr.y0, r = cdr.card.getBoundingClientRect(), up = 0, dn = 0;
+    if(cdrY < Z) up = (Z - cdrY) / Z;
+    if(raw < -20 && r.top < 120) up = Math.max(up, Math.min(.45, (120 - r.top) / 240));
+    if(cdrY > h - Z) dn = (cdrY - (h - Z)) / Z;
+    if(raw > 20 && r.bottom > h - 120) dn = Math.max(dn, Math.min(.45, (r.bottom - (h - 120)) / 240));
+    if(up > dn) v = -Math.ceil(Math.pow(Math.min(1, up), 1.3) * 34); else if(dn > 0) v = Math.ceil(Math.pow(Math.min(1, dn), 1.3) * 34);
     if(v){ window.scrollTo({top:window.pageYOffset + v, behavior:"instant"}); cdrApply(); }
     cdrRaf = requestAnimationFrame(cdrLoop);
   }
