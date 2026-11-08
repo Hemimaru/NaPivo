@@ -1428,6 +1428,24 @@ chips(); render();
       if(nn !== name) EDIT.log.push("Вкус переименован: " + c.it.n + " — " + name + " → " + nn);
       if(!rv && nq !== qty) EDIT.log.push("Изменено количество: " + c.it.n + " — " + nn + (nq ? " (" + nq + ")" : " (без пометки)"));
       render();
+    } else if(act === "on" && /^\d+\s*шт/i.test(qty) && parseInt(qty, 10) >= 2){
+      var have = parseInt(qty, 10), btn = [], k;
+      for(k = 1; k < have && k <= 8; k++) btn.push({t:String(k)});
+      btn.push({t:"Все (" + have + ")"}); btn.push({t:"Отмена"});
+      var pk = await sheet("Сколько бронировать? Есть " + have + " шт: " + c.it.n + " — " + name, btn);
+      if(pk < 0 || pk >= btn.length - 1) return;
+      var take = pk === btn.length - 2 ? have : pk + 1;
+      if(take < have){
+        c.it.f[c.j] = name + " · " + (have - take) + " шт";
+        PRE.push("//код " + String(10000 + Date.now() % 90000) + " | q:" + c.it.n + " :: " + name + " :: " + take);
+        EDIT.log.push("Забронировано " + take + " шт: " + c.it.n + " — " + name + " (осталось " + (have - take) + ")");
+        render(); return;
+      }
+      var u0 = await askTerm(); if(u0 === null) return;
+      c.it.f[c.j] = name + " · " + rvText(u0);
+      PRE.push("//код " + String(10000 + Date.now() % 90000) + " | r:" + c.it.n + " :: " + name + " :: " + qty);
+      EDIT.log.push("Забронирован: " + c.it.n + " — " + name + " (все " + have + " шт" + (u0 ? ", до " + mskStr(u0) : "") + ")");
+      render();
     } else if(act === "on" || act === "term"){
       var u = await askTerm(); if(u === null) return;
       c.it.f[c.j] = name + " · " + rvText(u);
