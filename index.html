@@ -234,7 +234,7 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .ck{position:fixed;left:50%;top:50%;z-index:95;width:92px;height:92px;margin:-46px 0 0 -46px;border-radius:50%;background:var(--accent);display:grid;place-items:center;pointer-events:none}
 .ck path{stroke:var(--accent-fg);stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;stroke-dashoffset:40}
 .rv-x{margin-top:6px;padding:7px 12px;border:0;border-radius:10px;background:var(--bg);color:var(--fg);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
-.empty .mg{display:block;margin:0 auto 10px;width:150px;max-width:60%;height:auto}
+.empty .mg{display:block;margin:0 auto 10px;width:150px;max-width:60%;height:auto;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .empty:not([hidden]){animation:emin .4s cubic-bezier(.2,.8,.2,1)}
 @keyframes emin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.empty:not([hidden]){animation:none}}
@@ -267,7 +267,7 @@ ul.fl li.dragging{position:relative;z-index:5;background:var(--surface-2);box-sh
     <div class="menu" id="menu" role="menu" hidden></div>
   </div>
   <main id="main"></main>
-  <div class="empty" id="empty" hidden><picture><source media="(prefers-reduced-motion: reduce)" srcset="empty-still.png"><img class="mg" src="empty.webp" alt="" width="224" height="144" loading="lazy" decoding="async"></picture><p id="emptyT"></p></div>
+  <div class="empty" id="empty" hidden><picture><source media="(prefers-reduced-motion: reduce)" srcset="empty-still.png"><img class="mg" id="emptyImg" src="empty.webp" alt="" width="224" height="144" loading="lazy" decoding="async" role="button" tabindex="0" aria-label="Включить звук"></picture><p id="emptyT"></p></div>
   <footer>Цена указана в тех же единицах, что и в прайсе. Наличие уточняйте при заказе.</footer>
 </div>
 
@@ -920,6 +920,19 @@ chips(); render();
     if((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("end")){ e.preventDefault(); say(END); }
   });
 
+  var snd = null;
+  function playSnd(el){
+    try{
+      if(!snd){ snd = new Audio("sound.mp3"); snd.preload = "auto"; snd.volume = .8; }
+      snd.currentTime = 0; var pr = snd.play(); if(pr && pr.catch) pr.catch(function(){});
+    }catch(e){}
+    if(!rm && el && el.animate) el.animate([{transform:"scale(1)"},{transform:"scale(.9)",offset:.25},{transform:"scale(1.06)",offset:.6},{transform:"scale(1)"}],{duration:320,easing:"ease-out"});
+  }
+  var emImg = document.getElementById("emptyImg");
+  if(emImg){
+    emImg.addEventListener("click", function(){ playSnd(emImg); });
+    emImg.addEventListener("keydown", function(e){ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); playSnd(emImg); } });
+  }
   var upAnim = 0;
   document.addEventListener("click", function(e){
     if(!(e.target.closest && e.target.closest("#upBtn"))) return;
