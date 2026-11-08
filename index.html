@@ -247,6 +247,10 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .fly{position:fixed;z-index:80;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--accent);pointer-events:none;box-shadow:0 0 0 4px rgba(255,92,138,.25)}
 .grip{margin-left:auto;flex:none;padding:8px 6px 8px 12px;color:var(--muted);cursor:grab;touch-action:none;display:inline-flex;align-items:center}
 ul.fl li.dragging{position:relative;z-index:5;background:var(--surface-2);box-shadow:0 8px 22px rgba(0,0,0,.35);cursor:grabbing}
+body.editing .card{position:relative}
+body.editing .card .top{padding-right:34px}
+.cgrip{position:absolute;top:8px;right:6px;padding:8px;color:var(--muted);cursor:grab;touch-action:none;display:inline-flex;z-index:2}
+.card.dragging{z-index:6;box-shadow:0 14px 34px rgba(0,0,0,.45);cursor:grabbing}
 .ed.cd{height:150px;width:calc(100% - 8px)}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
@@ -355,7 +359,7 @@ function card(it,q,single){
   var gi = DATA.indexOf(it.g), ii = it.g.items.indexOf(it);
   var nameMatch = q && it.n.toLowerCase().indexOf(q)>=0;
   var list = it.f.map(function(x,j){return [x,j];}).filter(function(a){return !q || nameMatch || a[0].toLowerCase().indexOf(q)>=0;});
-  return '<article class="card'+(single?' one':'')+'" data-gi="'+gi+'" data-ii="'+ii+'">'+img+'<div><div class="top"><h3'+(EDIT?' data-e="line"':'')+'>'+hl(it.n,q)+'</h3><div class="pills"'+(EDIT?' data-e="line"':'')+'>'+pills+'</div></div><ul class="fl">'+list.map(function(a){return flav(a[0],q,it.id+"."+a[1],a[1]);}).join("")+(EDIT?'<li class="addf" data-e="addf">+ Добавить вкус</li>':"")+'</ul></div></article>';
+  return '<article class="card'+(single?' one':'')+'" data-gi="'+gi+'" data-ii="'+ii+'">'+img+'<div><div class="top">'+(EDIT?'<span class="cgrip" data-e="cgrip" aria-label="Перетащить линейку"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span>':'')+'<h3'+(EDIT?' data-e="line"':'')+'>'+hl(it.n,q)+'</h3><div class="pills"'+(EDIT?' data-e="line"':'')+'>'+pills+'</div></div><ul class="fl">'+list.map(function(a){return flav(a[0],q,it.id+"."+a[1],a[1]);}).join("")+(EDIT?'<li class="addf" data-e="addf">+ Добавить вкус</li>':"")+'</ul></div></article>';
 }
 function render(){
   var q = state.q.trim().toLowerCase(), html = "", shown = 0;
@@ -1362,6 +1366,61 @@ chips(); render();
   }
   mainEl.addEventListener("pointerup", endDrag);
   mainEl.addEventListener("pointercancel", endDrag);
+
+  /* перетаскивание линеек внутри раздела */
+  var cdr = null, cdrRaf = 0, cdrY = 0;
+  function cdrDelta(){ return (cdrY - cdr.y0) + (window.pageYOffset - cdr.s0); }
+  function cdrApply(){
+    if(!cdr) return;
+    var dy = cdrDelta(); cdr.card.style.transform = "translateY(" + dy + "px)";
+    var cy = cdr.tops[cdr.from] + dy, n = 0;
+    cdr.tops.forEach(function(t, i){ if(i !== cdr.from && t < cy) n++; });
+    cdr.to = n;
+    cdr.cards.forEach(function(x, i){
+      if(i === cdr.from) return;
+      var sh = 0;
+      if(cdr.from < cdr.to && i > cdr.from && i <= cdr.to) sh = -cdr.step;
+      else if(cdr.from > cdr.to && i >= cdr.to && i < cdr.from) sh = cdr.step;
+      x.style.transform = sh ? "translateY(" + sh + "px)" : "";
+    });
+  }
+  function cdrLoop(){
+    if(!cdr) return;
+    var v = 0, h = window.innerHeight;
+    if(cdrY < 90) v = -Math.ceil((90 - cdrY) / 6); else if(cdrY > h - 90) v = Math.ceil((cdrY - (h - 90)) / 6);
+    if(v){ window.scrollBy(0, v); cdrApply(); }
+    cdrRaf = requestAnimationFrame(cdrLoop);
+  }
+  mainEl.addEventListener("pointerdown", function(e){
+    if(!EDIT) return;
+    var g = e.target.closest && e.target.closest(".cgrip"); if(!g) return;
+    var card = g.closest("article.card"); if(!card) return;
+    var cards = [].slice.call(card.parentNode.querySelectorAll(":scope > article.card"));
+    e.preventDefault(); try{ g.setPointerCapture(e.pointerId); }catch(x){}
+    var sy = window.pageYOffset, rects = cards.map(function(x){ return x.getBoundingClientRect(); });
+    var i0 = cards.indexOf(card);
+    var gap = cards.length > 1 ? (i0 < cards.length - 1 ? rects[i0 + 1].top - rects[i0].bottom : rects[i0].top - rects[i0 - 1].bottom) : 0;
+    cdr = {card:card, cards:cards, from:i0, to:i0, y0:e.clientY, s0:sy, id:e.pointerId, tops:rects.map(function(r){ return r.top + sy + r.height/2; }), step:rects[i0].height + gap};
+    cdrY = e.clientY; card.classList.add("dragging");
+    cards.forEach(function(x){ if(x !== card) x.style.transition = "transform .2s ease"; });
+    cdrRaf = requestAnimationFrame(cdrLoop);
+  });
+  mainEl.addEventListener("pointermove", function(e){ if(!cdr || e.pointerId !== cdr.id) return; cdrY = e.clientY; cdrApply(); });
+  function endCdr(e){
+    if(!cdr || e.pointerId !== cdr.id) return;
+    cancelAnimationFrame(cdrRaf);
+    var d = cdr; cdr = null;
+    d.cards.forEach(function(x){ x.style.transform = ""; x.style.transition = ""; }); d.card.classList.remove("dragging");
+    if(d.to !== d.from){
+      var gi = +d.card.getAttribute("data-gi"), g = DATA[gi];
+      if(g){
+        var it = g.items.splice(d.from, 1)[0]; g.items.splice(d.to, 0, it);
+        EDIT.log.push("Изменён порядок линеек: " + it.n + " — " + gtitle(g)); fixup(); render(); focusItem(it);
+      }
+    }
+  }
+  mainEl.addEventListener("pointerup", endCdr);
+  mainEl.addEventListener("pointercancel", endCdr);
   mainEl.addEventListener("beforeinput", function(e){ if(EDIT && e.target.closest && e.target.closest(".nopic")) e.preventDefault(); });
   mainEl.addEventListener("paste", function(e){
     if(!EDIT) return;
