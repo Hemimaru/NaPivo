@@ -85,6 +85,8 @@ h1 i{font-style:normal;color:var(--accent)}
 .tginfo{margin:8px 2px 0;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 body.editing .fbtn,body.editing .tagw{display:none}
 .rv-u{color:var(--muted);font-size:12px;margin:0 6px}
+.rv-sum{display:flex;justify-content:space-between;align-items:baseline;margin:14px 4px 4px;padding:12px 14px;border-radius:12px;background:var(--surface-2);font-weight:700}
+.rv-sum b{font-size:20px;color:var(--accent);font-variant-numeric:tabular-nums}
 .rv-u.ex{color:var(--resv)}
 section.group{margin-top:34px}
 .ghead{display:flex;align-items:baseline;gap:12px;padding-bottom:10px;border-bottom:2px solid var(--accent);margin-bottom:16px}
@@ -1826,14 +1828,16 @@ chips(); render();
     return {P:parsePrice(m[1].replace(/^\n/,"")), sha:j.sha};
   }
   function drawResv(data){
-    var body = rv.box.querySelector("#rvBody"), html = "";
+    var body = rv.box.querySelector("#rvBody"), html = "", sum = 0, cnt = 0;
     data.forEach(function(g, gi){ g.items.forEach(function(it, ii){
       var fl = [];
       it.f.forEach(function(f, j){ var q = rvOf(f.split(" · ")[1]); if(q) fl.push([f, j, q]); });
       if(!fl.length) return;
+      fl.forEach(function(a){ if(!a[2].expired){ cnt++; sum += parseFloat(String(it.p).replace(",", ".")) || 0; } });
       html += '<div class="rv-i">' + (it.img ? '<img class="rv-p" alt="" src="' + picSrc(it.img) + '">' : '<div class="rv-p rv-n"></div>') +
         '<div class="rv-t"><b>' + esc(it.n) + '</b><ul>' + fl.map(function(a){ return '<li>' + esc(a[0].split(" · ")[0]) + (a[2].until ? ' <span class="rv-u' + (a[2].expired ? ' ex' : '') + '">' + (a[2].expired ? 'срок истёк' : esc(rvLabel(a[2]).replace("бронь ", ""))) + '</span>' : '') + ' <button type="button" class="rv-x" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Снять бронь</button></li>'; }).join("") + '</ul></div></div>';
     }); });
+    if(html) html += '<div class="rv-sum"><span>Итого по броням: ' + cnt + ' шт</span><b>' + (Math.round(sum * 100) / 100) + '</b></div>';
     body.innerHTML = html || "Забронированных вкусов нет.";
     if(!rm && body.animate) Array.prototype.forEach.call(body.querySelectorAll(".rv-i"), function(x, i){ x.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:260,delay:i*50,easing:"ease-out",fill:"backwards"}); });
   }
