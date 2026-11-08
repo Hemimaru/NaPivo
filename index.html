@@ -1634,7 +1634,7 @@ chips(); render();
     if(!m){ say("Не удалось загрузить прайс. Попробуйте позже"); return; }
     var P = parsePrice(m[1].replace(/^\n/,""));
     EDIT = {log:[], imgs:{}, sha:sha, back:{d:DATA, p:PRE, g:state.sec, q:state.q}};
-    DATA = P.data; PRE = P.pre; state.sec = "all"; state.q = ""; document.getElementById("q").value = ""; if(window.resetTags) window.resetTags(true);
+    DATA = P.data; PRE = P.pre; DATA.forEach(function(g){ g.items.forEach(function(it){ it._o = it.n; }); }); state.sec = "all"; state.q = ""; document.getElementById("q").value = ""; if(window.resetTags) window.resetTags(true);
     document.body.classList.add("editing"); bar.hidden = false; render(); window.scrollTo(0, 0);
     if(!rm && bar.animate){ bar.animate([{transform:"translateY(-100%)"},{transform:"none"}],{duration:300,easing:"cubic-bezier(.2,.8,.2,1)"}); mainEl.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,easing:"ease-out"}); }
     say("Нажимайте на вкус, картинку или название линейки", 3200);
@@ -1682,7 +1682,7 @@ chips(); render();
       var res = await fetch(base + "prices.js", {method:"PUT", headers:H, body:JSON.stringify({message:msg, content:b64("window.PRICE_TEXT = `\n" + serialize() + "\n`;\n"), sha:sha, branch:"main"})});
       if(!res.ok) throw {status:res.status};
       try{ localStorage.setItem("napivo-gh", tok); }catch(e){}
-      var sBefore = snapLines(EDIT.back.d), sAfter = snapLines(DATA);
+      var sBefore = snapLines(EDIT.back.d, false), sAfter = snapLines(DATA, true);
       leave(false); checkmark(); say("Сохранено. На сайте обновится через минуту", 3200);
       syncSheet(sBefore, sAfter);
     }catch(e){
@@ -1788,7 +1788,7 @@ chips(); render();
       if(!r.ok) throw {status:r.status};
       var j = await r.json(), sha = j.sha, text = decodeURIComponent(escape(atob(String(j.content).replace(/\s/g,""))));
       var m = text.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/); if(!m) throw {status:0};
-      var P = parsePrice(m[1].replace(/^\n/,"")), codes = readCodes(P.pre), log = [], head = "", sBefore = snapLines(P.data);
+      var P = parsePrice(m[1].replace(/^\n/,"")), codes = readCodes(P.pre), log = [], head = "", sBefore = snapLines(P.data, false);
       if(codes[code]){
         codes[code].forEach(function(e){
           var f = findFl(P.data, e.line, e.fl); if(!f) return;
@@ -1824,7 +1824,7 @@ chips(); render();
       var res = await fetch(api, {method:"PUT", headers:{Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, body:JSON.stringify({message:"Правка прайса: " + log.length + " изм.\n\n" + log.join("\n"), content:b64("window.PRICE_TEXT = `\n" + ser + "\n`;\n"), sha:sha, branch:"main"})});
       if(!res.ok) throw {status:res.status};
       try{ localStorage.setItem("napivo-gh", tok); }catch(e){}
-      syncSheet(sBefore, snapLines(P.data));
+      syncSheet(sBefore, snapLines(P.data, false));
       DATA = P.data; PRE = P.pre; EDIT = null;
       var nn = 0; DATA.forEach(function(g){ g.items.forEach(function(x){ x.id = nn++; }); });
       render(); if(window.rebuildLook) window.rebuildLook();
@@ -1843,21 +1843,27 @@ chips(); render();
   function sCfg(){ try{ return JSON.parse(localStorage.getItem("napivo-sheet") || "null"); }catch(e){ return null; } }
   function readQ(){ try{ return JSON.parse(localStorage.getItem("napivo-sheetq") || "{}") || {}; }catch(e){ return {}; } }
   function writeQ(q){ try{ localStorage.setItem("napivo-sheetq", JSON.stringify(q)); }catch(e){} }
-  function snapLines(data){
-    var o = {};
-    data.forEach(function(g){ if(!g.liq) return; g.items.forEach(function(it){
-      o[it.n] = {p:it.p, g:g.menu, fl:it.f.map(function(f){ var p = f.split(" · "), r = rvOf(p[1]); return {t:p[0] + (p[1] && !r ? " · " + p[1] : ""), r:!!r && !r.expired}; })};
-    }); });
+  function secTitle(g){ return String(g.raw || "").replace(/^#\s*/, "").split("|")[0].replace(/\*/g, "").trim(); }
+  function snapLines(data, useOrigin){
+    var o = {lines:{}, secs:{}};
+    data.forEach(function(g){ if(!g.liq) return; var t = secTitle(g); o.secs[t] = [];
+      g.items.forEach(function(it){
+        var key = useOrigin ? (it._o !== undefined ? it._o : "+" + it.n) : it.n;
+        o.lines[key] = {n:it.n, img:it.img || "", fl:it.f.map(function(f){ var p = f.split(" · "), r = rvOf(p[1]); return {t:p[0] + (p[1] && !r ? " · " + p[1] : ""), r:!!r && !r.expired}; })};
+        o.secs[t].push(key);
+      });
+    });
     return o;
   }
   function sheetDiff(a, b){
     var ops = [], manual = [];
-    Object.keys(b).forEach(function(n){
-      if(!a[n]){ manual.push(n); return; }
-      if(a[n].p !== b[n].p || a[n].g !== b[n].g) manual.push(n);
-      if(JSON.stringify(a[n].fl) !== JSON.stringify(b[n].fl)) ops.push({line:n, fl:b[n].fl});
+    Object.keys(a.lines).forEach(function(k){ if(!b.lines[k]) ops.push({t:"del", name:a.lines[k].n}); });
+    Object.keys(b.secs).forEach(function(t){
+      var ks = b.secs[t], sig = ks.map(function(k){ return k + "=" + b.lines[k].n; }).join("|"), bk = a.secs[t], bsig = bk ? bk.map(function(k){ return k + "=" + a.lines[k].n; }).join("|") : null;
+      ks.forEach(function(k){ var x = a.lines[k], y = b.lines[k]; if(!x || x.img !== y.img) manual.push(y.n); });
+      if(sig !== bsig){ ops.push({t:"sec", title:t, lines:ks.map(function(k){ return {n:b.lines[k].n, o:a.lines[k] ? a.lines[k].n : null, fl:b.lines[k].fl}; })}); return; }
+      ks.forEach(function(k){ if(JSON.stringify(a.lines[k].fl) !== JSON.stringify(b.lines[k].fl)) ops.push({t:"fl", line:b.lines[k].n, fl:b.lines[k].fl}); });
     });
-    Object.keys(a).forEach(function(n){ if(!b[n]) manual.push(n); });
     return {ops:ops, manual:manual};
   }
   async function sheetPost(body){
@@ -1867,7 +1873,8 @@ chips(); render();
     return r.json();
   }
   var sheetBusy = false;
-  async function flushSheet(manual, force){
+  function opName(o){ return o.line || o.name || o.title; }
+  async function flushSheet(manual){
     if(sheetBusy) return; var c = sCfg(); if(!c || !c.url) return;
     var q = readQ(), ops = Object.keys(q).map(function(k){ return q[k]; });
     if(!ops.length && !manual.length) return;
@@ -1876,22 +1883,23 @@ chips(); render();
       if(ops.length){
         var j = await sheetPost({ops:ops});
         if(!j.ok) throw new Error(j.err || "err");
-        var bad = [];
-        (j.res || []).forEach(function(x){ if(!x.err) delete q[x.line]; else { bad.push(x.line + ": " + x.err); if(/не найдена/.test(x.err)) delete q[x.line]; } });
+        var bad = [], resBy = {};
+        (j.res || []).forEach(function(x){ resBy[x.line] = x; });
+        Object.keys(q).forEach(function(k){ var x = resBy[opName(q[k])]; if(!x) return; if(!x.err) delete q[k]; else { bad.push(x.line + ": " + x.err); if(/не найдена/.test(x.err)) delete q[k]; } });
         writeQ(q);
         msg = bad.length ? "Таблица обновлена не полностью: " + bad.join("; ") : "Таблица обновлена";
       }
     }catch(e){
       msg = /неверный ключ/.test(String(e && e.message)) ? "Таблица не приняла ключ. Проверьте его в меню разработчика" : "Таблица пока не обновилась. Правки сохранятся и уйдут при следующем сохранении";
     }
-    if(manual.length) msg += (msg ? ". " : "") + "Перенос, цену и удаление линеек в таблице пока правит Claude (" + manual.length + ")";
+    if(manual.length) msg += (msg ? ". " : "") + "Фото линейки в таблице вставьте вручную: " + manual.join(", ");
     sheetBusy = false;
-    if(msg) say(msg, 5000);
+    if(msg) say(msg, 5500);
   }
   function syncSheet(before, after){
     var c = sCfg(); if(!c || !c.url) return;
     var d = sheetDiff(before, after), q = readQ();
-    d.ops.forEach(function(o){ q[o.line] = o; }); writeQ(q);
+    d.ops.forEach(function(o){ q[o.t + ":" + opName(o)] = o; }); writeQ(q);
     setTimeout(function(){ flushSheet(d.manual); }, 1200);
   }
   async function openSheetCfg(){
@@ -1907,11 +1915,13 @@ chips(); render();
       catch(e){ say("Не удалось связаться с таблицей. Проверьте адрес", 4000); }
     } else if(i === 1){
       if(!c.url){ say("Сначала настройте связь"); return; }
+      if((await sheet("Таблица будет приведена к сайту: порядок и вкусы совпадут, а линейки, которых нет на сайте, удалятся из таблицы. Продолжить?", [{t:"Да, сверить", d:1},{t:"Отмена"}], true)) !== 0) return;
       say("Сверяю таблицу…", 8000);
       try{
         var L; try{ L = await loadPrices(); }catch(e){ L = null; }
-        var snap = snapLines(L ? L.P.data : DATA), q = readQ();
-        Object.keys(snap).forEach(function(n){ q[n] = {line:n, fl:snap[n].fl}; }); writeQ(q);
+        var snap = snapLines(L ? L.P.data : DATA, false), q = readQ(), keep = [];
+        Object.keys(snap.secs).forEach(function(t){ q["sec:" + t] = {t:"sec", title:t, lines:snap.secs[t].map(function(k){ keep.push(snap.lines[k].n); return {n:snap.lines[k].n, o:snap.lines[k].n, fl:snap.lines[k].fl}; })}; });
+        q["prune:all"] = {t:"prune", keep:keep, line:"лишние линейки"}; writeQ(q);
         sheetBusy = false; await flushSheet([]);
       }catch(e){ say("Не удалось сверить таблицу", 3500); }
     }
@@ -1983,7 +1993,7 @@ chips(); render();
       var res = await fetch("https://api.github.com/repos/" + REPO + "/contents/prices.js", {method:"PUT", headers:{Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, body:JSON.stringify({message:"Правка прайса: 1 изм.\n\n" + (sold ? "Продано: " : "Снята бронь: ") + it.n + " — " + name + (isQ ? " × " + qn : ""), content:b64("window.PRICE_TEXT = `\n" + ser + "\n`;\n"), sha:L.sha, branch:"main"})});
       if(!res.ok) throw {status:res.status};
       try{ localStorage.setItem("napivo-gh", tok); }catch(x){}
-      syncSheet(sBefore, snapLines(P.data));
+      syncSheet(sBefore, snapLines(P.data, false));
       DATA = P.data; PRE = P.pre; var nn = 0; DATA.forEach(function(g, gx){ g.id = "s" + gx; g.items.forEach(function(x){ x.g = g; x.id = nn++; }); });
       if(sold){ MENU = DATA.map(function(g){ return [g.id, g.menu]; }); chips(); }
       render(); if(window.rebuildLook) window.rebuildLook();
