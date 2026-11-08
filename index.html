@@ -988,13 +988,12 @@ chips(); render();
       '<button class="mi" type="button" data-act="log">Журнал изменений</button>'+
       '<button class="mi" type="button" data-act="code">Бронь заказа</button>'+
       '<button class="mi" type="button" data-act="resv">Все брони</button>' : '')+
-      '<button class="mi" type="button" data-act="admin">Права администратора'+(isAdmin?' ✓':'')+'</button>';
+      (isAdmin ? '' : '<button class="mi" type="button" data-act="admin">Права администратора</button>');
     if(reveal === true && !rm && devBody.animate){
       Array.prototype.forEach.call(devBody.querySelectorAll(".mi"), function(m, i){
         if(m.getAttribute("data-act") === "admin") return;
         m.animate([{opacity:0,transform:"translateY(-14px) scale(.94)"},{opacity:1,transform:"none"}],{duration:420,delay:120 + i*110,easing:"cubic-bezier(.2,.9,.3,1.2)",fill:"backwards"});
       });
-      var ad = devBody.querySelector('[data-act="admin"]'); if(ad) ad.animate([{transform:"translateY(-6px)"},{transform:"none"}],{duration:420,delay:560,easing:"ease-out",fill:"backwards"});
       return;
     }
     swapAnim();
