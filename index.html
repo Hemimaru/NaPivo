@@ -70,6 +70,22 @@ h1 i{font-style:normal;color:var(--accent)}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.chip{transition:background .22s,color .22s,border-color .22s,transform .15s}
+.chip:active{transform:scale(.94)}
+.chip.rst{background:none;border-style:dashed;color:var(--muted)}
+.chip[hidden]{display:none}
+.fbtn{flex:none;position:relative;width:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;display:grid;place-items:center;transition:background .22s,color .22s,border-color .22s}
+.fbtn[aria-expanded="true"],.fbtn.on{border-color:var(--accent);color:var(--accent)}
+.fbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fbtn b{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:var(--accent);color:var(--accent-fg);font-size:11px;font-weight:800;line-height:18px;text-align:center}
+.fbtn b[hidden]{display:none}
+.tagw{overflow:hidden;padding:0 2px}
+.tagw[hidden]{display:none}
+.tagw .chips{margin-top:10px;padding:2px 0}
+.tginfo{margin:8px 2px 0;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+body.editing .fbtn,body.editing .tagw{display:none}
+.rv-u{color:var(--muted);font-size:12px;margin:0 6px}
+.rv-u.ex{color:var(--resv)}
 section.group{margin-top:34px}
 .ghead{display:flex;align-items:baseline;gap:12px;padding-bottom:10px;border-bottom:2px solid var(--accent);margin-bottom:16px}
 .ghead h2{margin:0;font-family:var(--display);font-weight:500;font-size:clamp(16px,3.6vw,22px);letter-spacing:.02em;text-transform:uppercase}
@@ -267,7 +283,11 @@ body.editing .card .top{padding-right:34px}
         <svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M1 1.5h18M1 7h18M1 12.5h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
       </button>
       <input class="search" id="q" type="search" placeholder="Найти вкус или линейку: клубника, энергетик, OGGO…" autocomplete="off" aria-label="Поиск по прайсу">
+      <button class="fbtn" id="fbtn" type="button" aria-label="Фильтр по вкусу" aria-expanded="false" aria-controls="tagw">
+        <svg width="20" height="18" viewBox="0 0 20 18" aria-hidden="true"><path d="M2 4.5h16M5 9h10M8 13.5h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg><b id="fcnt" hidden>0</b>
+      </button>
     </div>
+    <div class="tagw" id="tagw" hidden><div class="chips" id="tagChips" role="group" aria-label="Фильтр по вкусу"></div><p class="tginfo" id="tgInfo" aria-live="polite"></p></div>
     <div class="menu" id="menu" role="menu" hidden></div>
   </div>
   <main id="main"></main>
@@ -340,7 +360,55 @@ function serialize(){
 }
 var __P = parsePrice(window.PRICE_TEXT), CFG = __P.cfg, DATA = __P.data, PRE = __P.pre, EDIT = null, PREV = {};
 function picSrc(n){ return PREV[n] || ("img/" + encodeURI(n)); }
-var state = {sec:"all", q:""};
+var state = {sec:"all", q:"", tags:[]};
+
+/* бронь на срок: «бронь» или «бронь до 2026-11-09 18:00» (время по Минску) */
+var MSK = 3*3600e3;
+function pad2(n){ return (n < 10 ? "0" : "") + n; }
+function mskStr(ms){ var d = new Date(ms + MSK); return d.getUTCFullYear() + "-" + pad2(d.getUTCMonth()+1) + "-" + pad2(d.getUTCDate()) + " " + pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes()); }
+function rvOf(qty){
+  var m = String(qty || "").trim().match(/^бронь(?:\s+до\s+(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}))?$/i);
+  if(!m) return null;
+  var until = m[1] ? Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5]) - MSK : 0;
+  return {until:until, expired: !!until && until <= Date.now()};
+}
+function rvLabel(r){
+  if(!r) return ""; if(r.expired) return "бронь истекла"; if(!r.until) return "бронь";
+  var d = new Date(r.until + MSK), n = new Date(Date.now() + MSK);
+  var same = d.getUTCFullYear() === n.getUTCFullYear() && d.getUTCMonth() === n.getUTCMonth() && d.getUTCDate() === n.getUTCDate();
+  return "бронь до " + (same ? "" : pad2(d.getUTCDate()) + "." + pad2(d.getUTCMonth()+1) + " ") + pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes());
+}
+function rvText(ms){ return ms > 0 ? "бронь до " + mskStr(ms) : "бронь"; }
+function termMs(k, custom){
+  var n = Date.now();
+  if(k === "1h") return n + 3600e3; if(k === "3h") return n + 3*3600e3; if(k === "1d") return n + 24*3600e3; if(k === "3d") return n + 72*3600e3;
+  if(k === "eod"){ var d = new Date(n + MSK); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 59) - MSK; }
+  if(k === "custom"){ var m = String(custom || "").match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/); if(!m) return -1; var t = Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5]) - MSK; return t > n ? t : -1; }
+  return 0;
+}
+
+/* фильтр по вкусу: теги определяются по названию вкуса */
+var TAGS = [
+  ["fruit","Фрукты",/яблок|яблоч|груш|персик|манго|ананас|банан|киви|дын|арбуз|маракуй|гуав|личи|помело|драгонфрукт|кумкват|лайм|лимон(?!ад)|цитрус|юдзу|фрукт|тропическ|гранат/],
+  ["berry","Ягоды",/ягод|клубни|земляни|малин|черник|чернич|голубик|смородин|клюкв|черешн|вишн|виноград|лесн|северн|таежн|садов/],
+  ["cool","Холодок",/(?:^|[^а-я])(?:лед|льд|ледян|мят|мороз|снег|холс|мохито)/],
+  ["sour","Кислые",/кисл/],
+  ["sweet","Сладости",/мармел|червяч|жвачк|бабл|конфет|леденц|чупа|мороженое|чизкейк|скитлс|харибо|маршмелоу|мишк|хубба|холс|шипуч/],
+  ["drink","Напитки",/лимонад|(?:^|[^а-я])кол[аыуе]|коктейл|(?:^|[^а-я])сок|содов|мохито|морс|спрайт|фреш|смузи|слаш/],
+  ["energy","Энергетик",/энергетик|ред ?бул|монстр|monster|булл/],
+  ["tobacco","Табак",/табак/]
+], tagMemo = {};
+function tagsOf(f){
+  var n = String(f).split(" · ")[0]; if(tagMemo[n]) return tagMemo[n];
+  var s = " " + n.toLowerCase().replace(/ё/g, "е") + " ", out = [];
+  TAGS.forEach(function(t){ if(t[2].test(s)) out.push(t[0]); });
+  return (tagMemo[n] = out);
+}
+function tagOK(f){ var ts = tagsOf(f); return state.tags.every(function(t){ return ts.indexOf(t) >= 0; }); }
+function vis(it, q){
+  var nm = q && it.n.toLowerCase().indexOf(q) >= 0, tg = state.tags.length && !EDIT;
+  return it.f.map(function(x, j){ return [x, j]; }).filter(function(a){ return (!q || nm || a[0].toLowerCase().indexOf(q) >= 0) && (!tg || tagOK(a[0])); });
+}
 
 function hl(text,q){
   var t = esc(text); if(!q) return t;
@@ -348,24 +416,26 @@ function hl(text,q){
   return esc(text.slice(0,i))+"<mark>"+esc(text.slice(i,i+q.length))+"</mark>"+esc(text.slice(i+q.length));
 }
 function flav(f,q,k,j){
-  var parts = f.split(" · "), name = parts[0], qty = parts[1], rv = !!qty && qty.toLowerCase() === "бронь";
-  if(EDIT) return '<li data-e="fl" data-j="'+j+'"'+(rv?' class="rv"':'')+'><span class="ft">'+esc(name)+(qty?'<span class="qty'+(rv?' resv':'')+'">'+esc(qty)+"</span>":"")+'</span><span class="grip" data-e="grip" aria-label="Перетащить"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span></li>';
-  if(rv) return '<li class="rv"><span class="ft">'+hl(name,q)+'<span class="qty resv">бронь</span></span></li>';
+  var parts = f.split(" · "), name = parts[0], qty = parts[1], ri = rvOf(qty), rv = !!ri && !ri.expired;
+  if(ri && ri.expired && !EDIT) qty = "";
+  if(EDIT) return '<li data-e="fl" data-j="'+j+'"'+(rv?' class="rv"':'')+'><span class="ft">'+esc(name)+(qty?'<span class="qty'+(ri?' resv':'')+'">'+esc(ri?rvLabel(ri):qty)+"</span>":"")+'</span><span class="grip" data-e="grip" aria-label="Перетащить"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span></li>';
+  if(rv) return '<li class="rv"><span class="ft">'+hl(name,q)+'<span class="qty resv">'+esc(rvLabel(ri))+'</span></span></li>';
   return '<li><span class="ft">'+hl(name,q)+(qty?'<span class="qty">'+esc(qty)+"</span>":"")+'</span><span class="acts" data-k="'+k+'"><button class="add add0" type="button" data-k="'+k+'" aria-label="Добавить в корзину"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><span class="stp" hidden><button class="sub" type="button" data-k="'+k+'" aria-label="Убрать один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><input class="qin" type="text" inputmode="numeric" pattern="[0-9]*" value="1" data-k="'+k+'" aria-label="Количество"><button class="add" type="button" data-k="'+k+'" aria-label="Добавить ещё один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></span></span></li>';
 }
 function card(it,q,single){
   var pills = (it.s?'<span>крепость '+it.s+'</span>':'')+'<span class="price">цена '+it.p+'</span>';
   var img = it.img ? '<img class="pic"'+(EDIT?' data-e="pic"':'')+' alt="'+esc(it.n)+'" loading="lazy" src="'+picSrc(it.img)+'">' : (EDIT ? '<div class="pic nopic" data-e="pic" contenteditable="true" spellcheck="false">Без изображения</div>' : '<div class="pic"></div>');
   var gi = DATA.indexOf(it.g), ii = it.g.items.indexOf(it);
-  var nameMatch = q && it.n.toLowerCase().indexOf(q)>=0;
-  var list = it.f.map(function(x,j){return [x,j];}).filter(function(a){return !q || nameMatch || a[0].toLowerCase().indexOf(q)>=0;});
+  var list = vis(it,q);
   return '<article class="card'+(single?' one':'')+'" data-gi="'+gi+'" data-ii="'+ii+'">'+img+'<div><div class="top">'+(EDIT?'<span class="cgrip" data-e="cgrip" aria-label="Перетащить линейку"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span>':'')+'<h3'+(EDIT?' data-e="line"':'')+'>'+hl(it.n,q)+'</h3><div class="pills"'+(EDIT?' data-e="line"':'')+'>'+pills+'</div></div><ul class="fl">'+list.map(function(a){return flav(a[0],q,it.id+"."+a[1],a[1]);}).join("")+(EDIT?'<li class="addf" data-e="addf">+ Добавить вкус</li>':"")+'</ul></div></article>';
 }
 function render(){
-  var q = state.q.trim().toLowerCase(), html = "", shown = 0;
+  var q = state.q.trim().toLowerCase(), html = "", shown = 0, nf = 0, tg = state.tags.length && !EDIT;
   DATA.forEach(function(g){
     if(state.sec!=="all" && state.sec!==g.id) return;
+    if(tg && !g.liq) return;
     var items = g.items.filter(function(it){
+      if(tg){ var n = vis(it,q).length; nf += n; return n > 0; }
       return !q || it.n.toLowerCase().indexOf(q)>=0 || it.f.some(function(x){return x.toLowerCase().indexOf(q)>=0;});
     });
     if(!items.length) return;
@@ -377,8 +447,9 @@ function render(){
   if(state.sec === "all" && !q && shown > 0 && !EDIT) html += '<p class="end" role="button" tabindex="0">Больше ничего нет</p><div class="upw"><button class="up" id="upBtn" type="button"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 12V2M2.5 6.5 7 2l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>В начало</button></div>';
   document.getElementById("main").innerHTML = html;
   var emEl = document.getElementById("empty"), wasEm = !emEl.hidden;
-  if(shown === 0){ var qq = state.q.trim(); document.getElementById("emptyT").innerHTML = qq ? "Ничего не нашлось по «" + esc(qq) + "».<br>Попробуйте другое слово." : "Здесь пока ничего нет."; }
+  if(shown === 0){ var qq = state.q.trim(); document.getElementById("emptyT").innerHTML = tg ? "Ничего не нашлось с такими фильтрами.<br>Уберите один из них." : qq ? "Ничего не нашлось по «" + esc(qq) + "».<br>Попробуйте другое слово." : "Здесь пока ничего нет."; }
   emEl.hidden = shown>0;
+  if(window.syncTags) window.syncTags(nf);
   if(window.syncAdd) window.syncAdd();
   if(window.revealCards) window.revealCards();
   if(window.spy) window.spy();
@@ -465,7 +536,7 @@ function scrollToEl(el){
 menuEl.addEventListener("click",function(e){
   var b = e.target.closest(".mi"); if(!b) return;
   var id = b.getAttribute("data-id");
-  if(state.q){ state.q = ""; document.getElementById("q").value = ""; render(); }
+  if(state.q || state.tags.length){ state.q = ""; document.getElementById("q").value = ""; if(window.resetTags) window.resetTags(true); render(); }
   var sec = document.getElementById("s-" + id);
   setMenu(false);
   if(!sec) return;
@@ -477,12 +548,79 @@ document.getElementById("q").addEventListener("input",function(e){ state.q = e.t
 
 chips(); render();
 
+/* фильтр по вкусу: панель, чипы, анимации */
+(function(){
+  var fbtn = document.getElementById("fbtn"), tagw = document.getElementById("tagw"), tc = document.getElementById("tagChips"), info = document.getElementById("tgInfo"), cnt = document.getElementById("fcnt");
+  var open = false, anim = null, rst = null;
+  tc.innerHTML = TAGS.map(function(t){ return '<button class="chip" type="button" aria-pressed="false" data-t="' + t[0] + '">' + t[1] + '</button>'; }).join("") + '<button class="chip rst" type="button" data-t="" hidden>Сбросить</button>';
+  rst = tc.querySelector(".rst");
+  function pop(el){ if(!rmNav && el.animate) el.animate([{transform:"scale(.8)"},{transform:"scale(1.12)",offset:.6},{transform:"none"}], {duration:300, easing:"ease-out"}); }
+  function setPanel(on){
+    open = on; fbtn.setAttribute("aria-expanded", on ? "true" : "false");
+    if(anim){ try{ anim.cancel(); }catch(e){} anim = null; }
+    if(on){
+      tagw.hidden = false;
+      if(rmNav || !tagw.animate) return;
+      var h = tagw.scrollHeight;
+      anim = tagw.animate([{height:"0px", opacity:0},{height:h + "px", opacity:1}], {duration:300, easing:"cubic-bezier(.2,.8,.2,1)"});
+      Array.prototype.forEach.call(tc.querySelectorAll(".chip:not([hidden])"), function(c, i){ c.animate([{opacity:0, transform:"translateY(-8px) scale(.88)"},{opacity:1, transform:"none"}], {duration:280, delay:70 + i*35, easing:"cubic-bezier(.2,.8,.2,1)", fill:"backwards"}); });
+    } else {
+      if(tagw.hidden) return;
+      if(rmNav || !tagw.animate){ tagw.hidden = true; return; }
+      var a = tagw.animate([{height:tagw.offsetHeight + "px", opacity:1},{height:"0px", opacity:0}], {duration:210, easing:"ease-in", fill:"forwards"}); anim = a;
+      a.onfinish = function(){ tagw.hidden = true; try{ a.cancel(); }catch(e){} if(anim === a) anim = null; };
+    }
+  }
+  function sync(){
+    var n = state.tags.length;
+    Array.prototype.forEach.call(tc.querySelectorAll(".chip[data-t]"), function(c){ var t = c.getAttribute("data-t"); if(t) c.setAttribute("aria-pressed", state.tags.indexOf(t) >= 0 ? "true" : "false"); });
+    var was = !cnt.hidden, prev = cnt.textContent;
+    cnt.textContent = n; cnt.hidden = !n; fbtn.classList.toggle("on", !!n);
+    if(n && (!was || prev !== String(n))) pop(cnt);
+    var showR = n > 0;
+    if(rst.hidden === showR){ rst.hidden = !showR; if(showR) pop(rst); }
+  }
+  window.resetTags = function(silent){ state.tags = []; sync(); if(!silent) render(); };
+  window.syncTags = function(nf){
+    info.textContent = state.tags.length ? "Найдено вкусов: " + nf : "Выберите, что хочется: можно несколько сразу";
+  };
+  function listAnim(){
+    if(rmNav) return;
+    var n = 0;
+    Array.prototype.forEach.call(document.querySelectorAll("#main .card, #main .ghead"), function(c){
+      if(n >= 12) return; var r = c.getBoundingClientRect(); if(r.bottom < 0 || r.top > window.innerHeight || !c.animate) return;
+      c.animate([{opacity:0, transform:"translateY(16px) scale(.98)"},{opacity:1, transform:"none"}], {duration:360, delay:n*45, easing:"cubic-bezier(.2,.8,.2,1)", fill:"backwards"}); n++;
+    });
+  }
+  fbtn.addEventListener("click", function(e){ e.stopPropagation(); setPanel(!open); });
+  tc.addEventListener("click", function(e){
+    var b = e.target.closest(".chip"); if(!b) return;
+    var t = b.getAttribute("data-t");
+    if(!t){ state.tags = []; }
+    else { var i = state.tags.indexOf(t); if(i >= 0) state.tags.splice(i, 1); else state.tags.push(t); pop(b); }
+    sync(); render();
+    var m = document.getElementById("main"), bar = document.querySelector(".bar");
+    if(m.getBoundingClientRect().top < (bar ? bar.offsetHeight : 0)) scrollToEl(m); else listAnim();
+    if(m.getBoundingClientRect().top < 0 && !rmNav) setTimeout(listAnim, 280);
+  });
+  sync(); window.syncTags(0);
+})();
+
+/* бронь на срок: когда срок вышел, вкус сам становится доступным */
+(function(){
+  function sig(){ var s = ""; DATA.forEach(function(g){ g.items.forEach(function(it){ it.f.forEach(function(f){ var r = rvOf(f.split(" · ")[1]); if(r && r.until) s += r.expired ? "1" : "0"; }); }); }); return s; }
+  var last = sig();
+  function check(){ if(EDIT) return; var s = sig(); if(s === last) return; last = s; render(); if(window.refreshLook) window.refreshLook(); }
+  setInterval(check, 15000);
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) check(); });
+})();
+
 /* Корзина: добавление вкусов, количество, «Купить» копирует заказ и открывает Telegram */
 (function(){
   var LOOK = {}, cart = {};
   function buildLook(){ LOOK = {}; DATA.forEach(function(g){ g.items.forEach(function(it){ it.f.forEach(function(x,j){
-    var p = x.split(" · "), liquid = g.liq;
-    LOOK[it.id+"."+j] = {n:it.n, f:p[0], img:it.img, p:it.p, max: (p[1] && p[1].toLowerCase()==="бронь") ? 0 : (p[1] ? (parseInt(p[1],10)||1) : (liquid ? 1 : 9))};
+    var p = x.split(" · "), liquid = g.liq, rv0 = rvOf(p[1]);
+    LOOK[it.id+"."+j] = {n:it.n, f:p[0], img:it.img, p:it.p, max: (rv0 && !rv0.expired) ? 0 : (p[1] && !rv0 ? (parseInt(p[1],10)||1) : (liquid ? 1 : 9))};
   }); }); }); }
   buildLook();
   try{ var sv = JSON.parse(localStorage.getItem("napivo-cart")||"{}"); Object.keys(sv).forEach(function(k){ if(LOOK[k] && LOOK[k].max>0 && sv[k]>0) cart[k] = Math.min(sv[k], LOOK[k].max); }); }catch(e){}
@@ -706,6 +844,7 @@ chips(); render();
   document.addEventListener("keydown",function(e){ if(e.key==="Enter" && e.target.classList && e.target.classList.contains("qin")) e.target.blur(); });
   window.cartDraw = draw;
   window.rebuildLook = function(){ buildLook(); cart = {}; draw(); };
+  window.refreshLook = function(){ buildLook(); Object.keys(cart).forEach(function(k){ if(!LOOK[k] || LOOK[k].max <= 0) delete cart[k]; else cart[k] = Math.min(cart[k], LOOK[k].max); }); save(); draw(); };
   draw();
 })();
 
@@ -1257,23 +1396,45 @@ chips(); render();
     return it ? {g:g, it:it, j: li ? +li.getAttribute("data-j") : -1, li:li, card:card} : null;
   }
   function fade(el){ return new Promise(function(res){ if(rm || !el || !el.animate) return res(); var a = el.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateX(18px)"}],{duration:170,fill:"forwards"}); a.onfinish = res; setTimeout(res, 260); }); }
+  var TERMS = [["Без срока",""],["1 час","1h"],["3 часа","3h"],["До конца дня","eod"],["1 день","1d"],["3 дня","3d"],["Выбрать дату и время","custom"]];
+  /* вернёт: 0 без срока, время в мс, или null если отменили */
+  async function askTerm(){
+    var i = await sheet("Срок брони (время по Минску)", TERMS.map(function(t){ return {t:t[0]}; }).concat([{t:"Отмена"}]), true);
+    if(i < 0 || i >= TERMS.length) return null;
+    var k = TERMS[i][1];
+    if(k === "custom"){
+      var d = new Date(Date.now() + MSK + 24*3600e3), v = d.getUTCFullYear() + "-" + pad2(d.getUTCMonth()+1) + "-" + pad2(d.getUTCDate()) + "T18:00";
+      var o = await form("До какого времени держать бронь", [{k:"w", l:"Дата и время", type:"datetime-local", v:v}], "Готово");
+      if(!o) return null;
+      var ms = termMs("custom", o.w); if(ms < 0){ say("Это время уже прошло или не указано"); return null; }
+      return ms;
+    }
+    return termMs(k);
+  }
   async function onFlavor(c){
-    var f = c.it.f[c.j], parts = f.split(" · "), name = parts[0], qty = parts[1] || "", rv = qty.toLowerCase() === "бронь";
-    var i = await sheet(c.it.n + " — " + name, [{t:"Редактировать"},{t: rv ? "Снять бронь" : "Отметить как забронированный"},{t:"Удалить", d:1}]);
-    if(i === 0){
+    var f = c.it.f[c.j], parts = f.split(" · "), name = parts[0], qty = parts[1] || "", ri = rvOf(qty), rv = !!ri;
+    var opts = [{t:"Редактировать", k:"edit"}];
+    if(rv){ opts.push({t:"Изменить срок брони", k:"term"}); opts.push({t:"Снять бронь", k:"off"}); } else opts.push({t:"Отметить как забронированный", k:"on"});
+    opts.push({t:"Удалить", d:1, k:"del"});
+    var i = await sheet(c.it.n + " — " + name + (rv ? " (" + rvLabel(ri) + ")" : ""), opts), act = opts[i] && opts[i].k;
+    if(act === "edit"){
       var o = await form("Вкус", [{k:"n", l:"Название вкуса", v:name},{k:"q", l:"Пометка (например: 2 шт; необязательно)", v: rv ? "" : qty, ph:"2 шт"}], "Сохранить");
       if(!o) return;
       var nn = clean(o.n); if(!nn){ say("Название не может быть пустым"); return; }
-      var nq = rv ? "бронь" : clean(o.q);
+      var nq = rv ? qty : clean(o.q);
       c.it.f[c.j] = nn + (nq ? " · " + nq : "");
       if(nn !== name) EDIT.log.push("Вкус переименован: " + c.it.n + " — " + name + " → " + nn);
       if(!rv && nq !== qty) EDIT.log.push("Изменено количество: " + c.it.n + " — " + nn + (nq ? " (" + nq + ")" : " (без пометки)"));
       render();
-    } else if(i === 1){
-      if(rv){ c.it.f[c.j] = name; EDIT.log.push("Снята бронь: " + c.it.n + " — " + name); }
-      else { c.it.f[c.j] = name + " · бронь"; EDIT.log.push("Забронирован: " + c.it.n + " — " + name); }
+    } else if(act === "on" || act === "term"){
+      var u = await askTerm(); if(u === null) return;
+      c.it.f[c.j] = name + " · " + rvText(u);
+      EDIT.log.push((act === "on" ? "Забронирован: " : "Изменён срок брони: ") + c.it.n + " — " + name + (u ? " (до " + mskStr(u) + ")" : " (без срока)"));
       render();
-    } else if(i === 2){
+    } else if(act === "off"){
+      c.it.f[c.j] = name; EDIT.log.push("Снята бронь: " + c.it.n + " — " + name);
+      render();
+    } else if(act === "del"){
       if(!(await confirmDel("Удалить вкус «" + name + "» из линейки «" + c.it.n + "»?"))) return;
       await fade(c.li);
       c.it.f.splice(c.j, 1); EDIT.log.push("Удалён вкус: " + c.it.n + " — " + name); fixup(); render();
@@ -1450,7 +1611,7 @@ chips(); render();
     if(!m){ say("Не удалось загрузить прайс. Попробуйте позже"); return; }
     var P = parsePrice(m[1].replace(/^\n/,""));
     EDIT = {log:[], imgs:{}, sha:sha, back:{d:DATA, p:PRE, g:state.sec, q:state.q}};
-    DATA = P.data; PRE = P.pre; state.sec = "all"; state.q = ""; document.getElementById("q").value = "";
+    DATA = P.data; PRE = P.pre; state.sec = "all"; state.q = ""; document.getElementById("q").value = ""; if(window.resetTags) window.resetTags(true);
     document.body.classList.add("editing"); bar.hidden = false; render(); window.scrollTo(0, 0);
     if(!rm && bar.animate){ bar.animate([{transform:"translateY(-100%)"},{transform:"none"}],{duration:300,easing:"cubic-bezier(.2,.8,.2,1)"}); mainEl.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,easing:"ease-out"}); }
     say("Нажимайте на вкус, картинку или название линейки", 3200);
@@ -1534,11 +1695,20 @@ chips(); render();
 
   /* код товара: бронь заказа по коду из сообщения покупателя */
   var cd = overlay('<div class="dev adm" role="dialog" aria-modal="true" aria-label="Бронь заказа"><div class="dev-h"><h2>Бронь заказа</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div>'+
-    '<p class="dev-note">Вставьте сообщение покупателя целиком: жидкости из него отметятся бронью. Если вставить то же сообщение ещё раз, бронь снимется.</p>'+
+    '<p class="dev-note">Вставьте сообщение покупателя целиком: жидкости из него отметятся бронью. Если вставить то же сообщение ещё раз, бронь снимется. Когда срок выйдет, вкус сам вернётся в продажу.</p>'+
     '<textarea id="cdText" class="ed cd" spellcheck="false" autocomplete="off" placeholder="Хочу купить:&#10;Линейка — Вкус"></textarea>'+
+    '<label class="dev-l" for="cdTerm" style="margin-top:10px">Срок брони (по Минску)</label><select id="cdTerm" class="dev-in"><option value="">Без срока</option><option value="1h">1 час</option><option value="3h">3 часа</option><option value="eod">До конца дня</option><option value="1d">1 день</option><option value="3d">3 дня</option><option value="custom">Выбрать дату и время</option></select>'+
+    '<input id="cdWhen" class="dev-in" type="datetime-local" hidden style="margin-top:8px">'+
     '<p class="dev-err" id="cdMsg" hidden></p>'+
     '<div class="dev-row"><button class="dev-btn" id="cdGo" type="button">Применить</button><button class="dev-btn ghost" id="cdBack" type="button">Назад</button></div></div>');
   cd.onClose = function(){ drawMenu(); dev.set(true); };
+  var cdTerm = cd.box.querySelector("#cdTerm"), cdWhen = cd.box.querySelector("#cdWhen");
+  try{ var tv = localStorage.getItem("napivo-term"); if(tv && cdTerm.querySelector('option[value="' + tv + '"]') && tv !== "custom") cdTerm.value = tv; }catch(e){}
+  cdTerm.addEventListener("change", function(){
+    cdWhen.hidden = cdTerm.value !== "custom";
+    if(!cdWhen.hidden && !cdWhen.value){ var d = new Date(Date.now() + MSK + 24*3600e3); cdWhen.value = d.getUTCFullYear() + "-" + pad2(d.getUTCMonth()+1) + "-" + pad2(d.getUTCDate()) + "T18:00"; }
+    try{ localStorage.setItem("napivo-term", cdTerm.value); }catch(e){}
+  });
   var cdText = cd.box.querySelector("#cdText"), cdMsg = cd.box.querySelector("#cdMsg"), cdBusy = false;
   function cmsg(t, good){ cdMsg.textContent = t; cdMsg.hidden = !t; cdMsg.className = "dev-err" + (good ? " good" : ""); }
   function openCode(){ dev.set(false); cd.set(true); cmsg(""); cdText.value = ""; setTimeout(function(){ cdText.focus(); }, 80); }
@@ -1576,6 +1746,8 @@ chips(); render();
       else curLine = l;
     });
     if(!want.length){ cmsg("Не нашёл в тексте список жидкостей. Вставьте сообщение покупателя целиком."); return; }
+    var until = termMs(cdTerm.value, cdWhen.value);
+    if(until < 0){ cmsg("Это время уже прошло. Выберите другое."); return; }
     var hs = want.map(function(w){ return norm(w.line) + "|" + norm(w.fl) + "|" + w.n; }).sort().join(";"), hv = 7;
     for(var hi = 0; hi < hs.length; hi++) hv = (hv * 31 + hs.charCodeAt(hi)) % 90000;
     var code = String(10000 + hv);
@@ -1608,13 +1780,15 @@ chips(); render();
           var f = findFl(P.data, w.line, w.fl);
           if(!f){ miss.push(w.line + " — " + w.fl); return; }
           var parts = f.it.f[f.j].split(" · "), name = parts[0], qty = parts[1] || "", qn = parseInt(qty, 10);
-          if(qty.toLowerCase() === "бронь"){ miss.push(w.line + " — " + w.fl + " (уже в брони)"); return; }
+          var ri = rvOf(qty);
+          if(ri && !ri.expired){ miss.push(w.line + " — " + w.fl + " (уже в брони)"); return; }
+          if(ri){ qty = ""; qn = NaN; }
           if(qn && /^\d+\s*шт/i.test(qty) && qn > w.n){
             f.it.f[f.j] = name + " · " + (qn - w.n) + " шт"; ents.push("q:" + f.it.n + " :: " + name + " :: " + w.n);
           } else {
-            f.it.f[f.j] = name + " · бронь"; ents.push("r:" + f.it.n + " :: " + name + " :: " + qty);
+            f.it.f[f.j] = name + " · " + rvText(until); ents.push("r:" + f.it.n + " :: " + name + " :: " + qty);
           }
-          log.push("Забронировано по заказу: " + f.it.n + " — " + name + (w.n > 1 ? " × " + w.n : ""));
+          log.push("Забронировано по заказу: " + f.it.n + " — " + name + (w.n > 1 ? " × " + w.n : "") + (until ? " (до " + mskStr(until) + ")" : ""));
         });
         if(!ents.length){ cdBusy = false; cmsg("Ничего не нашлось в прайсе: " + miss.join("; ")); return; }
         P.pre.push("//код " + code + " | " + ents.join(" | "));
@@ -1655,10 +1829,10 @@ chips(); render();
     var body = rv.box.querySelector("#rvBody"), html = "";
     data.forEach(function(g, gi){ g.items.forEach(function(it, ii){
       var fl = [];
-      it.f.forEach(function(f, j){ var q = f.split(" · ")[1]; if(q && q.toLowerCase() === "бронь") fl.push([f, j]); });
+      it.f.forEach(function(f, j){ var q = rvOf(f.split(" · ")[1]); if(q) fl.push([f, j, q]); });
       if(!fl.length) return;
       html += '<div class="rv-i">' + (it.img ? '<img class="rv-p" alt="" src="' + picSrc(it.img) + '">' : '<div class="rv-p rv-n"></div>') +
-        '<div class="rv-t"><b>' + esc(it.n) + '</b><ul>' + fl.map(function(a){ return '<li>' + esc(a[0].split(" · ")[0]) + ' <button type="button" class="rv-x" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Снять бронь</button></li>'; }).join("") + '</ul></div></div>';
+        '<div class="rv-t"><b>' + esc(it.n) + '</b><ul>' + fl.map(function(a){ return '<li>' + esc(a[0].split(" · ")[0]) + (a[2].until ? ' <span class="rv-u' + (a[2].expired ? ' ex' : '') + '">' + (a[2].expired ? 'срок истёк' : esc(rvLabel(a[2]).replace("бронь ", ""))) + '</span>' : '') + ' <button type="button" class="rv-x" data-gi="' + gi + '" data-ii="' + ii + '" data-j="' + a[1] + '">Снять бронь</button></li>'; }).join("") + '</ul></div></div>';
     }); });
     body.innerHTML = html || "Забронированных вкусов нет.";
     if(!rm && body.animate) Array.prototype.forEach.call(body.querySelectorAll(".rv-i"), function(x, i){ x.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:260,delay:i*50,easing:"ease-out",fill:"backwards"}); });
