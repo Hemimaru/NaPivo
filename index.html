@@ -341,7 +341,7 @@ html.f23 header.hero h1::before{content:"\2B50";display:block;font-size:30px;lin
 @keyframes petfall{0%{transform:translate3d(0,-40px,0) rotate(0)}50%{transform:translate3d(26px,55vh,0) rotate(180deg)}100%{transform:translate3d(-12px,110vh,0) rotate(360deg)}}
 @keyframes heartup{0%{transform:translate3d(0,40px,0) scale(.8)}50%{transform:translate3d(-18px,-55vh,0) scale(1)}100%{transform:translate3d(10px,-110vh,0) scale(1.1)}}
 @media (prefers-reduced-motion:reduce){#petals i,#hearts i,html.v14 header.hero h1::before,html.f23 header.hero h1::before{animation:none}#petals i,#hearts i{top:auto;bottom:auto}#petals i:nth-child(n+4),#hearts i:nth-child(n+4){display:none}#petals i,#hearts i{top:30%}}
-/* День пива: 4–7 августа включительно (по Минску), тема «Тёмный стаут» */
+/* День пива: только 7 августа (по Минску), тема «Тёмный стаут» */
 html.br:root,html.br:root[data-theme]{--bg:#140c08;--surface:#201510;--surface-2:#2b1c15;--line:#4a3126;--fg:#f6e8d8;--muted:#b99a80;--accent:#e8c9a0;--accent-fg:#1c0f08;--chip:#2b1c15;--mark:#4f3523;--resv:#ffc46b;color-scheme:dark}
 html.br body{background:radial-gradient(90% 35% at 50% 0,#3a2418 0,#140c08 70%) fixed;padding-top:24px}
 html.br::before{content:"";position:fixed;left:0;right:0;top:0;height:40px;z-index:60;pointer-events:none;background:radial-gradient(circle at 50% 0,#f3e3c8 0 20px,transparent 21px) 0 0/44px 36px repeat-x,radial-gradient(circle at 50% 0,#f3e3c8 0 14px,transparent 15px) 22px 0/44px 44px repeat-x,linear-gradient(#f3e3c8,#f3e3c8) 0 0/100% 14px no-repeat;filter:drop-shadow(0 3px 3px #0009);animation:brbob 4s ease-in-out infinite}
@@ -369,7 +369,7 @@ html.br header.hero h1::after{content:" \1F37B"}
     if(mo === 2 && da <= 8) return "m8";
     if(mo === 1 && da >= 10 && da <= 14) return "v14";
     if(mo === 1 && da >= 18 && da <= 23) return "f23";
-    if(mo === 7 && da >= 4 && da <= 7) return "br";
+    if(mo === 7 && da === 7) return "br";
     return "";
   }
   function pref(){ try{ return localStorage.getItem("napivo-theme") || ""; }catch(e){ return ""; } }
