@@ -303,19 +303,40 @@ html.ny header.hero h1::before{content:"\2744";display:block;font-size:26px;line
 @keyframes nyfall{to{transform:translate3d(0,var(--h),0)}}
 @keyframes nyglow{50%{opacity:.55}}
 @media (prefers-reduced-motion:reduce){#snow i,html.ny header.hero h1::before{animation:none}}
+/* Тема «Тыква» на Хэллоуин: с 25 октября по 1 ноября включительно (по Минску) */
+html.hw:root,html.hw:root[data-theme]{--bg:#120a05;--surface:#1f130a;--surface-2:#2b1a0c;--line:#4d2f12;--fg:#fff0dc;--muted:#c9a47f;--accent:#ff8a1f;--accent-fg:#1a0c00;--chip:#33200f;--mark:#6b3300;--resv:#ffc46b;color-scheme:dark}
+html.hw body{background:radial-gradient(90% 40% at 50% 0,#4a2208 0,#120a05 70%) fixed}
+html.hw body::before{background:#120a05}
+html.hw header.hero h1::before{content:"\1F383";display:block;font-size:34px;line-height:1.1;margin-bottom:2px;filter:drop-shadow(0 0 14px #ff8a1f);animation:hwglow 2.6s ease-in-out infinite}
+#bats{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:28}
+#bats i{position:absolute;left:0;font-style:normal;line-height:1;will-change:transform;animation:hwfly linear infinite;filter:drop-shadow(0 0 6px #0009)}
+#bats i:nth-child(1){top:70px;font-size:30px;animation-duration:15s}
+#bats i:nth-child(2){top:190px;font-size:20px;animation-duration:11s;animation-delay:-4s}
+#bats i:nth-child(3){top:340px;font-size:26px;animation-duration:19s;animation-delay:-9s}
+#bats i:nth-child(4){top:520px;font-size:18px;animation-duration:13s;animation-delay:-2s}
+@keyframes hwfly{0%{transform:translate3d(-60px,0,0) rotate(-8deg)}25%{transform:translate3d(25vw,-26px,0) rotate(8deg)}50%{transform:translate3d(52vw,10px,0) rotate(-6deg)}75%{transform:translate3d(78vw,-22px,0) rotate(8deg)}100%{transform:translate3d(calc(100vw + 60px),0,0) rotate(-8deg)}}
+@keyframes hwglow{50%{filter:drop-shadow(0 0 4px #ff8a1f);opacity:.8}}
+@media (prefers-reduced-motion:reduce){#bats i,html.hw header.hero h1::before{animation:none}#bats i:nth-child(1){left:70%}#bats i:nth-child(2){left:30%}#bats i:nth-child(n+3){display:none}}
 </style>
 <script>
 (function(){
-  function byDate(){ var d = new Date(Date.now() + 3*3600e3), mo = d.getUTCMonth(), da = d.getUTCDate(); return mo === 11 || (mo === 0 && da < 6); }
+  function byDate(){
+    var d = new Date(Date.now() + 3*3600e3), mo = d.getUTCMonth(), da = d.getUTCDate();
+    if(mo === 11 || (mo === 0 && da < 6)) return "ny";
+    if((mo === 9 && da >= 25) || (mo === 10 && da <= 1)) return "hw";
+    return "";
+  }
   function pref(){ try{ return localStorage.getItem("napivo-theme") || ""; }catch(e){ return ""; } }
   function apply(){
     try{
-      var p = pref(), on = p === "ny" ? true : p === "off" ? false : byDate();
-      document.documentElement.classList.toggle("ny", on);
-      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", on ? "#0b1624" : "#0e0b14");
-      var s = document.getElementById("snow");
-      if(on && !s && document.body){ s = document.createElement("div"); s.id = "snow"; s.setAttribute("aria-hidden", "true"); s.innerHTML = "<i></i><i></i><i></i>"; document.body.appendChild(s); }
-      else if(!on && s) s.parentNode.removeChild(s);
+      var p = pref(), t = p === "off" ? "" : (p === "ny" || p === "hw") ? p : byDate(), h = document.documentElement;
+      h.classList.toggle("ny", t === "ny"); h.classList.toggle("hw", t === "hw");
+      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", t === "ny" ? "#0b1624" : t === "hw" ? "#120a05" : "#0e0b14");
+      [["snow", "ny", "<i></i><i></i><i></i>"], ["bats", "hw", "<i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i>"]].forEach(function(x){
+        var e = document.getElementById(x[0]);
+        if(t === x[1] && !e && document.body){ e = document.createElement("div"); e.id = x[0]; e.setAttribute("aria-hidden", "true"); e.innerHTML = x[2]; document.body.appendChild(e); }
+        else if(t !== x[1] && e) e.parentNode.removeChild(e);
+      });
     }catch(e){}
   }
   window.napivoTheme = {get:pref, set:function(v){ try{ if(v) localStorage.setItem("napivo-theme", v); else localStorage.removeItem("napivo-theme"); }catch(e){} apply(); }};
@@ -1788,7 +1809,7 @@ chips(); render();
   lg.onClose = function(){ drawMenu(); dev.set(true); };
   lg.box.addEventListener("click", function(e){ if(e.target.getAttribute && e.target.getAttribute("data-close")) lg.set(false); });
   async function openThemes(){
-    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате (как у всех)"],["off", "Обычная"],["ny", "Мороз (Новый год)"]];
+    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате (как у всех)"],["off", "Обычная"],["ny", "Мороз (Новый год)"],["hw", "Тыква (Хэллоуин)"]];
     var i = await sheet("Тема сайта только для вас, на этом устройстве. У покупателей она не меняется.", L.map(function(x){ return {t:(x[0] === cur ? "✓ " : "") + x[1], p:x[0] === cur}; }).concat([{t:"Закрыть"}]), true);
     if(i >= 0 && i < L.length && window.napivoTheme){ window.napivoTheme.set(L[i][0]); say("Тема: " + L[i][1], 2200); }
   }
