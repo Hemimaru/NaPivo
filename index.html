@@ -1635,8 +1635,43 @@ chips(); render();
   });
 
   var bar = $("editbar");
+  function enterEdit(P, sha){
+    EDIT = {log:[], imgs:{}, sha:sha, back:{d:DATA, p:PRE, g:state.sec, q:state.q}};
+    DATA = P.data; PRE = P.pre; DATA.forEach(function(g){ g.items.forEach(function(it){ it._o = it.n; }); }); state.sec = "all"; state.q = ""; document.getElementById("q").value = ""; if(window.resetTags) window.resetTags(true);
+    document.body.classList.add("editing"); bar.hidden = false; render(); window.scrollTo(0, 0);
+    if(!rm && bar.animate){ bar.animate([{transform:"translateY(-100%)"},{transform:"none"}],{duration:300,easing:"cubic-bezier(.2,.8,.2,1)"}); mainEl.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,easing:"ease-out"}); }
+  }
   async function startEdit(){
-    dev.set(false); say("Загружаю прайс…");
+    dev.set(false);
+    var local = String(window.PRICE_TEXT || ""), P0 = null;
+    try{ P0 = parsePrice(local.replace(/^\n/,"")); }catch(e){}
+    if(!P0 || !P0.data || !P0.data.length){ P0 = null; }
+    if(P0){
+      enterEdit(P0, ""); var E = EDIT; E.pending = true;
+      say("Открыто. Сверяю с сервером…", 2200);
+      (async function(){
+        try{
+          var ac = new AbortController(), tm = setTimeout(function(){ ac.abort(); }, 20000);
+          var r = await fetch("https://api.github.com/repos/" + REPO + "/contents/prices.js?ref=main&x=" + Date.now(), {headers:{Accept:"application/vnd.github+json"}, signal:ac.signal});
+          clearTimeout(tm);
+          if(!r.ok) throw new Error("api");
+          var j = await r.json(), t = decodeURIComponent(escape(atob(String(j.content).replace(/\s/g,"")))), m = t.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/);
+          if(!m) throw new Error("fmt");
+          if(EDIT !== E) return;
+          var same = m[1].replace(/^\n/,"").trim() === local.replace(/^\n/,"").trim();
+          E.sha = j.sha; E.pending = false;
+          if(!same){
+            if(!E.log.length){
+              var P = parsePrice(m[1].replace(/^\n/,""));
+              DATA = P.data; PRE = P.pre; DATA.forEach(function(g){ g.items.forEach(function(it){ it._o = it.n; }); }); render();
+              say("Прайс обновлён с сервера", 2400);
+            } else { E.stale = true; say("Прайс на сайте изменился. Сохранить не получится: отмените и откройте заново", 5000); }
+          }
+        }catch(e){ if(EDIT === E){ E.pending = false; E.offline = true; say("Нет связи с сервером. Править можно, сверю при сохранении", 3200); } }
+      })();
+      return;
+    }
+    say("Загружаю прайс…");
     var text = "", sha = "";
     try{
       var r = await fetch("https://api.github.com/repos/" + REPO + "/contents/prices.js?ref=main&x=" + Date.now(), {headers:{Accept:"application/vnd.github+json"}});
@@ -1647,11 +1682,7 @@ chips(); render();
     }
     var m = text.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/);
     if(!m){ say("Не удалось загрузить прайс. Попробуйте позже"); return; }
-    var P = parsePrice(m[1].replace(/^\n/,""));
-    EDIT = {log:[], imgs:{}, sha:sha, back:{d:DATA, p:PRE, g:state.sec, q:state.q}};
-    DATA = P.data; PRE = P.pre; DATA.forEach(function(g){ g.items.forEach(function(it){ it._o = it.n; }); }); state.sec = "all"; state.q = ""; document.getElementById("q").value = ""; if(window.resetTags) window.resetTags(true);
-    document.body.classList.add("editing"); bar.hidden = false; render(); window.scrollTo(0, 0);
-    if(!rm && bar.animate){ bar.animate([{transform:"translateY(-100%)"},{transform:"none"}],{duration:300,easing:"cubic-bezier(.2,.8,.2,1)"}); mainEl.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,easing:"ease-out"}); }
+    enterEdit(parsePrice(m[1].replace(/^\n/,"")), sha);
     say("Нажимайте на вкус, картинку или название линейки", 3200);
   }
   function leave(restore){
@@ -1678,6 +1709,8 @@ chips(); render();
   $("ebSave").addEventListener("click", async function(){
     if(saving) return;
     if(!EDIT.log.length){ leave(true); say("Изменений нет"); return; }
+    if(EDIT.pending){ say("Сверяю с сервером, секунду…", 2000); return; }
+    if(EDIT.stale){ say("Прайс на сайте изменился. Отмените и откройте редактор заново", 4500); return; }
     var tok = getTok();
     if(!tok){
       var o = await form("Токен GitHub (нужен один раз, хранится только в этом браузере)", [{k:"t", l:"Токен", type:"password", ph:"github_pat_…"}], "Сохранить");
@@ -1687,7 +1720,12 @@ chips(); render();
     var H = {Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, base = "https://api.github.com/repos/" + REPO + "/contents/";
     try{
       var sha = EDIT.sha;
-      if(!sha){ var cur = await fetch(base + "prices.js?ref=main&x=" + Date.now(), {headers:{Accept:"application/vnd.github+json"}}); if(!cur.ok) throw new Error("sha"); sha = (await cur.json()).sha; }
+      if(!sha || EDIT.offline){
+        var cur = await fetch(base + "prices.js?ref=main&x=" + Date.now(), {headers:{Accept:"application/vnd.github+json"}}); if(!cur.ok) throw new Error("sha");
+        var cj = await cur.json(), ct = decodeURIComponent(escape(atob(String(cj.content).replace(/\s/g,"")))), cm = ct.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/);
+        if(!cm || cm[1].replace(/^\n/,"").trim() !== String(window.PRICE_TEXT || "").replace(/^\n/,"").trim()) throw {status:409};
+        sha = cj.sha;
+      }
       var used = Object.keys(EDIT.imgs).filter(function(n){ return DATA.some(function(g){ return g.items.some(function(it){ return it.img === n; }); }); });
       for(var i = 0; i < used.length; i++){
         var ri = await fetch(base + "img/" + used[i], {method:"PUT", headers:H, body:JSON.stringify({message:"Фото для прайса", content:EDIT.imgs[used[i]].split(",")[1], branch:"main"})});
