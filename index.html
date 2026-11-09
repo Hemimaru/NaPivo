@@ -306,16 +306,20 @@ html.ny header.hero h1::before{content:"\2744";display:block;font-size:26px;line
 </style>
 <script>
 (function(){
-  try{
-    var d = new Date(Date.now() + 3*3600e3), mo = d.getUTCMonth(), da = d.getUTCDate();
-    if(mo === 11 || (mo === 0 && da < 6)){
-      var h = document.documentElement; h.classList.add("ny");
-      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", "#0b1624");
-      document.addEventListener("DOMContentLoaded", function(){
-        var s = document.createElement("div"); s.id = "snow"; s.setAttribute("aria-hidden", "true"); s.innerHTML = "<i></i><i></i><i></i>"; document.body.appendChild(s);
-      });
-    }
-  }catch(e){}
+  function byDate(){ var d = new Date(Date.now() + 3*3600e3), mo = d.getUTCMonth(), da = d.getUTCDate(); return mo === 11 || (mo === 0 && da < 6); }
+  function pref(){ try{ return localStorage.getItem("napivo-theme") || ""; }catch(e){ return ""; } }
+  function apply(){
+    try{
+      var p = pref(), on = p === "ny" ? true : p === "off" ? false : byDate();
+      document.documentElement.classList.toggle("ny", on);
+      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", on ? "#0b1624" : "#0e0b14");
+      var s = document.getElementById("snow");
+      if(on && !s && document.body){ s = document.createElement("div"); s.id = "snow"; s.setAttribute("aria-hidden", "true"); s.innerHTML = "<i></i><i></i><i></i>"; document.body.appendChild(s); }
+      else if(!on && s) s.parentNode.removeChild(s);
+    }catch(e){}
+  }
+  window.napivoTheme = {get:pref, set:function(v){ try{ if(v) localStorage.setItem("napivo-theme", v); else localStorage.removeItem("napivo-theme"); }catch(e){} apply(); }};
+  apply(); document.addEventListener("DOMContentLoaded", apply);
 })();
 </script>
 </head>
@@ -1189,7 +1193,8 @@ chips(); render();
       '<button class="mi" type="button" data-act="log">Журнал изменений</button>'+
       '<button class="mi" type="button" data-act="code">Бронь заказа</button>'+
       '<button class="mi" type="button" data-act="resv">Все брони</button>'+
-      '<button class="mi" type="button" data-act="sheet">Таблица Google</button>' : '')+
+      '<button class="mi" type="button" data-act="sheet">Таблица Google</button>'+
+      '<button class="mi" type="button" data-act="theme">Тест тем</button>' : '')+
       (isAdmin ? '' : '<button class="mi" type="button" data-act="admin">Права администратора</button>');
     if(reveal === true && !rm && devBody.animate){
       Array.prototype.forEach.call(devBody.querySelectorAll(".mi"), function(m, i){
@@ -1302,6 +1307,7 @@ chips(); render();
     if(act === "resv"){ if(!isAdmin) say("Вы не разработчик"); else openResv(); return; }
     if(act === "code"){ if(!isAdmin) say("Вы не разработчик"); else openCode(); return; }
     if(act === "sheet"){ if(!isAdmin) say("Вы не разработчик"); else { dev.set(false); openSheetCfg().then(function(){ drawMenu(); dev.set(true); }); } return; }
+    if(act === "theme"){ if(!isAdmin) say("Вы не разработчик"); else openThemes(); return; }
     if(act === "log"){ if(!isAdmin) say("Вы не разработчик"); else openLog(); return; }
     if(t.id === "devGo") tryKey();
     if(t.id === "devBackBtn") drawMenu();
@@ -1781,6 +1787,11 @@ chips(); render();
   var lg = overlay('<div class="dev adm" role="dialog" aria-modal="true" aria-label="Журнал изменений"><div class="dev-h"><h2>Журнал изменений</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div><div id="lgBody" class="lg"></div></div>');
   lg.onClose = function(){ drawMenu(); dev.set(true); };
   lg.box.addEventListener("click", function(e){ if(e.target.getAttribute && e.target.getAttribute("data-close")) lg.set(false); });
+  async function openThemes(){
+    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате (как у всех)"],["off", "Обычная"],["ny", "Мороз (Новый год)"]];
+    var i = await sheet("Тема сайта только для вас, на этом устройстве. У покупателей она не меняется.", L.map(function(x){ return {t:(x[0] === cur ? "✓ " : "") + x[1], p:x[0] === cur}; }).concat([{t:"Закрыть"}]), true);
+    if(i >= 0 && i < L.length && window.napivoTheme){ window.napivoTheme.set(L[i][0]); say("Тема: " + L[i][1], 2200); }
+  }
   async function openLog(){
     dev.set(false); lg.set(true);
     var body = lg.box.querySelector("#lgBody"); body.textContent = "Загрузка…";
