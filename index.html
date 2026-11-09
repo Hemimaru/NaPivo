@@ -255,7 +255,7 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .bk{border:1px solid var(--line);border-radius:16px;padding:12px;margin:0 0 12px;background:var(--surface);display:grid;gap:8px}
 .bk-c{padding:0;gap:0;overflow:hidden}
 .bk-t{display:flex;align-items:center;gap:8px;width:100%;padding:13px 14px;border:0;background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.bk-no{font-size:12px;color:var(--muted);font-weight:700}.bk-name{font-size:15px;color:var(--accent);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-no{font-size:12px;color:var(--muted);font-weight:700}.bk-link{text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}.bk-name{font-size:15px;color:var(--accent);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bk-sum{font-weight:800;font-variant-numeric:tabular-nums}
 .bk-ch{flex:none;color:var(--muted);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
 .bk-t[aria-expanded="true"] .bk-ch{transform:rotate(180deg)}
@@ -1882,6 +1882,7 @@ chips(); render();
   var cd = overlay('<div class="dev adm" role="dialog" aria-modal="true" aria-label="Бронь заказа"><div class="dev-h"><h2>Бронь заказа</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div>'+
     '<p class="dev-note">Вставьте сообщение покупателя целиком: жидкости из него отметятся бронью. Если вставить то же сообщение ещё раз, бронь снимется. Когда срок выйдет, вкус сам вернётся в продажу.</p>'+
     '<input id="cdName" class="dev-in" maxlength="40" autocomplete="off" placeholder="Имя или ник покупателя (необязательно)" style="margin-bottom:10px">'+
+    '<input id="cdTg" class="dev-in" maxlength="40" autocomplete="off" autocapitalize="off" placeholder="Telegram покупателя: @юз или номер (необязательно)" style="margin-bottom:10px">'+
     '<textarea id="cdText" class="ed cd" spellcheck="false" autocomplete="off" placeholder="Хочу купить:&#10;Линейка — Вкус"></textarea>'+
     '<label class="dev-l" for="cdTerm" style="margin-top:10px">Срок брони (по Минску)</label><select id="cdTerm" class="dev-in"><option value="">Без срока</option><option value="1h">1 час</option><option value="3h">3 часа</option><option value="eod">До конца дня</option><option value="1d">1 день</option><option value="3d">3 дня</option><option value="custom">Выбрать дату и время</option></select>'+
     '<input id="cdWhen" class="dev-in" type="datetime-local" hidden style="margin-top:8px">'+
@@ -1895,7 +1896,7 @@ chips(); render();
     if(!cdWhen.hidden && !cdWhen.value){ var d = new Date(Date.now() + MSK + 24*3600e3); cdWhen.value = d.getUTCFullYear() + "-" + pad2(d.getUTCMonth()+1) + "-" + pad2(d.getUTCDate()) + "T18:00"; }
     try{ localStorage.setItem("napivo-term", cdTerm.value); }catch(e){}
   });
-  var cdName = cd.box.querySelector("#cdName"), cdText = cd.box.querySelector("#cdText"), cdMsg = cd.box.querySelector("#cdMsg"), cdBusy = false;
+  var cdName = cd.box.querySelector("#cdName"), cdTg = cd.box.querySelector("#cdTg"), cdText = cd.box.querySelector("#cdText"), cdMsg = cd.box.querySelector("#cdMsg"), cdBusy = false;
   function cmsg(t, good){ cdMsg.textContent = t; cdMsg.hidden = !t; cdMsg.className = "dev-err" + (good ? " good" : ""); }
   function openCode(){ dev.set(false); cd.set(true); cmsg(""); cdText.value = ""; setTimeout(function(){ cdText.focus(); }, 80); }
   cd.box.addEventListener("click", function(e){
@@ -1903,6 +1904,12 @@ chips(); render();
     if((t.getAttribute && t.getAttribute("data-close")) || t.id === "cdBack"){ cd.set(false); return; }
     if(t.id === "cdGo") applyCode();
   });
+  function tgClean(v){
+    v = String(v || "").trim().replace(/^https?:\/\//i, "").replace(/^t\.me\//i, "").replace(/^@/, "").replace(/[\s|]/g, "");
+    if(/^\+?\d{7,15}$/.test(v)) return "+" + v.replace(/^\+/, "");
+    return /^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(v) ? v : "";
+  }
+  function tgLabel(t){ return t.charAt(0) === "+" ? t : "@" + t; }
   function readCodes(pre){
     var out = {};
     pre.forEach(function(l){
@@ -1912,6 +1919,7 @@ chips(); render();
         x = x.trim();
         if(x === "рука"){ arr.man = true; return; }
         var nm = x.match(/^имя:(.*)$/); if(nm){ arr.nm = nm[1].trim(); return; }
+        var tgm = x.match(/^тг:(.*)$/); if(tgm){ arr.tg = tgClean(tgm[1]); return; }
         var tm = x.match(/^t:(\d+)$/); if(tm){ arr.ts = +tm[1]; return; }
         var q = x.match(/^([rq]):(.*)$/); if(!q) return;
         var a = q[2].split("::").map(function(y){ return y.trim(); });
@@ -1925,6 +1933,7 @@ chips(); render();
     var head = [];
     if(arr.man) head.push("рука");
     if(arr.nm) head.push("имя:" + String(arr.nm).replace(/[|]/g, " ").trim());
+    if(arr.tg) head.push("тг:" + arr.tg);
     if(arr.ts) head.push("t:" + arr.ts);
     return "//код " + c + " | " + head.concat(arr.map(function(en){ return en.k + ":" + en.line + " :: " + en.fl + " :: " + en.v; })).join(" | ");
   }
@@ -1994,7 +2003,7 @@ chips(); render();
           log.push("Забронировано по заказу: " + f.it.n + " — " + name + (w.n > 1 ? " × " + w.n : "") + (until ? " (до " + mskStr(until) + ")" : ""));
         });
         if(!ents.length){ cdBusy = false; cmsg("Ничего не нашлось в прайсе: " + miss.join("; ")); return; }
-        P.pre.push("//код " + code + " | " + (cdName.value.trim() ? "имя:" + cdName.value.replace(/[|]/g, " ").trim() + " | " : "") + "t:" + Math.floor(Date.now() / 1000) + " | " + ents.join(" | "));
+        P.pre.push("//код " + code + " | " + (cdName.value.trim() ? "имя:" + cdName.value.replace(/[|]/g, " ").trim() + " | " : "") + (tgClean(cdTg.value) ? "тг:" + tgClean(cdTg.value) + " | " : "") + "t:" + Math.floor(Date.now() / 1000) + " | " + ents.join(" | "));
         head = "Забронировано" + (miss.length ? ". Не нашлось: " + miss.join("; ") : "");
       }
       if(!log.length){ cdBusy = false; cmsg("Нечего менять: вкусы из кода уже убраны из прайса."); return; }
@@ -2006,7 +2015,7 @@ chips(); render();
       DATA = P.data; PRE = P.pre; EDIT = null;
       var nn = 0; DATA.forEach(function(g){ g.items.forEach(function(x){ x.id = nn++; }); });
       render(); if(window.rebuildLook) window.rebuildLook();
-      cdText.value = ""; cdName.value = ""; cmsg(head + ". На сайте обновится через минуту.", true); checkmark();
+      cdText.value = ""; cdName.value = ""; cdTg.value = ""; cmsg(head + ". На сайте обновится через минуту.", true); checkmark();
     }catch(e){
       var st = e && e.status;
       if(st === 401 || st === 403 || st === 404){ try{ localStorage.removeItem("napivo-gh"); }catch(x){} cmsg("GitHub не принял токен. Нужен доступ Contents → Read and write."); }
@@ -2142,7 +2151,7 @@ chips(); render();
     Object.keys(cds).forEach(function(c){
       var arr = cds[c], key;
       if(arr.man){ arr.forEach(function(e){ if(e.k === "q"){ key = norm(e.line) + "|" + norm(e.fl); manQ[key] = (manQ[key] || 0) + (parseInt(e.v, 10) || 0); } }); return; }
-      var gr = {code:c, nm:arr.nm, ts:arr.ts || 0, rows:[]};
+      var gr = {code:c, nm:arr.nm, tg:arr.tg, ts:arr.ts || 0, rows:[]};
       arr.forEach(function(e){
         key = norm(e.line) + "|" + norm(e.fl); var ref = idx[key]; if(!ref) return;
         if(e.k === "q"){ var n = parseInt(e.v, 10) || 0; if(n > 0) gr.rows.push({ref:ref, n:n, ri:null}); }
@@ -2171,6 +2180,10 @@ chips(); render();
           }).join("") + '</ul></div></div>';
       }).join("");
     }
+    function nameHtml(g){
+      var lb = esc(g.nm || tgLabel(g.tg));
+      return g.tg ? '<span class="bk-link" role="link" data-tg="' + esc(g.tg) + '">' + lb + ' ↗</span>' : lb;
+    }
     function tot(rows){ var c = 0, sm = 0; rows.forEach(function(r){ var n = cnt(r); c += n; sm += n * price(r); }); return {c:c, s:Math.round(sm * 100) / 100}; }
     var html = "", all = {c:0, s:0};
     groups.forEach(function(g){
@@ -2178,9 +2191,9 @@ chips(); render();
       var when = g.ts ? esc(mskStr(g.ts * 1000).replace(/^\d{4}-(\d{2})-(\d{2})/, "$2.$1")) : "";
       var inner = rowsHtml(g.rows, false, g.code) + '<div class="bk-f"><span>' + t.c + ' шт</span><b>' + t.s + '</b></div>' +
         '<div class="bk-a"><button type="button" class="rv-g" data-g="off" data-c="' + g.code + '">Снять всю бронь</button><button type="button" class="rv-g rv-s" data-g="sold" data-c="' + g.code + '">Продано всё</button><button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Изменить имя</button></div>';
-      if(g.nm){
+      if(g.nm || g.tg){
         var open = !!rvOpen[g.code] || rvCollapse === g.code;
-        html += '<section class="bk bk-c" data-c="' + g.code + '" data-l="' + esc(g.nm) + '"><button type="button" class="bk-t" aria-expanded="' + (open ? "true" : "false") + '"><span class="bk-no">№' + g.code + '</span><b class="bk-name">' + esc(g.nm) + '</b>' + (when ? '<span class="rv-u">' + when + '</span>' : '') + '<span class="bk-sum">' + t.s + '</span><svg class="bk-ch" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="bk-body"' + (open ? '' : ' hidden') + '><div class="bk-in">' + inner + '</div></div></section>';
+        html += '<section class="bk bk-c" data-c="' + g.code + '" data-l="' + esc(g.nm || tgLabel(g.tg)) + '"><button type="button" class="bk-t" aria-expanded="' + (open ? "true" : "false") + '"><span class="bk-no">№' + g.code + '</span><b class="bk-name">' + nameHtml(g) + '</b>' + (when ? '<span class="rv-u">' + when + '</span>' : '') + '<span class="bk-sum">' + t.s + '</span><svg class="bk-ch" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="bk-body"' + (open ? '' : ' hidden') + '><div class="bk-in">' + inner + '</div></div></section>';
       } else {
         html += '<section class="bk" data-c="' + g.code + '" data-l=""><div class="bk-h"><b>Бронь №' + g.code + '</b>' + (when ? ' <span class="rv-u">' + when + '</span>' : '') + ' <button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Добавить имя</button></div>' + inner.replace('<button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Изменить имя</button>', '') + '</section>';
       }
@@ -2215,7 +2228,7 @@ chips(); render();
         var en = arr[i]; if(en.k !== "q" || norm(en.line) !== norm(line) || norm(en.fl) !== norm(fl)) continue;
         var have = parseInt(en.v, 10) || 0, t = Math.min(have, left); left -= t; en.v = String(have - t);
       }
-      codes[c] = Object.assign(arr.filter(function(en){ return !(en.k === "q" && (parseInt(en.v, 10) || 0) <= 0); }), {man:arr.man, nm:arr.nm, ts:arr.ts});
+      codes[c] = Object.assign(arr.filter(function(en){ return !(en.k === "q" && (parseInt(en.v, 10) || 0) <= 0); }), {man:arr.man, nm:arr.nm, tg:arr.tg, ts:arr.ts});
       if(!codes[c].length) delete codes[c];
     });
     return n - left;
@@ -2260,16 +2273,19 @@ chips(); render();
     return true;
   }
   rv.box.addEventListener("click", async function(e){
+    var lk = e.target.closest && e.target.closest(".bk-link");
+    if(lk){ e.preventDefault(); var tv2 = lk.getAttribute("data-tg"); window.open("https://t.me/" + (tv2.charAt(0) === "+" ? tv2 : tv2), "_blank", "noopener"); return; }
     var tg = e.target.closest && e.target.closest(".bk-t");
     if(tg){ toggleBk(tg.parentNode, tg.getAttribute("aria-expanded") !== "true"); return; }
     var gb = e.target.closest && e.target.closest(".rv-g");
     if(gb && !rvBusy){
       var kind = gb.getAttribute("data-g"), code = gb.getAttribute("data-c");
       if(kind === "rn"){
-        var cur = readCodes((rvCtx && rvCtx.P.pre) || PRE)[code], o = await form("Имя или ник покупателя", [{k:"n", l:"Имя", v:(cur && cur.nm) || ""}], "Сохранить");
-        if(!o) return; var nm = o.n.trim();
-        if(nm) rvCollapse = code;
-        await rvRun(function(P, codes){ if(!codes[code]) return null; codes[code].nm = nm; return ["Бронь №" + code + ": имя «" + nm + "»"]; }, "Имя сохранено", "Не удалось сохранить имя");
+        var cur = readCodes((rvCtx && rvCtx.P.pre) || PRE)[code], o = await form("Имя или ник покупателя", [{k:"n", l:"Имя", v:(cur && cur.nm) || ""},{k:"t", l:"Telegram: @юз или номер (имя станет ссылкой на чат)", v:(cur && cur.tg ? tgLabel(cur.tg) : "")}], "Сохранить");
+        if(!o) return; var nm = o.n.trim(), tgv = tgClean(o.t);
+        if(o.t.trim() && !tgv){ say("Не похоже на юз: 4–32 символа, латиница, цифры и _", 3500); return; }
+        if(nm || tgv) rvCollapse = code;
+        await rvRun(function(P, codes){ if(!codes[code]) return null; codes[code].nm = nm; codes[code].tg = tgv; return ["Бронь №" + code + ": имя «" + (nm || (tgv ? tgLabel(tgv) : "")) + "»"]; }, "Имя сохранено", "Не удалось сохранить имя");
       } else if(kind === "off"){
         if((await sheet("Снять всю бронь №" + code + "? Все вкусы вернутся в продажу.", [{t:"Снять бронь", d:1},{t:"Отмена"}], true)) !== 0) return;
         await rvRun(function(P, codes){ var arr = codes[code], log = []; if(!arr) return null; arr.forEach(function(en){ if(putBack(P, en)) log.push("Снята бронь: " + en.line + " — " + en.fl); }); delete codes[code]; return log.length ? log : ["Бронь №" + code + " снята"]; }, "Бронь снята. На сайте обновится через минуту", "Не удалось снять бронь");
@@ -2294,7 +2310,7 @@ chips(); render();
         var refs = Object.keys(pick).map(function(k){ return pick[k]; }), total = refs.reduce(function(a, r){ return a + r.n; }, 0);
         if(!refs.length){ say("Отметьте вкусы галочками", 2500); return; }
         var existing = Array.prototype.map.call(rv.box.querySelectorAll(".bk[data-c]"), function(x){ return {c:x.getAttribute("data-c"), l:x.getAttribute("data-l")}; });
-        var target = "", nameNew = "";
+        var target = "", nameNew = "", tgNew = "";
         if(existing.length){
           var opts = [{t:"Новая бронь"}].concat(existing.map(function(x){ return {t:"К брони №" + x.c + (x.l ? " · " + x.l : "")}; })).concat([{t:"Отмена"}]);
           var pk = await sheet("Куда добавить " + total + " шт?", opts, true);
@@ -2302,8 +2318,9 @@ chips(); render();
           if(pk > 0) target = existing[pk - 1].c;
         }
         if(!target){
-          var o2 = await form("Новая бронь: " + total + " шт", [{k:"n", l:"Имя или ник покупателя (необязательно)", v:""}], "Создать");
-          if(!o2) return; nameNew = o2.n.trim();
+          var o2 = await form("Новая бронь: " + total + " шт", [{k:"n", l:"Имя или ник покупателя (необязательно)", v:""},{k:"t", l:"Telegram: @юз или номер (необязательно)", v:""}], "Создать");
+          if(!o2) return; nameNew = o2.n.trim(); tgNew = tgClean(o2.t);
+          if(o2.t.trim() && !tgNew){ say("Не похоже на юз: 4–32 символа, латиница, цифры и _", 3500); return; }
         }
         await rvRun(function(P, codes){
           var arr = target ? codes[target] : [], log = [];
@@ -2314,7 +2331,7 @@ chips(); render();
             if(ref.q){ v = takeQ(codes, it.n, name, ref.n); if(v <= 0) return; }
             else {
               var taken = "";
-              Object.keys(codes).forEach(function(c){ if(!codes[c].man) return; codes[c] = Object.assign(codes[c].filter(function(en){ if(en.k === "r" && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ taken = en.v; return false; } return true; }), {man:codes[c].man, nm:codes[c].nm, ts:codes[c].ts}); if(!codes[c].length) delete codes[c]; });
+              Object.keys(codes).forEach(function(c){ if(!codes[c].man) return; codes[c] = Object.assign(codes[c].filter(function(en){ if(en.k === "r" && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ taken = en.v; return false; } return true; }), {man:codes[c].man, nm:codes[c].nm, tg:codes[c].tg, ts:codes[c].ts}); if(!codes[c].length) delete codes[c]; });
               v = taken;
             }
             var ex = null; arr.forEach(function(en){ if(en.k === (ref.q ? "q" : "r") && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)) ex = en; });
@@ -2323,7 +2340,7 @@ chips(); render();
             log.push("В бронь: " + it.n + " — " + name + (ref.q ? " × " + v : ""));
           });
           if(!log.length) return null;
-          if(!target){ arr.nm = nameNew; arr.ts = Math.floor(Date.now() / 1000); var nc = freeCode(codes); codes[nc] = arr; if(nameNew) rvCollapse = nc; }
+          if(!target){ arr.nm = nameNew; arr.tg = tgNew; arr.ts = Math.floor(Date.now() / 1000); var nc = freeCode(codes); codes[nc] = arr; if(nameNew || tgNew) rvCollapse = nc; }
           return log;
         }, target ? "Добавлено в бронь №" + target : "Объединено в одну бронь", "Не удалось объединить");
       }
@@ -2340,7 +2357,7 @@ chips(); render();
       var name = nm.split(" · ")[0], back = "", took = qn;
       if(isQ) took = takeQ(codes, it.n, name, qn, bcode);
       else Object.keys(codes).forEach(function(c){
-        codes[c] = Object.assign(codes[c].filter(function(en){ if(en.k === "r" && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ back = en.v; return false; } return true; }), {man:codes[c].man, nm:codes[c].nm, ts:codes[c].ts});
+        codes[c] = Object.assign(codes[c].filter(function(en){ if(en.k === "r" && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ back = en.v; return false; } return true; }), {man:codes[c].man, nm:codes[c].nm, tg:codes[c].tg, ts:codes[c].ts});
         if(!codes[c].length) delete codes[c];
       });
       if(sold){ if(!isQ) it.f.splice(jj, 1); }
