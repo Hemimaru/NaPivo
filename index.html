@@ -289,6 +289,35 @@ body.editing .card .top{padding-right:34px}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 
+<style id="nyCss">
+/* Новогодняя тема «Мороз»: включается сама с 1 декабря по 5 января (по Минску), 6 января выключается */
+html.ny:root,html.ny:root[data-theme]{--bg:#0b1624;--surface:#12233a;--surface-2:#183050;--line:#27456b;--fg:#eaf6ff;--muted:#8fb0cf;--accent:#6fd3ff;--accent-fg:#06202f;--chip:#1b3556;--mark:#1d4f73;--resv:#ffc46b;color-scheme:dark}
+html.ny body{background:radial-gradient(120% 60% at 50% 0,#17335a 0,#0b1624 60%) fixed}
+html.ny body::before{background:#0b1624}
+html.ny header.hero h1::before{content:"\2744";display:block;font-size:26px;line-height:1;color:#9fe2ff;margin-bottom:6px;text-shadow:0 0 14px #6fd3ff;animation:nyglow 3.2s ease-in-out infinite}
+#snow{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:28}
+#snow i{position:absolute;left:0;right:0;bottom:0;will-change:transform;animation:nyfall linear infinite}
+#snow i:nth-child(1){background:radial-gradient(circle,rgba(255,255,255,.9) 0 1.5px,transparent 2.5px) 10px 20px/59px 83px;--h:830px;top:-830px;animation-duration:24s}
+#snow i:nth-child(2){top:-786px;background:radial-gradient(circle,rgba(255,255,255,.85) 0 2px,transparent 3px) 40px 60px/97px 131px;--h:786px;animation-duration:17s}
+#snow i:nth-child(3){top:-764px;background:radial-gradient(circle,rgba(255,255,255,.95) 0 3px,transparent 4px) 80px 10px/173px 191px;--h:764px;animation-duration:11s}
+@keyframes nyfall{to{transform:translate3d(0,var(--h),0)}}
+@keyframes nyglow{50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){#snow i,html.ny header.hero h1::before{animation:none}}
+</style>
+<script>
+(function(){
+  try{
+    var d = new Date(Date.now() + 3*3600e3), mo = d.getUTCMonth(), da = d.getUTCDate();
+    if(mo === 11 || (mo === 0 && da < 6)){
+      var h = document.documentElement; h.classList.add("ny");
+      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", "#0b1624");
+      document.addEventListener("DOMContentLoaded", function(){
+        var s = document.createElement("div"); s.id = "snow"; s.setAttribute("aria-hidden", "true"); s.innerHTML = "<i></i><i></i><i></i>"; document.body.appendChild(s);
+      });
+    }
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
 <div class="wrap">
