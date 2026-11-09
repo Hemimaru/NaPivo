@@ -341,6 +341,24 @@ html.f23 header.hero h1::before{content:"\2B50";display:block;font-size:30px;lin
 @keyframes petfall{0%{transform:translate3d(0,-40px,0) rotate(0)}50%{transform:translate3d(26px,55vh,0) rotate(180deg)}100%{transform:translate3d(-12px,110vh,0) rotate(360deg)}}
 @keyframes heartup{0%{transform:translate3d(0,40px,0) scale(.8)}50%{transform:translate3d(-18px,-55vh,0) scale(1)}100%{transform:translate3d(10px,-110vh,0) scale(1.1)}}
 @media (prefers-reduced-motion:reduce){#petals i,#hearts i,html.v14 header.hero h1::before,html.f23 header.hero h1::before{animation:none}#petals i,#hearts i{top:auto;bottom:auto}#petals i:nth-child(n+4),#hearts i:nth-child(n+4){display:none}#petals i,#hearts i{top:30%}}
+/* День пива: 4–7 августа включительно (по Минску), тема «Тёмный стаут» */
+html.br:root,html.br:root[data-theme]{--bg:#140c08;--surface:#201510;--surface-2:#2b1c15;--line:#4a3126;--fg:#f6e8d8;--muted:#b99a80;--accent:#e8c9a0;--accent-fg:#1c0f08;--chip:#2b1c15;--mark:#4f3523;--resv:#ffc46b;color-scheme:dark}
+html.br body{background:radial-gradient(90% 35% at 50% 0,#3a2418 0,#140c08 70%) fixed;padding-top:24px}
+html.br::before{content:"";position:fixed;left:0;right:0;top:0;height:40px;z-index:60;pointer-events:none;background:radial-gradient(circle at 50% 0,#f3e3c8 0 20px,transparent 21px) 0 0/44px 36px repeat-x,radial-gradient(circle at 50% 0,#f3e3c8 0 14px,transparent 15px) 22px 0/44px 44px repeat-x,linear-gradient(#f3e3c8,#f3e3c8) 0 0/100% 14px no-repeat;filter:drop-shadow(0 3px 3px #0009);animation:brbob 4s ease-in-out infinite}
+html.br header.hero h1::after{content:" \1F37B"}
+#bubbles{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:28}
+#bubbles i{position:absolute;bottom:-30px;border:1.5px solid rgba(232,201,160,.5);border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.18),transparent 60%);will-change:transform;animation:brrise linear infinite}
+#bubbles i:nth-child(1){left:6%;width:12px;height:12px;animation-duration:9s}
+#bubbles i:nth-child(2){left:18%;width:20px;height:20px;animation-duration:13s;animation-delay:-5s}
+#bubbles i:nth-child(3){left:31%;width:9px;height:9px;animation-duration:8s;animation-delay:-2s}
+#bubbles i:nth-child(4){left:44%;width:16px;height:16px;animation-duration:11s;animation-delay:-7s}
+#bubbles i:nth-child(5){left:57%;width:24px;height:24px;animation-duration:15s;animation-delay:-3s}
+#bubbles i:nth-child(6){left:69%;width:10px;height:10px;animation-duration:9.5s;animation-delay:-6s}
+#bubbles i:nth-child(7){left:81%;width:18px;height:18px;animation-duration:12s;animation-delay:-9s}
+#bubbles i:nth-child(8){left:92%;width:13px;height:13px;animation-duration:10s;animation-delay:-1s}
+@keyframes brrise{0%{transform:translate3d(0,0,0)}50%{transform:translate3d(14px,-55vh,0)}100%{transform:translate3d(-8px,-112vh,0)}}
+@keyframes brbob{50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){#bubbles i,html.br::before{animation:none}#bubbles i{bottom:auto;top:40%}#bubbles i:nth-child(n+5){display:none}}
 </style>
 <script>
 (function(){
@@ -351,15 +369,16 @@ html.f23 header.hero h1::before{content:"\2B50";display:block;font-size:30px;lin
     if(mo === 2 && da <= 8) return "m8";
     if(mo === 1 && da >= 10 && da <= 14) return "v14";
     if(mo === 1 && da >= 18 && da <= 23) return "f23";
+    if(mo === 7 && da >= 4 && da <= 7) return "br";
     return "";
   }
   function pref(){ try{ return localStorage.getItem("napivo-theme") || ""; }catch(e){ return ""; } }
   function apply(){
     try{
-      var p = pref(), t = p === "off" ? "" : (p === "ny" || p === "hw" || p === "m8" || p === "v14" || p === "f23") ? p : byDate(), h = document.documentElement;
-      ["ny","hw","m8","v14","f23"].forEach(function(c){ h.classList.toggle(c, t === c); });
-      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", ({ny:"#0b1624",hw:"#120a05",m8:"#fff4f7",v14:"#1c0a12",f23:"#141a12"})[t] || "#0e0b14");
-      [["snow", "ny", "<i></i><i></i><i></i>"], ["petals", "m8", "<i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i><i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i>"], ["hearts", "v14", "<i>\u2764\uFE0F</i><i>\u{1F497}</i><i>\u2764\uFE0F</i><i>\u{1F495}</i><i>\u{1F497}</i><i>\u2764\uFE0F</i>"], ["bats", "hw", "<i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i>"]].forEach(function(x){
+      var p = pref(), t = p === "off" ? "" : (p === "ny" || p === "hw" || p === "m8" || p === "v14" || p === "f23" || p === "br") ? p : byDate(), h = document.documentElement;
+      ["ny","hw","m8","v14","f23","br"].forEach(function(c){ h.classList.toggle(c, t === c); });
+      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", ({ny:"#0b1624",hw:"#120a05",m8:"#fff4f7",v14:"#1c0a12",f23:"#141a12",br:"#140c08"})[t] || "#0e0b14");
+      [["snow", "ny", "<i></i><i></i><i></i>"], ["bubbles", "br", "<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>"], ["petals", "m8", "<i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i><i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i>"], ["hearts", "v14", "<i>\u2764\uFE0F</i><i>\u{1F497}</i><i>\u2764\uFE0F</i><i>\u{1F495}</i><i>\u{1F497}</i><i>\u2764\uFE0F</i>"], ["bats", "hw", "<i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i>"]].forEach(function(x){
         var e = document.getElementById(x[0]);
         if(t === x[1] && !e && document.body){ e = document.createElement("div"); e.id = x[0]; e.setAttribute("aria-hidden", "true"); e.innerHTML = x[2]; document.body.appendChild(e); }
         else if(t !== x[1] && e) e.parentNode.removeChild(e);
@@ -1836,7 +1855,7 @@ chips(); render();
   lg.onClose = function(){ drawMenu(); dev.set(true); };
   lg.box.addEventListener("click", function(e){ if(e.target.getAttribute && e.target.getAttribute("data-close")) lg.set(false); });
   async function openThemes(){
-    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате (как у всех)"],["off", "Обычная"],["ny", "Мороз (Новый год)"],["hw", "Тыква (Хэллоуин)"],["m8", "8 Марта (лепестки)"],["v14", "14 Февраля (бордо)"],["f23", "23 Февраля (хаки)"]];
+    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате (как у всех)"],["off", "Обычная"],["ny", "Мороз (Новый год)"],["hw", "Тыква (Хэллоуин)"],["m8", "8 Марта (лепестки)"],["v14", "14 Февраля (бордо)"],["f23", "23 Февраля (хаки)"],["br", "День пива (стаут)"]];
     var i = await sheet("Тема сайта только для вас, на этом устройстве. У покупателей она не меняется.", L.map(function(x){ return {t:(x[0] === cur ? "✓ " : "") + x[1], p:x[0] === cur}; }).concat([{t:"Закрыть"}]), true);
     if(i >= 0 && i < L.length && window.napivoTheme){ window.napivoTheme.set(L[i][0]); say("Тема: " + L[i][1], 2200); }
   }
