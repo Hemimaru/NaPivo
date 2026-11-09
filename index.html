@@ -239,7 +239,7 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .sheet .sb.pri{background:var(--accent);color:var(--accent-fg)}
 .sheet .sb.dan{color:#e5484d}
 .sheet .dev-in{width:100%;box-sizing:border-box}
-.rvl{display:grid;gap:10px;padding:0 4px 4px;color:var(--muted);font-size:14px;max-height:62vh;overflow:auto}
+.rvl{display:grid;align-content:start;grid-auto-rows:max-content;gap:10px;padding:0 4px 4px;color:var(--muted);font-size:14px;max-height:62vh;overflow:auto}
 .rv-i{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:14px;background:var(--surface-2);color:var(--fg)}
 .rv-p{width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none;background:var(--bg)}
 .rv-t{min-width:0}.rv-t b{display:block;font-size:15px;margin-bottom:4px}
@@ -253,6 +253,14 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .ck{position:fixed;left:50%;top:50%;z-index:95;width:92px;height:92px;margin:-46px 0 0 -46px;border-radius:50%;background:var(--accent);display:grid;place-items:center;pointer-events:none}
 .ck path{stroke:var(--accent-fg);stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;stroke-dashoffset:40}
 .bk{border:1px solid var(--line);border-radius:16px;padding:12px;margin:0 0 12px;background:var(--surface);display:grid;gap:8px}
+.bk-c{padding:0;gap:0;overflow:hidden}
+.bk-t{display:flex;align-items:center;gap:8px;width:100%;padding:13px 14px;border:0;background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.bk-no{font-size:12px;color:var(--muted);font-weight:700}.bk-name{font-size:15px;color:var(--accent);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-sum{font-weight:800;font-variant-numeric:tabular-nums}
+.bk-ch{flex:none;color:var(--muted);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.bk-t[aria-expanded="true"] .bk-ch{transform:rotate(180deg)}
+.bk-body{overflow:hidden}.bk-body[hidden]{display:none}
+.bk-in{padding:0 12px 12px;display:grid;gap:8px}
 .bk-h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}.bk-h b{font-size:15px}.bk-n{font-weight:800;color:var(--accent)}
 .bk-f{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700;padding:2px 4px}.bk-f b{font-size:17px;font-variant-numeric:tabular-nums}
 .bk-a{display:flex;flex-wrap:wrap;gap:8px}
@@ -1964,6 +1972,22 @@ chips(); render();
     if(!m) throw {status:0};
     return {P:parsePrice(m[1].replace(/^\n/,"")), sha:j.sha};
   }
+  var rvOpen = {}, rvCollapse = "";
+  function toggleBk(sec, open){
+    var b = sec.querySelector(".bk-body"), t = sec.querySelector(".bk-t"), c = sec.getAttribute("data-c"); if(!b) return;
+    rvOpen[c] = open; t.setAttribute("aria-expanded", open ? "true" : "false");
+    if(b._a){ try{ b._a.cancel(); }catch(e){} b._a = null; }
+    if(open){
+      b.hidden = false;
+      if(rm || !b.animate) return;
+      var h = b.scrollHeight; b._a = b.animate([{height:"0px", opacity:0},{height:h + "px", opacity:1}], {duration:300, easing:"cubic-bezier(.2,.8,.2,1)"});
+    } else {
+      if(b.hidden) return;
+      if(rm || !b.animate){ b.hidden = true; return; }
+      var a = b.animate([{height:b.offsetHeight + "px", opacity:1},{height:"0px", opacity:0}], {duration:320, easing:"cubic-bezier(.4,0,.2,1)", fill:"forwards"}); b._a = a;
+      a.onfinish = function(){ b.hidden = true; try{ a.cancel(); }catch(e){} if(b._a === a) b._a = null; };
+    }
+  }
   function drawResv(data, pre){
     var body = rv.box.querySelector("#rvBody"), cds = readCodes(pre || PRE), idx = {}, claimed = {}, groups = [], i;
     data.forEach(function(g, gi){ g.items.forEach(function(it, ii){ it.f.forEach(function(f, j){
@@ -2006,10 +2030,15 @@ chips(); render();
     var html = "", all = {c:0, s:0};
     groups.forEach(function(g){
       var t = tot(g.rows); all.c += t.c; all.s += t.s;
-      html += '<section class="bk" data-c="' + g.code + '" data-l="' + esc((g.nm || "")) + '"><div class="bk-h"><b>Бронь №' + g.code + '</b>' + (g.nm ? ' <span class="bk-n">' + esc(g.nm) + '</span>' : '') + (g.ts ? ' <span class="rv-u">' + esc(mskStr(g.ts * 1000).replace(/^\d{4}-(\d{2})-(\d{2})/, "$2.$1")) + '</span>' : '') +
-        ' <button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">' + (g.nm ? "Имя" : "Добавить имя") + '</button></div>' + rowsHtml(g.rows, false, g.code) +
-        '<div class="bk-f"><span>' + t.c + ' шт</span><b>' + t.s + '</b></div>' +
-        '<div class="bk-a"><button type="button" class="rv-g" data-g="off" data-c="' + g.code + '">Снять всю бронь</button><button type="button" class="rv-g rv-s" data-g="sold" data-c="' + g.code + '">Продано всё</button></div></section>';
+      var when = g.ts ? esc(mskStr(g.ts * 1000).replace(/^\d{4}-(\d{2})-(\d{2})/, "$2.$1")) : "";
+      var inner = rowsHtml(g.rows, false, g.code) + '<div class="bk-f"><span>' + t.c + ' шт</span><b>' + t.s + '</b></div>' +
+        '<div class="bk-a"><button type="button" class="rv-g" data-g="off" data-c="' + g.code + '">Снять всю бронь</button><button type="button" class="rv-g rv-s" data-g="sold" data-c="' + g.code + '">Продано всё</button><button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Изменить имя</button></div>';
+      if(g.nm){
+        var open = !!rvOpen[g.code] || rvCollapse === g.code;
+        html += '<section class="bk bk-c" data-c="' + g.code + '" data-l="' + esc(g.nm) + '"><button type="button" class="bk-t" aria-expanded="' + (open ? "true" : "false") + '"><span class="bk-no">№' + g.code + '</span><b class="bk-name">' + esc(g.nm) + '</b>' + (when ? '<span class="rv-u">' + when + '</span>' : '') + '<span class="bk-sum">' + t.s + '</span><svg class="bk-ch" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="bk-body"' + (open ? '' : ' hidden') + '><div class="bk-in">' + inner + '</div></div></section>';
+      } else {
+        html += '<section class="bk" data-c="' + g.code + '" data-l=""><div class="bk-h"><b>Бронь №' + g.code + '</b>' + (when ? ' <span class="rv-u">' + when + '</span>' : '') + ' <button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Добавить имя</button></div>' + inner.replace('<button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Изменить имя</button>', '') + '</section>';
+      }
     });
     if(free.length){
       var tf = tot(free); all.c += tf.c; all.s += tf.s;
@@ -2018,6 +2047,7 @@ chips(); render();
     }
     if(html) html += '<div class="rv-sum"><span>Итого по броням: ' + all.c + ' шт</span><b>' + (Math.round(all.s * 100) / 100) + '</b></div>';
     body.innerHTML = html || "Забронированных вкусов нет.";
+    if(rvCollapse){ var cc = rvCollapse; rvCollapse = ""; var sec = body.querySelector('.bk-c[data-c="' + cc + '"]'); if(sec) setTimeout(function(){ toggleBk(sec, false); }, 450); }
     if(!rm && body.animate) Array.prototype.forEach.call(body.querySelectorAll(".bk"), function(x, n){ x.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:280,delay:n*60,easing:"ease-out",fill:"backwards"}); });
   }
   async function openResv(){
@@ -2085,12 +2115,15 @@ chips(); render();
     return true;
   }
   rv.box.addEventListener("click", async function(e){
+    var tg = e.target.closest && e.target.closest(".bk-t");
+    if(tg){ toggleBk(tg.parentNode, tg.getAttribute("aria-expanded") !== "true"); return; }
     var gb = e.target.closest && e.target.closest(".rv-g");
     if(gb && !rvBusy){
       var kind = gb.getAttribute("data-g"), code = gb.getAttribute("data-c");
       if(kind === "rn"){
         var cur = readCodes((rvCtx && rvCtx.P.pre) || PRE)[code], o = await form("Имя или ник покупателя", [{k:"n", l:"Имя", v:(cur && cur.nm) || ""}], "Сохранить");
         if(!o) return; var nm = o.n.trim();
+        if(nm) rvCollapse = code;
         await rvRun(function(P, codes){ if(!codes[code]) return null; codes[code].nm = nm; return ["Бронь №" + code + ": имя «" + nm + "»"]; }, "Имя сохранено", "Не удалось сохранить имя");
       } else if(kind === "off"){
         if((await sheet("Снять всю бронь №" + code + "? Все вкусы вернутся в продажу.", [{t:"Снять бронь", d:1},{t:"Отмена"}], true)) !== 0) return;
@@ -2145,7 +2178,7 @@ chips(); render();
             log.push("В бронь: " + it.n + " — " + name + (ref.q ? " × " + v : ""));
           });
           if(!log.length) return null;
-          if(!target){ arr.nm = nameNew; arr.ts = Math.floor(Date.now() / 1000); codes[freeCode(codes)] = arr; }
+          if(!target){ arr.nm = nameNew; arr.ts = Math.floor(Date.now() / 1000); var nc = freeCode(codes); codes[nc] = arr; if(nameNew) rvCollapse = nc; }
           return log;
         }, target ? "Добавлено в бронь №" + target : "Объединено в одну бронь", "Не удалось объединить");
       }
