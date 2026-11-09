@@ -317,6 +317,30 @@ html.hw header.hero h1::before{content:"\1F383";display:block;font-size:34px;lin
 @keyframes hwfly{0%{transform:translate3d(-60px,0,0) rotate(-8deg)}25%{transform:translate3d(25vw,-26px,0) rotate(8deg)}50%{transform:translate3d(52vw,10px,0) rotate(-6deg)}75%{transform:translate3d(78vw,-22px,0) rotate(8deg)}100%{transform:translate3d(calc(100vw + 60px),0,0) rotate(-8deg)}}
 @keyframes hwglow{50%{filter:drop-shadow(0 0 4px #ff8a1f);opacity:.8}}
 @media (prefers-reduced-motion:reduce){#bats i,html.hw header.hero h1::before{animation:none}#bats i:nth-child(1){left:70%}#bats i:nth-child(2){left:30%}#bats i:nth-child(n+3){display:none}}
+/* Даты-темы: 8 Марта (1–8.03), 14 Февраля (10–14.02), 23 Февраля (18–23.02), по Минску, включительно */
+html.m8:root,html.m8:root[data-theme]{--bg:#fff4f7;--surface:#fff;--surface-2:#ffe3ec;--line:#f6c6d6;--fg:#3a1f2b;--muted:#9a6b7d;--accent:#e0457b;--accent-fg:#fff;--chip:#ffe3ec;--mark:#ffd0e0;--resv:#b8570a;color-scheme:light}
+html.m8 body{background:linear-gradient(#ffe6ef,#fff4f7 40%) fixed}
+html.m8 header.hero h1::before{content:"\1F338";display:block;font-size:30px;line-height:1.1;margin-bottom:3px}
+html.v14:root,html.v14:root[data-theme]{--bg:#1c0a12;--surface:#2a1019;--surface-2:#381523;--line:#5a2238;--fg:#ffeef2;--muted:#d29aac;--accent:#ff4d79;--accent-fg:#fff;--chip:#3a1626;--mark:#7a1f3d;--resv:#ffc46b;color-scheme:dark}
+html.v14 body{background:radial-gradient(90% 40% at 50% 0,#5a1830 0,#1c0a12 70%) fixed}
+html.v14 header.hero h1::before{content:"\2764\FE0F";display:block;font-size:30px;line-height:1.1;margin-bottom:3px;filter:drop-shadow(0 0 12px #ff4d79);animation:hwglow 1.6s ease-in-out infinite}
+html.f23:root,html.f23:root[data-theme]{--bg:#141a12;--surface:#1d2619;--surface-2:#263220;--line:#3b4d31;--fg:#eef3e4;--muted:#a5b595;--accent:#b5c94a;--accent-fg:#141a00;--chip:#2a3724;--mark:#475a28;--resv:#ffc46b;color-scheme:dark}
+html.f23 body{background:#141a12;padding-top:10px}
+html.f23::before{content:"";position:fixed;left:0;right:0;top:0;height:10px;z-index:60;pointer-events:none;background:repeating-linear-gradient(135deg,#4b5d2a 0 14px,#2d3a1c 14px 28px,#6b7a3a 28px 40px,#1f2a14 40px 54px)}
+html.f23 header.hero h1::before{content:"\2B50";display:block;font-size:30px;line-height:1.1;margin-bottom:3px;filter:drop-shadow(0 0 8px #b5c94a);animation:hwglow 2.8s ease-in-out infinite}
+#petals,#hearts{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:28}
+#petals i,#hearts i{position:absolute;font-style:normal;line-height:1;will-change:transform;animation:linear infinite}
+#petals i{top:0;animation-name:petfall}
+#hearts i{bottom:0;animation-name:heartup;opacity:.85}
+#petals i:nth-child(1),#hearts i:nth-child(1){left:8%;font-size:22px;animation-duration:13s}
+#petals i:nth-child(2),#hearts i:nth-child(2){left:24%;font-size:16px;animation-duration:10s;animation-delay:-4s}
+#petals i:nth-child(3),#hearts i:nth-child(3){left:42%;font-size:20px;animation-duration:15s;animation-delay:-8s}
+#petals i:nth-child(4),#hearts i:nth-child(4){left:60%;font-size:14px;animation-duration:11s;animation-delay:-2s}
+#petals i:nth-child(5),#hearts i:nth-child(5){left:76%;font-size:24px;animation-duration:16s;animation-delay:-10s}
+#petals i:nth-child(6),#hearts i:nth-child(6){left:90%;font-size:18px;animation-duration:12s;animation-delay:-6s}
+@keyframes petfall{0%{transform:translate3d(0,-40px,0) rotate(0)}50%{transform:translate3d(26px,55vh,0) rotate(180deg)}100%{transform:translate3d(-12px,110vh,0) rotate(360deg)}}
+@keyframes heartup{0%{transform:translate3d(0,40px,0) scale(.8)}50%{transform:translate3d(-18px,-55vh,0) scale(1)}100%{transform:translate3d(10px,-110vh,0) scale(1.1)}}
+@media (prefers-reduced-motion:reduce){#petals i,#hearts i,html.v14 header.hero h1::before,html.f23 header.hero h1::before{animation:none}#petals i,#hearts i{top:auto;bottom:auto}#petals i:nth-child(n+4),#hearts i:nth-child(n+4){display:none}#petals i,#hearts i{top:30%}}
 </style>
 <script>
 (function(){
@@ -324,15 +348,18 @@ html.hw header.hero h1::before{content:"\1F383";display:block;font-size:34px;lin
     var d = new Date(Date.now() + 3*3600e3), mo = d.getUTCMonth(), da = d.getUTCDate();
     if(mo === 11 || (mo === 0 && da < 6)) return "ny";
     if((mo === 9 && da >= 25) || (mo === 10 && da <= 1)) return "hw";
+    if(mo === 2 && da <= 8) return "m8";
+    if(mo === 1 && da >= 10 && da <= 14) return "v14";
+    if(mo === 1 && da >= 18 && da <= 23) return "f23";
     return "";
   }
   function pref(){ try{ return localStorage.getItem("napivo-theme") || ""; }catch(e){ return ""; } }
   function apply(){
     try{
-      var p = pref(), t = p === "off" ? "" : (p === "ny" || p === "hw") ? p : byDate(), h = document.documentElement;
-      h.classList.toggle("ny", t === "ny"); h.classList.toggle("hw", t === "hw");
-      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", t === "ny" ? "#0b1624" : t === "hw" ? "#120a05" : "#0e0b14");
-      [["snow", "ny", "<i></i><i></i><i></i>"], ["bats", "hw", "<i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i>"]].forEach(function(x){
+      var p = pref(), t = p === "off" ? "" : (p === "ny" || p === "hw" || p === "m8" || p === "v14" || p === "f23") ? p : byDate(), h = document.documentElement;
+      ["ny","hw","m8","v14","f23"].forEach(function(c){ h.classList.toggle(c, t === c); });
+      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", ({ny:"#0b1624",hw:"#120a05",m8:"#fff4f7",v14:"#1c0a12",f23:"#141a12"})[t] || "#0e0b14");
+      [["snow", "ny", "<i></i><i></i><i></i>"], ["petals", "m8", "<i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i><i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i>"], ["hearts", "v14", "<i>\u2764\uFE0F</i><i>\u{1F497}</i><i>\u2764\uFE0F</i><i>\u{1F495}</i><i>\u{1F497}</i><i>\u2764\uFE0F</i>"], ["bats", "hw", "<i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i>"]].forEach(function(x){
         var e = document.getElementById(x[0]);
         if(t === x[1] && !e && document.body){ e = document.createElement("div"); e.id = x[0]; e.setAttribute("aria-hidden", "true"); e.innerHTML = x[2]; document.body.appendChild(e); }
         else if(t !== x[1] && e) e.parentNode.removeChild(e);
@@ -1809,7 +1836,7 @@ chips(); render();
   lg.onClose = function(){ drawMenu(); dev.set(true); };
   lg.box.addEventListener("click", function(e){ if(e.target.getAttribute && e.target.getAttribute("data-close")) lg.set(false); });
   async function openThemes(){
-    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате (как у всех)"],["off", "Обычная"],["ny", "Мороз (Новый год)"],["hw", "Тыква (Хэллоуин)"]];
+    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате (как у всех)"],["off", "Обычная"],["ny", "Мороз (Новый год)"],["hw", "Тыква (Хэллоуин)"],["m8", "8 Марта (лепестки)"],["v14", "14 Февраля (бордо)"],["f23", "23 Февраля (хаки)"]];
     var i = await sheet("Тема сайта только для вас, на этом устройстве. У покупателей она не меняется.", L.map(function(x){ return {t:(x[0] === cur ? "✓ " : "") + x[1], p:x[0] === cur}; }).concat([{t:"Закрыть"}]), true);
     if(i >= 0 && i < L.length && window.napivoTheme){ window.napivoTheme.set(L[i][0]); say("Тема: " + L[i][1], 2200); }
   }
