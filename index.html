@@ -1131,6 +1131,43 @@ chips(); render();
   }catch(e){ finish(); }
 })();
 
+/* Снег, лепестки, сердечки и пузырьки реагируют на прокрутку: падающее уходит вверх при прокрутке вниз, всплывающее ускоряется */
+(function(){
+  var SETS = [
+    {sel:"#snow i", dir:-1, f:[0.25,0.5,0.9]},
+    {sel:"#petals i", dir:-1, f:[0.6]},
+    {sel:"#hearts i", dir:1, f:[0.6]},
+    {sel:"#bubbles i", dir:1, f:[1.2]}
+  ];
+  var last = window.pageYOffset || 0, busy = false;
+  function shift(dy){
+    SETS.forEach(function(S){
+      var els = document.querySelectorAll(S.sel);
+      for(var k = 0; k < els.length; k++){
+        var el = els[k], as = el.getAnimations ? el.getAnimations() : [];
+        if(!as.length) continue;
+        var a = as[0], tm = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
+        if(!tm || !(tm.duration > 0)) continue;
+        var travel = parseFloat(getComputedStyle(el).getPropertyValue("--h")) || (1.1 * window.innerHeight);
+        var f = S.f[Math.min(k, S.f.length - 1)];
+        var ct = Number(a.currentTime) + S.dir * dy * f * (tm.duration / travel);
+        var d = tm.delay || 0, dur = tm.duration;
+        if(ct - d < 0) ct += Math.ceil((d - ct) / dur) * dur;
+        a.currentTime = ct;
+      }
+    });
+  }
+  function onScroll(){
+    if(busy) return; busy = true;
+    requestAnimationFrame(function(){
+      busy = false;
+      var y = window.pageYOffset || 0, dy = y - last; last = y;
+      if(dy && Math.abs(dy) < 4000) try{ shift(dy); }catch(e){}
+    });
+  }
+  window.addEventListener("scroll", onScroll, {passive:true});
+})();
+
 /* Просмотр фото: приближение, отдаление, перетаскивание, закрытие по клику вне фото */
 (function(){
   var lb = document.getElementById("lb"), img = document.getElementById("lbImg"), tools = document.getElementById("lbTools"), zval = document.getElementById("zval");
@@ -1962,7 +1999,7 @@ chips(); render();
   lg.onClose = function(){ drawMenu(); dev.set(true); };
   lg.box.addEventListener("click", function(e){ if(e.target.getAttribute && e.target.getAttribute("data-close")) lg.set(false); });
   async function openThemes(){
-    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате (как у всех)"],["off", "Обычная"],["ny", "Мороз (Новый год)"],["hw", "Тыква (Хэллоуин)"],["m8", "8 Марта (лепестки)"],["v14", "14 Февраля (бордо)"],["f23", "23 Февраля (хаки)"],["br", "День пива (стаут)"],["dn", "Неон (ночь)"],["dm", "Мята (светлая)"]];
+    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате (как у всех)"],["off", "Обычная"],["ny", "Новый год"],["hw", "Хэллоуин"],["m8", "8 Марта"],["v14", "14 Февраля"],["f23", "23 Февраля"],["br", "День пива"],["dn", "Неон"],["dm", "Мята"]];
     var i = await sheet("Тема сайта только для вас, на этом устройстве. У покупателей она не меняется.", L.map(function(x){ return {t:(x[0] === cur ? "✓ " : "") + x[1], p:x[0] === cur}; }).concat([{t:"Закрыть"}]), true);
     if(i >= 0 && i < L.length && window.napivoTheme){ window.napivoTheme.set(L[i][0]); say("Тема: " + L[i][1], 2200); }
   }
