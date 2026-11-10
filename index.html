@@ -12,13 +12,13 @@
 <meta name="theme-color" content="#0e0b14">
 <meta name="apple-mobile-web-app-title" content="На пиво">
 <meta property="og:type" content="website">
-<meta property="og:title" content="На пиво">
+<meta property="og:title" content="Price Na Pivo">
 <meta property="og:url" content="https://hemimaru.github.io/NaPivo/">
 <meta property="og:image" content="https://hemimaru.github.io/NaPivo/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="На пиво">
+<meta name="twitter:title" content="Price Na Pivo">
 <meta name="twitter:image" content="https://hemimaru.github.io/NaPivo/og.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;600;800&display=swap">
 <style>
@@ -118,6 +118,12 @@ footer{margin-top:48px;color:var(--muted);font-size:12px;text-align:center}
   .top{flex-direction:column;gap:6px}
   ul.fl{columns:1}
 }
+.intro-on header.hero h1{visibility:hidden}
+.intro-on .bar,.intro-on main,.intro-on footer{opacity:0}
+.intro-bg{position:fixed;inset:0;background:var(--bg);z-index:29}
+.intro-big{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;margin:0;opacity:0;pointer-events:none;white-space:nowrap;color:var(--fg);font-family:var(--display);font-weight:700;font-size:clamp(38px,11vw,132px);letter-spacing:-.02em;line-height:1}
+.intro-big .d{display:inline-block;font-style:normal;color:var(--accent)}
+.intro-big .dd{display:inline-block;transform-origin:50% 85%}
 img.pic{cursor:zoom-in}
 .lb{position:fixed;inset:0;z-index:40;background:rgba(8,5,12,.88);display:flex;align-items:center;justify-content:center;touch-action:none;overscroll-behavior:contain}
 .lb[hidden]{display:none}
@@ -142,6 +148,7 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .add:focus-visible,.fab:focus-visible,.cart button:focus-visible,.cart a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:15;display:flex;align-items:center;gap:8px;height:52px;padding:0 18px;border-radius:999px;border:0;background:var(--accent);color:var(--accent-fg);font:inherit;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.3)}
 .fab b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--accent-fg);color:var(--accent);font-size:13px;font-variant-numeric:tabular-nums}
+.intro-on .fab{opacity:0}
 .cart-back{position:fixed;inset:0;z-index:35;background:rgba(8,5,12,.6)}
 .cart{position:fixed;top:0;right:0;bottom:0;z-index:36;width:min(420px,100vw);display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .cart[hidden],.cart-back[hidden]{display:none}
@@ -999,6 +1006,75 @@ chips(); render();
   window.rebuildLook = function(){ buildLook(); cart = {}; draw(); };
   window.refreshLook = function(){ buildLook(); Object.keys(cart).forEach(function(k){ if(!LOOK[k] || LOOK[k].max <= 0) delete cart[k]; else cart[k] = Math.min(cart[k], LOOK[k].max); }); save(); draw(); };
   draw();
+})();
+
+/* Заставка: точка рисует надпись, прыгает, надпись уезжает в левый верхний угол, появляется прайс */
+(function(){
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var root = document.documentElement;
+  var target = document.querySelector("header.hero h1");
+  if(reduce || !root.animate || !target) return;
+  var bg, big, done = false, anims = [];
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function finish(){
+    if(done) return; done = true;
+    root.classList.remove("intro-on"); root.style.overflow = "";
+    if(bg) bg.remove();
+    if(big) big.remove();
+    anims.forEach(function(a){ try{ a.cancel(); }catch(e){} });
+  }
+  function ext(el){ var r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect(); }
+  function run(){
+    var t = big.querySelector(".t"), d = big.querySelector(".d"), dd = big.querySelector(".dd");
+    var b = ext(big), tg = ext(target);
+    var fs = parseFloat(getComputedStyle(big).fontSize);
+    var W = t.getBoundingClientRect().width;
+    var be0 = big.getBoundingClientRect();
+    big.style.left = be0.left + "px"; big.style.top = be0.top + "px";
+    big.style.transform = "none"; big.style.transformOrigin = "0 0";
+    var be = big.getBoundingClientRect();
+    var ox = b.left - be0.left, oy = b.top - be0.top;
+    var s = tg.width / b.width;
+    var dx = tg.left - be.left - ox * s, dy = tg.top - be.top - oy * s;
+    var hide = "inset(-15% 100% -15% 0)", show = "inset(-15% 0% -15% 0)";
+    t.style.clipPath = hide; d.style.opacity = "0";
+    big.style.opacity = "1";
+    var draw = "cubic-bezier(.4,.1,.3,1)", D = 1300, L = 350;
+    var aT = t.animate([{clipPath:hide},{clipPath:show}], {duration:D, delay:L, easing:draw, fill:"both"});
+    var aF = d.animate([{opacity:0},{opacity:1}], {duration:200, delay:100, fill:"both"});
+    var aX = d.animate([{transform:"translateX("+(-W)+"px)"},{transform:"translateX(0)"}], {duration:D, delay:L, easing:draw, fill:"both"});
+    var wob = dd.animate([
+      {transform:"translateY(0)"},
+      {transform:"translateY("+(-0.14*fs)+"px)", offset:.18},
+      {transform:"translateY("+(0.05*fs)+"px)", offset:.38},
+      {transform:"translateY("+(-0.12*fs)+"px)", offset:.58},
+      {transform:"translateY("+(0.03*fs)+"px)", offset:.8},
+      {transform:"translateY(0)"}
+    ], {duration:D, delay:L, easing:"linear"});
+    anims.push(aT, aF, aX, wob);
+    return Promise.all([aT.finished, aX.finished, wob.finished]).then(function(){ return sleep(250); }).then(function(){
+      var mv = big.animate([
+        {transform:"translate(0,0) scale(1)"},
+        {transform:"translate("+dx+"px,"+dy+"px) scale("+s+")"}
+      ], {duration:950, easing:"cubic-bezier(.65,0,.25,1)", fill:"forwards"});
+      anims.push(mv, bg.animate([{opacity:1},{opacity:0}], {duration:750, delay:150, easing:"ease", fill:"forwards"}));
+      [".bar","main","footer"].forEach(function(sel,i){
+        var el = document.querySelector(sel); if(!el) return;
+        anims.push(el.animate([{opacity:0, transform:"translateY(18px)"},{opacity:1, transform:"none"}], {duration:700, delay:400+i*120, easing:"ease-out", fill:"both"}));
+      });
+      return mv.finished;
+    }).then(finish);
+  }
+  try{
+    root.classList.add("intro-on"); root.style.overflow = "hidden";
+    bg = document.createElement("div"); bg.className = "intro-bg";
+    big = document.createElement("div"); big.className = "intro-big"; big.setAttribute("aria-hidden","true");
+    big.innerHTML = '<span class="t">НА ПИВО</span><i class="d"><span class="dd">.</span></i>';
+    document.body.appendChild(bg); document.body.appendChild(big);
+    setTimeout(finish, 8000);
+    var fontWait = (document.fonts && document.fonts.load) ? document.fonts.load("700 48px Unbounded","НА ПИВО.") : Promise.resolve();
+    Promise.race([fontWait, sleep(1500)]).catch(function(){}).then(run).catch(finish);
+  }catch(e){ finish(); }
 })();
 
 /* Просмотр фото: приближение, отдаление, перетаскивание, закрытие по клику вне фото */
