@@ -13,6 +13,7 @@ window.PRICE_TEXT = `
 
 telegram: kooot45
 //код 29158 | имя:Osint | тг:Ban0097 | t:1794287208 | r:Rick And Morty Bad Trip :: Ягодный энергетик :: 
+//код 86884 | имя:Для хахаля матери | t:1794324275 | r:Catswill Classic :: Клубника киви ::  | r:Catswill Classic :: Клубнично-арбузная хубба-бубба ::  | r:Rick And Morty & Catswill :: Черника яблоко ::  | r:Podonki V1/V2 New :: Яблоко вишня ::  | r:Bjorn Joker :: Киви маракуйя :: 
 //код 91178 | имя:18 | t:1794287357 | q:Картриджи Xros :: Картридж Xros 0.6 2мл :: 1
 
 # Жидкости за *10* | За 10
