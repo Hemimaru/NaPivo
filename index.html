@@ -184,6 +184,8 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .qin:focus,.qin:focus-visible{outline:none;background:var(--surface-2)}
 ul.fl li.rv .ft{color:var(--resv)}
 .qty.resv{background:transparent;color:var(--resv);box-shadow:inset 0 0 0 1px var(--resv)}
+.qty svg{width:12px;height:12px;vertical-align:-2px;margin-right:4px;flex:none}
+.qty.nw{background:var(--accent);color:var(--accent-fg)}
 h1{-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 .end{display:flex;align-items:center;gap:14px;margin:44px 0 0;color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 .end::before,.end::after{content:"";flex:1;height:1px;background:var(--line)}
@@ -270,7 +272,7 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .rv-g.rv-l{padding:3px 8px;background:none;color:var(--muted);text-decoration:underline;font-weight:600}
 .rv-c{width:18px;height:18px;accent-color:var(--accent);vertical-align:-3px;margin-right:4px}
 .rv-x{margin-top:6px;padding:7px 12px;border:0;border-radius:10px;background:var(--bg);color:var(--fg);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
-.empty .mg{display:block;margin:0 auto 10px;width:150px;max-width:60%;height:auto;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.empty .mg{display:block;margin:0 auto 10px;width:150px;max-width:60%;height:auto}
 .empty:not([hidden]){animation:emin .4s cubic-bezier(.2,.8,.2,1)}
 @keyframes emin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.empty:not([hidden]){animation:none}}
@@ -411,7 +413,7 @@ html.br header.hero h1::after{content:" \1F37B"}
     <div class="menu" id="menu" role="menu" hidden></div>
   </div>
   <main id="main"></main>
-  <div class="empty" id="empty" hidden><picture><source media="(prefers-reduced-motion: reduce)" srcset="empty-still.png"><img class="mg" id="emptyImg" src="empty.webp" alt="" width="224" height="144" loading="lazy" decoding="async" role="button" tabindex="0" aria-label="Включить звук"></picture><p id="emptyT"></p></div>
+  <div class="empty" id="empty" hidden><svg class="mg" width="150" height="140" viewBox="0 0 104 96" role="img" aria-label="Пустая банка"><path d="M38 8c2-4 26-4 28 0v8H38z" fill="var(--line)"/><rect x="28" y="16" width="48" height="66" rx="12" fill="var(--surface-2)" stroke="var(--muted)" stroke-width="2"/><path d="M52 38c8 10 11 15 11 20a11 11 0 0 1-22 0c0-5 3-10 11-20z" fill="var(--accent)" opacity=".9"/><path d="M44 54a8 8 0 0 0 4 6" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity=".7"/><path d="M82 22c8-6 2-12 8-18M90 34c6-4 3-9 7-13" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="22" cy="78" r="9" fill="none" stroke="var(--muted)" stroke-width="2"/><path d="M28 84l7 7" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round"/></svg><p id="emptyT"></p></div>
   <footer>Цена указана в тех же единицах, что и в прайсе. Наличие уточняйте при заказе.</footer>
 </div>
 
@@ -535,19 +537,41 @@ function hl(text,q){
   var i = text.toLowerCase().indexOf(q); if(i<0) return t;
   return esc(text.slice(0,i))+"<mark>"+esc(text.slice(i,i+q.length))+"</mark>"+esc(text.slice(i+q.length));
 }
-function flav(f,q,k,j){
+var IC = {
+  bk:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5h6v9L6 8.2 3 10.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+  pk:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1 10.5 3.3v5.4L6 11 1.5 8.7V3.3zM1.8 3.5 6 5.7l4.2-2.2M6 5.7V10.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
+  nw:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1l1.2 3.3L10.5 5.5 7.2 6.7 6 10 4.8 6.7 1.5 5.5l3.3-1.2z" fill="currentColor"/></svg>'
+};
+var NEW_MS = 3*24*3600e3;
+function newMap(){
+  var m = {};
+  PRE.forEach(function(l){
+    var x = l.trim().match(/^\/\/\s*новинка\s*\|\s*t:(\d+)\s*\|\s*(.+?)\s*::\s*(.+)$/); if(x) m[x[2] + "\u0001" + x[3]] = +x[1] * 1000;
+  });
+  return m;
+}
+function stampNew(line, flavor){
+  var now = Date.now();
+  for(var i = PRE.length - 1; i >= 0; i--){
+    var x = PRE[i].trim().match(/^\/\/\s*новинка\s*\|\s*t:(\d+)\s*\|/);
+    if(x && now - (+x[1]) * 1000 > 30*24*3600e3) PRE.splice(i, 1);
+  }
+  PRE.push("//новинка | t:" + Math.floor(now / 1000) + " | " + line + " :: " + flavor);
+}
+function flav(f,q,k,j,ln){
   var parts = f.split(" · "), name = parts[0], qty = parts[1], ri = rvOf(qty), rv = !!ri && !ri.expired;
   if(ri && ri.expired && !EDIT) qty = "";
-  if(EDIT) return '<li data-e="fl" data-j="'+j+'"'+(rv?' class="rv"':'')+'><span class="ft">'+esc(name)+(qty?'<span class="qty'+(ri?' resv':'')+'">'+esc(ri?rvLabel(ri):qty)+"</span>":"")+'</span><span class="grip" data-e="grip" aria-label="Перетащить"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span></li>';
-  if(rv) return '<li class="rv"><span class="ft">'+hl(name,q)+'<span class="qty resv">'+esc(rvLabel(ri))+'</span></span></li>';
-  return '<li><span class="ft">'+hl(name,q)+(qty?'<span class="qty">'+esc(qty)+"</span>":"")+'</span><span class="acts" data-k="'+k+'"><button class="add add0" type="button" data-k="'+k+'" aria-label="Добавить в корзину"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><span class="stp" hidden><button class="sub" type="button" data-k="'+k+'" aria-label="Убрать один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><input class="qin" type="text" inputmode="numeric" pattern="[0-9]*" value="1" data-k="'+k+'" aria-label="Количество"><button class="add" type="button" data-k="'+k+'" aria-label="Добавить ещё один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></span></span></li>';
+  var nt = ln ? newMap()[ln + "\u0001" + name] : 0, nb = (nt && Date.now() - nt < NEW_MS && Date.now() >= nt - 60e3) ? '<span class="qty nw">' + IC.nw + 'новинка</span>' : "";
+  if(EDIT) return '<li data-e="fl" data-j="'+j+'"'+(rv?' class="rv"':'')+'><span class="ft">'+esc(name)+(qty?'<span class="qty'+(ri?' resv':'')+'">'+(ri?IC.bk:IC.pk)+esc(ri?rvLabel(ri):qty)+"</span>":"")+nb+'</span><span class="grip" data-e="grip" aria-label="Перетащить"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span></li>';
+  if(rv) return '<li class="rv"><span class="ft">'+hl(name,q)+'<span class="qty resv">'+IC.bk+esc(rvLabel(ri))+'</span>'+nb+'</span></li>';
+  return '<li><span class="ft">'+hl(name,q)+(qty?'<span class="qty">'+IC.pk+esc(qty)+"</span>":"")+nb+'</span><span class="acts" data-k="'+k+'"><button class="add add0" type="button" data-k="'+k+'" aria-label="Добавить в корзину"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><span class="stp" hidden><button class="sub" type="button" data-k="'+k+'" aria-label="Убрать один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><input class="qin" type="text" inputmode="numeric" pattern="[0-9]*" value="1" data-k="'+k+'" aria-label="Количество"><button class="add" type="button" data-k="'+k+'" aria-label="Добавить ещё один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></span></span></li>';
 }
 function card(it,q,single){
   var pills = (it.s?'<span>крепость '+it.s+'</span>':'')+'<span class="price">цена '+it.p+'</span>';
   var img = it.img ? '<img class="pic"'+(EDIT?' data-e="pic"':'')+' alt="'+esc(it.n)+'" loading="lazy" src="'+picSrc(it.img)+'">' : (EDIT ? '<div class="pic nopic" data-e="pic" contenteditable="true" spellcheck="false">Без изображения</div>' : '<div class="pic"></div>');
   var gi = DATA.indexOf(it.g), ii = it.g.items.indexOf(it);
   var list = vis(it,q);
-  return '<article class="card'+(single?' one':'')+'" data-gi="'+gi+'" data-ii="'+ii+'">'+img+'<div><div class="top">'+(EDIT?'<span class="cgrip" data-e="cgrip" aria-label="Перетащить линейку"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span>':'')+'<h3'+(EDIT?' data-e="line"':'')+'>'+hl(it.n,q)+'</h3><div class="pills"'+(EDIT?' data-e="line"':'')+'>'+pills+'</div></div><ul class="fl">'+list.map(function(a){return flav(a[0],q,it.id+"."+a[1],a[1]);}).join("")+(EDIT?'<li class="addf" data-e="addf">+ Добавить вкус</li>':"")+'</ul></div></article>';
+  return '<article class="card'+(single?' one':'')+'" data-gi="'+gi+'" data-ii="'+ii+'">'+img+'<div><div class="top">'+(EDIT?'<span class="cgrip" data-e="cgrip" aria-label="Перетащить линейку"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span>':'')+'<h3'+(EDIT?' data-e="line"':'')+'>'+hl(it.n,q)+'</h3><div class="pills"'+(EDIT?' data-e="line"':'')+'>'+pills+'</div></div><ul class="fl">'+list.map(function(a){return flav(a[0],q,it.id+"."+a[1],a[1],it.n);}).join("")+(EDIT?'<li class="addf" data-e="addf">+ Добавить вкус</li>':"")+'</ul></div></article>';
 }
 function render(){
   var q = state.q.trim().toLowerCase(), html = "", shown = 0, nf = 0, tg = state.tags.length && !EDIT;
@@ -1183,19 +1207,6 @@ chips(); render();
     if((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("end")){ e.preventDefault(); say(END); }
   });
 
-  var snd = null;
-  function playSnd(el){
-    try{
-      if(!snd){ snd = new Audio("sound.mp3"); snd.preload = "auto"; snd.volume = .8; }
-      snd.currentTime = 0; var pr = snd.play(); if(pr && pr.catch) pr.catch(function(){});
-    }catch(e){}
-    if(!rm && el && el.animate) el.animate([{transform:"scale(1)"},{transform:"scale(.9)",offset:.25},{transform:"scale(1.06)",offset:.6},{transform:"scale(1)"}],{duration:320,easing:"ease-out"});
-  }
-  var emImg = document.getElementById("emptyImg");
-  if(emImg){
-    emImg.addEventListener("click", function(){ playSnd(emImg); });
-    emImg.addEventListener("keydown", function(e){ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); playSnd(emImg); } });
-  }
   var upAnim = 0;
   document.addEventListener("click", function(e){
     if(!(e.target.closest && e.target.closest("#upBtn"))) return;
@@ -1517,7 +1528,7 @@ chips(); render();
     if(!o) return;
     var nn = clean(o.n); if(!nn){ say("Название не может быть пустым"); return; }
     var nq = clean(o.q);
-    c.it.f.push(nn + (nq ? " · " + nq : "")); EDIT.log.push("Добавлен вкус: " + c.it.n + " — " + nn);
+    c.it.f.push(nn + (nq ? " · " + nq : "")); stampNew(c.it.n, nn); EDIT.log.push("Добавлен вкус: " + c.it.n + " — " + nn);
     render();
     var li = document.querySelectorAll('article.card[data-gi="' + DATA.indexOf(c.g) + '"][data-ii="' + c.g.items.indexOf(c.it) + '"] ul.fl li[data-j]'); li = li[li.length - 1];
     if(li){ li.scrollIntoView({block:"center", behavior:"smooth"}); if(!rm && li.animate) li.animate([{background:"var(--accent)",opacity:.4},{background:"transparent",opacity:1}],{duration:900}); }
