@@ -2405,10 +2405,11 @@ chips(); render();
   }
   new MutationObserver(syncLock).observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:["hidden"]});
 
-  /* пять нажатий на заголовок */
+  /* пять нажатий на заголовок (одно — если права администратора уже получены) */
   var title = document.querySelector("header.hero h1"), taps = 0, tt2, devAt = 0;
   dev.onBackdrop = function(){ return Date.now() - devAt > 4000; };
   if(title) title.addEventListener("click", function(){
+    if(isAdmin){ taps = 0; clearTimeout(tt2); devAt = Date.now(); drawMenu(); dev.set(true); return; }
     taps++; clearTimeout(tt2);
     tt2 = setTimeout(function(){ taps = 0; }, 600);
     if(taps >= 5){ taps = 0; devAt = Date.now(); drawMenu(); dev.set(true); }
