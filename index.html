@@ -363,6 +363,22 @@ html.br header.hero h1::after{content:" \1F37B"}
 @keyframes brrise{0%{transform:translate3d(0,0,0)}50%{transform:translate3d(14px,-55vh,0)}100%{transform:translate3d(-8px,-112vh,0)}}
 @keyframes brbob{50%{transform:translateY(-3px)}}
 @media (prefers-reduced-motion:reduce){#bubbles i,html.br::before{animation:none}#bubbles i{bottom:auto;top:40%}#bubbles i:nth-child(n+5){display:none}}
+
+/* Личные темы разработчика: включаются только вручную в меню разработчика, по дате не включаются */
+html.dn:root,html.dn:root[data-theme]{--bg:#0a0612;--surface:#130c22;--surface-2:#1c1233;--line:#3a2766;--fg:#f3eeff;--muted:#a99bd1;--accent:#ff4fd8;--accent-fg:#1a0518;--chip:#221540;--mark:#5a1f58;--resv:#4de8ff;color-scheme:dark}
+html.dn body{background:radial-gradient(90% 40% at 50% 0,#3a1166 0,transparent 70%),repeating-linear-gradient(0deg,transparent 0 31px,rgba(255,79,216,.07) 31px 32px),repeating-linear-gradient(90deg,transparent 0 31px,rgba(77,232,255,.06) 31px 32px),#0a0612;background-attachment:fixed}
+html.dn body::before{background:#0a0612}
+html.dn header.hero h1{color:#fff;text-shadow:0 0 6px #ff4fd8,0 0 18px #ff4fd8,0 0 36px #c020a8;animation:dnflick 5s infinite}
+html.dn header.hero h1 i{color:#4de8ff;text-shadow:0 0 6px #4de8ff,0 0 18px #4de8ff}
+html.dn .card{box-shadow:0 0 0 1px #3a2766,0 0 18px rgba(255,79,216,.12)}
+@keyframes dnflick{0%,92%,100%{opacity:1}93%{opacity:.78}94%{opacity:1}96%{opacity:.85}97%{opacity:1}}
+@media (prefers-reduced-motion:reduce){html.dn header.hero h1{animation:none}}
+html.dm:root,html.dm:root[data-theme]{--bg:#effaf4;--surface:#fff;--surface-2:#dcf3e7;--line:#bfe5d1;--fg:#12332a;--muted:#4f7f6d;--accent:#0b8a5f;--accent-fg:#fff;--chip:#d4f0e2;--mark:#bff0d6;--resv:#a85a00;color-scheme:light}
+html.dm body{background:radial-gradient(70% 220px at 85% 0,#c6f0dc 0,transparent 100%),linear-gradient(#e2f7ec,#effaf4 320px) fixed}
+html.dm body::before{background:#e2f7ec}
+html.dm header.hero h1{color:#0b6e4b}
+html.dm header.hero h1 i{color:#f0a020}
+html.dm .card{box-shadow:0 1px 3px rgba(18,51,42,.12)}
 </style>
 <script>
 (function(){
@@ -379,9 +395,9 @@ html.br header.hero h1::after{content:" \1F37B"}
   function pref(){ try{ return localStorage.getItem("napivo-theme") || ""; }catch(e){ return ""; } }
   function apply(){
     try{
-      var p = pref(), t = p === "off" ? "" : (p === "ny" || p === "hw" || p === "m8" || p === "v14" || p === "f23" || p === "br") ? p : byDate(), h = document.documentElement;
-      ["ny","hw","m8","v14","f23","br"].forEach(function(c){ h.classList.toggle(c, t === c); });
-      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", ({ny:"#0b1624",hw:"#120a05",m8:"#fff4f7",v14:"#1c0a12",f23:"#141a12",br:"#140c08"})[t] || "#0e0b14");
+      var p = pref(), t = p === "off" ? "" : (p === "ny" || p === "hw" || p === "m8" || p === "v14" || p === "f23" || p === "br" || p === "dn" || p === "dm") ? p : byDate(), h = document.documentElement;
+      ["ny","hw","m8","v14","f23","br","dn","dm"].forEach(function(c){ h.classList.toggle(c, t === c); });
+      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", ({ny:"#0b1624",hw:"#120a05",m8:"#fff4f7",v14:"#1c0a12",f23:"#141a12",br:"#140c08",dn:"#0a0612",dm:"#effaf4"})[t] || "#0e0b14");
       [["snow", "ny", "<i></i><i></i><i></i>"], ["bubbles", "br", "<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>"], ["petals", "m8", "<i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i><i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i>"], ["hearts", "v14", "<i>\u2764\uFE0F</i><i>\u{1F497}</i><i>\u2764\uFE0F</i><i>\u{1F495}</i><i>\u{1F497}</i><i>\u2764\uFE0F</i>"], ["bats", "hw", "<i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i>"]].forEach(function(x){
         var e = document.getElementById(x[0]);
         if(t === x[1] && !e && document.body){ e = document.createElement("div"); e.id = x[0]; e.setAttribute("aria-hidden", "true"); e.innerHTML = x[2]; document.body.appendChild(e); }
@@ -1892,7 +1908,7 @@ chips(); render();
   lg.onClose = function(){ drawMenu(); dev.set(true); };
   lg.box.addEventListener("click", function(e){ if(e.target.getAttribute && e.target.getAttribute("data-close")) lg.set(false); });
   async function openThemes(){
-    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате (как у всех)"],["off", "Обычная"],["ny", "Мороз (Новый год)"],["hw", "Тыква (Хэллоуин)"],["m8", "8 Марта (лепестки)"],["v14", "14 Февраля (бордо)"],["f23", "23 Февраля (хаки)"],["br", "День пива (стаут)"]];
+    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате (как у всех)"],["off", "Обычная"],["ny", "Мороз (Новый год)"],["hw", "Тыква (Хэллоуин)"],["m8", "8 Марта (лепестки)"],["v14", "14 Февраля (бордо)"],["f23", "23 Февраля (хаки)"],["br", "День пива (стаут)"],["dn", "Неон (ночь)"],["dm", "Мята (светлая)"]];
     var i = await sheet("Тема сайта только для вас, на этом устройстве. У покупателей она не меняется.", L.map(function(x){ return {t:(x[0] === cur ? "✓ " : "") + x[1], p:x[0] === cur}; }).concat([{t:"Закрыть"}]), true);
     if(i >= 0 && i < L.length && window.napivoTheme){ window.napivoTheme.set(L[i][0]); say("Тема: " + L[i][1], 2200); }
   }
