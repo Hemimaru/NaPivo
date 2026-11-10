@@ -1008,7 +1008,7 @@ chips(); render();
   draw();
 })();
 
-/* Заставка: точка рисует надпись, прыгает, надпись уезжает в левый верхний угол, появляется прайс */
+/* Заставка: точка рисует надпись, надпись уезжает в левый верхний угол, появляется прайс */
 (function(){
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var root = document.documentElement;
@@ -1025,7 +1025,7 @@ chips(); render();
   }
   function ext(el){ var r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect(); }
   function run(){
-    var t = big.querySelector(".t"), d = big.querySelector(".d"), dd = big.querySelector(".dd");
+    var t = big.querySelector(".t"), d = big.querySelector(".d");
     var b = ext(big), tg = ext(target);
     var fs = parseFloat(getComputedStyle(big).fontSize);
     var W = t.getBoundingClientRect().width;
@@ -1043,16 +1043,8 @@ chips(); render();
     var aT = t.animate([{clipPath:hide},{clipPath:show}], {duration:D, delay:L, easing:draw, fill:"both"});
     var aF = d.animate([{opacity:0},{opacity:1}], {duration:200, delay:100, fill:"both"});
     var aX = d.animate([{transform:"translateX("+(-W)+"px)"},{transform:"translateX(0)"}], {duration:D, delay:L, easing:draw, fill:"both"});
-    var wob = dd.animate([
-      {transform:"translateY(0)"},
-      {transform:"translateY("+(-0.14*fs)+"px)", offset:.18},
-      {transform:"translateY("+(0.05*fs)+"px)", offset:.38},
-      {transform:"translateY("+(-0.12*fs)+"px)", offset:.58},
-      {transform:"translateY("+(0.03*fs)+"px)", offset:.8},
-      {transform:"translateY(0)"}
-    ], {duration:D, delay:L, easing:"linear"});
-    anims.push(aT, aF, aX, wob);
-    return Promise.all([aT.finished, aX.finished, wob.finished]).then(function(){ return sleep(250); }).then(function(){
+    anims.push(aT, aF, aX);
+    return Promise.all([aT.finished, aX.finished]).then(function(){ return sleep(250); }).then(function(){
       var mv = big.animate([
         {transform:"translate(0,0) scale(1)"},
         {transform:"translate("+dx+"px,"+dy+"px) scale("+s+")"}
