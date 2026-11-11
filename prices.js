@@ -13,8 +13,8 @@ window.PRICE_TEXT = `
 
 telegram: kooot45
 //код 50981 | имя:Без ника | тг:narooxx | t:1794374859 | r:Rick And Morty Bad Acid :: Клубничный мохито :: 
+//код 61453 | имя:Mafiozy | тг:mafi556 | t:1794405302 | q:Картриджи Xros :: Картридж Xros 0.4 3мл :: 1
 //код 86884 | имя:Хахаль м | t:1794324275 | r:Catswill Classic :: Клубника киви ::  | r:Catswill Classic :: Клубнично-арбузная хубба-бубба ::  | r:Rick And Morty & Catswill :: Черника яблоко ::  | r:Podonki V1/V2 New :: Яблоко вишня ::  | r:Bjorn Joker :: Киви маракуйя :: 
-//код 45354 | рука | q:Картриджи Xros :: Картридж Xros 0.4 3мл :: 1
 
 # Жидкости за *10* | За 10
 
