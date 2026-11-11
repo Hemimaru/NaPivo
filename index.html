@@ -247,9 +247,9 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .pic.nopic{display:grid;place-items:center;text-align:center;font-size:11px;line-height:1.2;color:var(--muted);border:1.5px dashed var(--line);padding:4px;box-sizing:border-box;outline:0;user-select:text;-webkit-user-select:text}
 .sheet-back{position:fixed;inset:0;z-index:60;background:rgba(8,5,12,.5);display:flex;align-items:flex-end;justify-content:center}
 .sheet-back.mid{align-items:center;padding:16px}
-.sheet{width:min(420px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:14px;display:grid;gap:6px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+.sheet{max-height:86vh;max-height:86dvh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;width:min(420px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px 18px 0 0;padding:14px;display:grid;gap:6px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
 .mid .sheet{border-radius:18px}
-.sheet p{margin:0 4px 6px;color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.sheet p{position:sticky;top:-14px;z-index:1;background:var(--surface);padding:6px 0 4px;margin:0 4px 6px;color:var(--muted);font-size:14px;overflow-wrap:anywhere}
 .sheet .sb{padding:13px 14px;border:0;border-radius:12px;background:var(--surface-2);color:var(--fg);font:inherit;font-size:15px;font-weight:700;cursor:pointer;text-align:center}
 .sheet .sb.pri{background:var(--accent);color:var(--accent-fg)}
 .sheet .sb.dan{color:#e5484d}
@@ -270,8 +270,10 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .bk{border:1px solid var(--line);border-radius:16px;padding:12px;margin:0 0 12px;background:var(--surface);display:grid;gap:8px}
 .bk-c{padding:0;gap:0;overflow:hidden}
 .bk-t{display:flex;align-items:center;gap:8px;width:100%;padding:13px 14px;border:0;background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
-.bk-no{font-size:12px;color:var(--muted);font-weight:700}.bk-link{text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}.bk-name{font-size:15px;color:var(--accent);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bk-sum{font-weight:800;font-variant-numeric:tabular-nums}
+.bk-no{font-size:12px;color:var(--muted);font-weight:700}.bk-link{text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}.bk-name{font-size:15px;color:var(--accent);flex:1;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.25}
+.bk-sum{font-weight:800;font-variant-numeric:tabular-nums;flex:none}
+.bk-no{flex:none;white-space:nowrap}
+.bk-t .rv-u{flex:none;max-width:3.7em;line-height:1.2;text-align:right;margin:0 2px}
 .bk-ch{flex:none;color:var(--muted);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
 .bk-t[aria-expanded="true"] .bk-ch{transform:rotate(180deg)}
 .bk-body{overflow:hidden}.bk-body[hidden]{display:none}
@@ -2016,7 +2018,7 @@ chips(); render();
   lg.onClose = function(){ drawMenu(); dev.set(true); };
   lg.box.addEventListener("click", function(e){ if(e.target.getAttribute && e.target.getAttribute("data-close")) lg.set(false); });
   async function openThemes(){
-    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате (как у всех)"],["off", "Обычная"],["ny", "Новый год"],["hw", "Хэллоуин"],["m8", "8 Марта"],["v14", "14 Февраля"],["f23", "23 Февраля"],["br", "День пива"],["dn", "Неон"],["dm", "Мята"]];
+    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате"],["off", "Обычная"],["ny", "Новый год"],["hw", "Хэллоуин"],["m8", "8 Марта"],["v14", "14 Февраля"],["f23", "23 Февраля"],["br", "День пива"],["dn", "Неон"],["dm", "Мята"]];
     var i = await sheet("Тема сайта только для вас, на этом устройстве. У покупателей она не меняется.", L.map(function(x){ return {t:(x[0] === cur ? "✓ " : "") + x[1], p:x[0] === cur}; }).concat([{t:"Закрыть"}]), true);
     if(i >= 0 && i < L.length && window.napivoTheme){ window.napivoTheme.set(L[i][0]); say("Тема: " + L[i][1], 2200); }
   }
