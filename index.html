@@ -313,11 +313,8 @@ html.ny body{background:radial-gradient(120% 60% at 50% 0,#17335a 0,#0b1624 60%)
 html.ny body::before{background:#0b1624}
 html.ny header.hero h1::before{content:"\2744";display:block;font-size:34px;line-height:1.1;color:#9fe2ff;margin-bottom:2px;text-shadow:0 0 14px #6fd3ff;animation:nyglow 3.2s ease-in-out infinite}
 #snow{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:28}
-/* Снег: каждая снежинка отдельная, случайное место, размер, скорость и снос ветром (всё задаёт скрипт ниже, snowHtml) */
-#snow i{position:absolute;top:-12px;will-change:transform;animation:nyfall linear infinite}
-#snow i::before{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,#fff 0,rgba(255,255,255,.8) 35%,rgba(255,255,255,0) 72%);animation:nysway var(--sd,4s) ease-in-out var(--sl,0s) infinite alternate}
-@keyframes nyfall{to{transform:translate3d(var(--dx,0px),var(--h),0)}}
-@keyframes nysway{from{transform:translateX(calc(var(--sw,8px) * -1))}to{transform:translateX(var(--sw,8px))}}
+/* Снег рисуется на одном холсте (canvas), скрипт snowStart ниже: так он не лагает */
+#snow canvas{display:block;width:100%;height:100%}
 @keyframes nyglow{50%{opacity:.55}}
 @media (prefers-reduced-motion:reduce){#snow{display:none}html.ny header.hero h1::before{animation:none}}
 /* Тема «Тыква» на Хэллоуин: с 25 октября по 1 ноября включительно (по Минску) */
@@ -465,25 +462,60 @@ html.dm .card{box-shadow:0 1px 3px rgba(18,51,42,.12)}
     return "";
   }
   function pref(){ try{ return localStorage.getItem("napivo-theme") || ""; }catch(e){ return ""; } }
-  /* Снежинки: 36 штук, у каждой свой размер (3–9 px, мелких больше), скорость (крупные быстрее), снос и покачивание */
-  function snowHtml(){
-    var H = Math.max(window.innerHeight || 700, (window.screen && screen.height) || 0) + 30, s = "", n, r, z, k, dur;
-    for(n = 0; n < 36; n++){
-      r = Math.random(); z = 3 + 6 * r * r; k = (z - 3) / 6; dur = 26 - 14 * k + Math.random() * 6;
-      s += '<i data-f="' + (0.25 + 0.65 * k).toFixed(2) + '" style="left:' + (Math.random() * 100).toFixed(1) + '%;width:' + z.toFixed(1) + 'px;height:' + z.toFixed(1) + 'px;opacity:' + (0.55 + 0.45 * k).toFixed(2) +
-        ';--h:' + H + 'px;--dx:' + Math.round((Math.random() - 0.35) * 70) + 'px;--sw:' + (6 + Math.random() * 14).toFixed(0) + 'px;--sd:' + (3 + Math.random() * 4).toFixed(1) + 's;--sl:-' + (Math.random() * 6).toFixed(1) +
-        's;animation-duration:' + dur.toFixed(1) + 's;animation-delay:-' + (Math.random() * dur).toFixed(1) + 's"></i>';
+  /* Снег на одном холсте: ~100 снежинок на телефоне, у каждой свой размер (3–9 px, мелких больше), скорость (крупные быстрее),
+     снос ветром и покачивание, мягкие края. Прокрутка сдвигает снег (крупный сильнее мелкого), снежинки замыкаются по кругу, поэтому не редеют */
+  function snowStart(box){
+    var cv = box.firstChild, ctx = cv && cv.getContext && cv.getContext("2d");
+    if(!ctx || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), W = 0, H = 0, fl = [], last = window.pageYOffset || 0, pend = 0, prev = 0, t0 = 0;
+    var sp = document.createElement("canvas"); sp.width = sp.height = 64;
+    var g = sp.getContext("2d").createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.45, "rgba(255,255,255,.8)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    sp.getContext("2d").fillStyle = g; sp.getContext("2d").fillRect(0, 0, 64, 64);
+    function mk(){
+      var r = Math.random(), z = 3 + 6 * r * r, k = (z - 3) / 6;
+      return {x: Math.random() * W, y: Math.random() * (H + 20) - 10, z: z, a: 0.55 + 0.45 * k, f: 0.25 + 0.65 * k,
+        vy: 24 + 56 * k + Math.random() * 14, vx: (Math.random() - 0.35) * 18, sw: 6 + Math.random() * 14, w: 0.9 + Math.random() * 1.3, ph: Math.random() * 6.3};
     }
-    return s;
+    function size(){
+      W = window.innerWidth; H = window.innerHeight;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      var want = Math.max(80, Math.min(240, Math.round(W * H / 2800)));
+      while(fl.length < want) fl.push(mk());
+      fl.length = want;
+    }
+    size(); window.addEventListener("resize", size);
+    function frame(now){
+      if(!box.parentNode){ window.removeEventListener("resize", size); return; }
+      requestAnimationFrame(frame);
+      if(!t0) t0 = now;
+      var dt = prev ? Math.min(now - prev, 50) / 1000 : 0.016; prev = now;
+      var y = window.pageYOffset || 0, dy = y - last; last = y;
+      if(Math.abs(dy) < 4000) pend += dy;
+      if(pend > 2500) pend = 2500; else if(pend < -2500) pend = -2500;
+      var take = pend * 0.14; pend -= take; if(Math.abs(pend) < 0.3){ take += pend; pend = 0; }
+      var t = (now - t0) / 1000, i, p, x, yy, d;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      for(i = 0; i < fl.length; i++){
+        p = fl[i];
+        p.y += p.vy * dt - take * p.f; p.x += p.vx * dt;
+        if(p.y > H + p.z){ p.y -= H + 2 * p.z; p.x = Math.random() * W; }
+        else if(p.y < -p.z){ p.y += H + 2 * p.z; p.x = Math.random() * W; }
+        if(p.x > W + 20) p.x -= W + 40; else if(p.x < -20) p.x += W + 40;
+        x = p.x + Math.sin(t * p.w + p.ph) * p.sw; d = p.z * 2;
+        ctx.globalAlpha = p.a; ctx.drawImage(sp, x - p.z, p.y - p.z, d, d);
+      }
+    }
+    requestAnimationFrame(frame);
   }
   function apply(){
     try{
       var p = pref(), t = p === "off" ? "" : (p === "ny" || p === "hw" || p === "m8" || p === "v14" || p === "f23" || p === "br" || p === "dn" || p === "dm") ? p : byDate(), h = document.documentElement;
       ["ny","hw","m8","v14","f23","br","dn","dm"].forEach(function(c){ h.classList.toggle(c, t === c); });
       var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", ({ny:"#0b1624",hw:"#120a05",m8:"#fff4f7",v14:"#1c0a12",f23:"#141a12",br:"#140c08",dn:"#0a0612",dm:"#effaf4"})[t] || "#0e0b14");
-      [["leaves", "hw", "<i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i>"], ["snow", "ny", snowHtml()], ["bubbles", "br", "<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>"], ["petals", "m8", "<i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i><i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i>"], ["hearts", "v14", "<i>\u2764\uFE0F</i><i>\u{1F497}</i><i>\u2764\uFE0F</i><i>\u{1F495}</i><i>\u{1F497}</i><i>\u2764\uFE0F</i>"], ["bats", "hw", "<i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i>"]].forEach(function(x){
+      [["leaves", "hw", "<i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i>"], ["snow", "ny", "<canvas></canvas>"], ["bubbles", "br", "<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>"], ["petals", "m8", "<i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i><i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i>"], ["hearts", "v14", "<i>\u2764\uFE0F</i><i>\u{1F497}</i><i>\u2764\uFE0F</i><i>\u{1F495}</i><i>\u{1F497}</i><i>\u2764\uFE0F</i>"], ["bats", "hw", "<i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i>"]].forEach(function(x){
         var e = document.getElementById(x[0]);
-        if(t === x[1] && !e && document.body){ e = document.createElement("div"); e.id = x[0]; e.setAttribute("aria-hidden", "true"); e.innerHTML = x[2]; document.body.appendChild(e); }
+        if(t === x[1] && !e && document.body){ e = document.createElement("div"); e.id = x[0]; e.setAttribute("aria-hidden", "true"); e.innerHTML = x[2]; document.body.appendChild(e); if(x[0] === "snow") snowStart(e); }
         else if(t !== x[1] && e) e.parentNode.removeChild(e);
       });
     }catch(e){}
@@ -1194,7 +1226,6 @@ chips(); render();
    Время всех частиц ведёт один цикл кадров, прокрутка добавляется плавно, поэтому без рывков */
 (function(){
   var SETS = [
-    {sel:"#snow i", dir:-1, f:[0.25,0.5,0.9]},
     {sel:"#petals i", dir:-1, f:[0.6]},
     {sel:"#leaves i", dir:-1, f:[0.6]},
     {sel:"#hearts i", dir:1, f:[0.6]},
