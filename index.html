@@ -1168,7 +1168,8 @@ chips(); render();
   }catch(e){ finish(); }
 })();
 
-/* Снег, лепестки, сердечки и пузырьки реагируют на прокрутку: падающее уходит вверх при прокрутке вниз, всплывающее ускоряется */
+/* Снег, листья, лепестки, сердечки и пузырьки реагируют на прокрутку: падающее уходит вверх при прокрутке вниз, всплывающее ускоряется.
+   Время всех частиц ведёт один цикл кадров, прокрутка добавляется плавно, поэтому без рывков */
 (function(){
   var SETS = [
     {sel:"#snow i", dir:-1, f:[0.25,0.5,0.9]},
@@ -1177,8 +1178,15 @@ chips(); render();
     {sel:"#hearts i", dir:1, f:[0.6]},
     {sel:"#bubbles i", dir:1, f:[1.2]}
   ];
-  var last = window.pageYOffset || 0, busy = false;
-  function shift(dy){
+  var last = window.pageYOffset || 0, pending = 0, prev = 0, MAXPX = 2500;
+  function frame(now){
+    requestAnimationFrame(frame);
+    var dt = prev ? Math.min(now - prev, 50) : 16; prev = now;
+    var y = window.pageYOffset || 0, dy = y - last; last = y;
+    if(Math.abs(dy) < 4000) pending += dy;
+    if(pending > MAXPX) pending = MAXPX; else if(pending < -MAXPX) pending = -MAXPX;
+    var take = pending * 0.14; pending -= take;
+    if(Math.abs(pending) < 0.3){ take += pending; pending = 0; }
     SETS.forEach(function(S){
       var els = document.querySelectorAll(S.sel);
       for(var k = 0; k < els.length; k++){
@@ -1186,24 +1194,17 @@ chips(); render();
         if(!as.length) continue;
         var a = as[0], tm = a.effect && a.effect.getTiming ? a.effect.getTiming() : null;
         if(!tm || !(tm.duration > 0)) continue;
-        var travel = parseFloat(getComputedStyle(el).getPropertyValue("--h")) || (1.1 * window.innerHeight);
-        var f = S.f[Math.min(k, S.f.length - 1)];
-        var ct = Number(a.currentTime) + S.dir * dy * f * (tm.duration / travel);
-        var d = tm.delay || 0, dur = tm.duration;
+        if(a.playState === "running") a.pause();
+        var travel = el._tv || (el._tv = parseFloat(getComputedStyle(el).getPropertyValue("--h")) || 0);
+        if(!travel) travel = 1.1 * window.innerHeight;
+        var f = S.f[Math.min(k, S.f.length - 1)], dur = tm.duration, d = tm.delay || 0;
+        var ct = Number(a.currentTime) + dt + S.dir * take * f * (dur / travel);
         if(ct - d < 0) ct += Math.ceil((d - ct) / dur) * dur;
         a.currentTime = ct;
       }
     });
   }
-  function onScroll(){
-    if(busy) return; busy = true;
-    requestAnimationFrame(function(){
-      busy = false;
-      var y = window.pageYOffset || 0, dy = y - last; last = y;
-      if(dy && Math.abs(dy) < 4000) try{ shift(dy); }catch(e){}
-    });
-  }
-  window.addEventListener("scroll", onScroll, {passive:true});
+  requestAnimationFrame(frame);
 })();
 
 /* Высота заглавных букв заголовка: украшения садятся точно на верх букв */
