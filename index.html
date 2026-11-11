@@ -91,7 +91,12 @@ h1 i{font-style:normal;color:var(--accent)}
 .tginfo{margin:8px 2px 0;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 body.editing .fbtn,body.editing .tagw{display:none}
 .rv-u{color:var(--muted);font-size:12px;margin:0 6px}
-.rv-x.rv-s{margin-left:4px}
+.rv-li{cursor:pointer}
+.rv-nm::after{content:"\25BE";color:var(--muted);font-size:11px;margin-left:6px}
+.rv-li.open .rv-nm::after{content:"\25B4"}
+.rv-acts{display:none}
+.rv-li.open>.rv-acts{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 6px -16px}
+.rv-acts .rv-x{margin-top:4px}
 .rv-sum{display:flex;justify-content:space-between;align-items:baseline;margin:14px 4px 4px;padding:12px 14px;border-radius:12px;background:var(--surface-2);font-weight:700}
 .rv-sum b{font-size:20px;color:var(--accent);font-variant-numeric:tabular-nums}
 .rv-u.ex{color:var(--resv)}
@@ -383,7 +388,6 @@ html.br header.hero h1::after{content:" \1F37B"}
 .pills span.price{margin-left:2px}
 .cart-h .clr{color:var(--resv);padding:8px 4px;margin-right:6px}
 .cart-tot b{font-size:24px}
-.sheet .sb.dan{background:#d23a3f}
 header.hero{position:relative}
 .modebtn{position:absolute;right:0;top:34px;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .modebtn:active{transform:scale(.92)}
@@ -2331,9 +2335,9 @@ chips(); render();
         return '<div class="rv-i">' + (it.img ? '<img class="rv-p" alt="" src="' + picSrc(it.img) + '">' : '<div class="rv-p rv-n"></div>') +
           '<div class="rv-t"><b>' + esc(it.n) + '</b><ul>' + by[k].map(function(r){
             var ref = r.ref, at = 'data-gi="' + ref.gi + '" data-ii="' + ref.ii + '" data-j="' + ref.j + '"' + (r.n ? ' data-q="1" data-n="' + r.n + '"' : '') + (code ? ' data-c="' + code + '"' : ''), nm = ref.it.f[ref.j].split(" · ")[0];
-            return '<li>' + (selectable ? '<input type="checkbox" class="rv-c" aria-label="Выбрать" ' + at + '> ' : '') + esc(nm) +
+            return '<li class="rv-li">' + (selectable ? '<input type="checkbox" class="rv-c" aria-label="Выбрать" ' + at + '> ' : '') + '<span class="rv-nm" role="button" tabindex="0" aria-expanded="false">' + esc(nm) +
               (r.n ? ' <span class="rv-u">× ' + r.n + '</span>' : (r.ri && r.ri.until ? ' <span class="rv-u' + (r.ri.expired ? ' ex' : '') + '">' + (r.ri.expired ? 'срок истёк' : esc(rvLabel(r.ri).replace("бронь ", ""))) + '</span>' : '')) +
-              ' <button type="button" class="rv-x" ' + at + '>Снять бронь</button> <button type="button" class="rv-x rv-s" ' + at + '>Продано</button></li>';
+              '</span><span class="rv-acts"><button type="button" class="rv-x" ' + at + '>Снять бронь</button><button type="button" class="rv-x rv-s" ' + at + '>Продано</button></span></li>';
           }).join("") + '</ul></div></div>';
       }).join("");
     }
@@ -2429,6 +2433,13 @@ chips(); render();
     else f.it.f[f.j] = name + " · " + ((parseInt(parts[1], 10) || 0) + (parseInt(e.v, 10) || 0)) + " шт";
     return true;
   }
+  function toggleLi(li){
+    var o = li.classList.toggle("open"), nm = li.querySelector(".rv-nm");
+    if(nm) nm.setAttribute("aria-expanded", o ? "true" : "false");
+  }
+  rv.box.addEventListener("keydown", function(e){
+    if((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("rv-nm")){ e.preventDefault(); toggleLi(e.target.parentNode); }
+  });
   rv.box.addEventListener("click", async function(e){
     var lk = e.target.closest && e.target.closest(".bk-link");
     if(lk){ e.preventDefault(); var tv2 = lk.getAttribute("data-tg"); window.open("https://t.me/" + (tv2.charAt(0) === "+" ? tv2 : tv2), "_blank", "noopener"); return; }
@@ -2503,7 +2514,13 @@ chips(); render();
       }
       return;
     }
-    var bt = e.target.closest && e.target.closest(".rv-x"); if(!bt || rvBusy) return;
+    var bt = e.target.closest && e.target.closest(".rv-x");
+    if(!bt){
+      var li = e.target.closest && e.target.closest(".rv-li");
+      if(li && !(e.target.closest && e.target.closest(".rv-c"))) toggleLi(li);
+      return;
+    }
+    if(rvBusy) return;
     var sold = bt.classList.contains("rv-s"), btLabel = bt.textContent;
     if(sold && (await sheet("Отметить проданным? Вкус уберётся из прайса на сайте.", [{t:"Да, продано", d:1},{t:"Отмена"}], true)) !== 0) return;
     bt.textContent = "…";
