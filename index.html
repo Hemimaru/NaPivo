@@ -650,9 +650,11 @@ function tagsOf(f){
   return (tagMemo[n] = out);
 }
 function tagOK(f){ var ts = tagsOf(f); return state.tags.every(function(t){ return ts.indexOf(t) >= 0; }); }
+/* забронированные вкусы убираются из прайса и остаются только в «Все брони» (в режиме правки видны) */
+function hiddenF(x){ if(EDIT) return false; var r = rvOf(String(x).split(" · ")[1]); return !!r && !r.expired; }
 function vis(it, q){
   var nm = q && it.n.toLowerCase().indexOf(q) >= 0, tg = state.tags.length && !EDIT;
-  return it.f.map(function(x, j){ return [x, j]; }).filter(function(a){ return (!q || nm || a[0].toLowerCase().indexOf(q) >= 0) && (!tg || tagOK(a[0])); });
+  return it.f.map(function(x, j){ return [x, j]; }).filter(function(a){ return !hiddenF(a[0]) && (!q || nm || a[0].toLowerCase().indexOf(q) >= 0) && (!tg || tagOK(a[0])); });
 }
 
 function hl(text,q){
@@ -702,8 +704,9 @@ function render(){
     if(state.sec!=="all" && state.sec!==g.id) return;
     if(tg && !g.liq) return;
     var items = g.items.filter(function(it){
+      if(!EDIT && it.f.length && it.f.every(hiddenF)) return false;
       if(tg){ var n = vis(it,q).length; nf += n; return n > 0; }
-      return !q || it.n.toLowerCase().indexOf(q)>=0 || it.f.some(function(x){return x.toLowerCase().indexOf(q)>=0;});
+      return !q || it.n.toLowerCase().indexOf(q)>=0 || it.f.some(function(x){return !hiddenF(x) && x.toLowerCase().indexOf(q)>=0;});
     });
     if(!items.length) return;
     shown += items.length;
