@@ -408,6 +408,34 @@ html:is(.ny,.hw,.m8,.v14,.f23,.br,.dn,.dm) .modebtn{display:none}
 #leaves i:nth-child(7){left:94%;font-size:17px;animation-duration:11s;animation-delay:-1s}
 @media (prefers-reduced-motion:reduce){#leaves i{animation:none;top:30%}#leaves i:nth-child(n+4){display:none}}
 
+/* Горизонтальный экран телефона и маленькая высота */
+.menu{max-height:calc(100dvh - 230px);overflow-y:auto;overscroll-behavior:contain}
+.dev{max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain}
+.cart{padding-right:env(safe-area-inset-right,0px)}
+.editbar{padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+@media (orientation:landscape) and (max-height:540px){
+  html{scroll-padding-top:74px}
+  header.hero{padding:12px 0 10px}
+  h1{font-size:clamp(28px,10vh,42px)}
+  header.hero h1::before{font-size:20px !important;margin-bottom:0 !important;line-height:1.1 !important}
+  .modebtn{top:8px;width:36px;height:36px}
+  .menu{max-height:calc(100dvh - 146px)}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .card.one{grid-column:1 / -1}
+  .bar{padding:6px 0 8px}
+  .fab{height:44px;padding:0 14px;bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+  .lb-img{width:min(88vw,60vh);height:min(88vw,60vh)}
+  .lb-tools{bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+  .dev-back{padding:8px}
+  .sheet{max-height:92dvh}
+  .rvl{max-height:50vh}
+  body{padding-bottom:64px}
+}
+
+@media (orientation:landscape) and (max-height:540px) and (min-width:761px){
+  .top{flex-wrap:wrap}
+  .card h3{flex:1 1 7em;min-width:0}
+}
 /* Личные темы разработчика: включаются только вручную в меню разработчика, по дате не включаются */
 html.dn:root,html.dn:root[data-theme]{--bg:#0a0612;--surface:#130c22;--surface-2:#1c1233;--line:#3a2766;--fg:#f3eeff;--muted:#a99bd1;--accent:#ff4fd8;--accent-fg:#1a0518;--chip:#221540;--mark:#5a1f58;--resv:#4de8ff;color-scheme:dark}
 html.dn body{background:radial-gradient(90% 40% at 50% 0,#3a1166 0,transparent 70%),repeating-linear-gradient(0deg,transparent 0 31px,rgba(255,79,216,.07) 31px 32px),repeating-linear-gradient(90deg,transparent 0 31px,rgba(77,232,255,.06) 31px 32px),#0a0612;background-attachment:fixed}
