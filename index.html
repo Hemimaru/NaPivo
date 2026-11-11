@@ -313,13 +313,13 @@ html.ny body{background:radial-gradient(120% 60% at 50% 0,#17335a 0,#0b1624 60%)
 html.ny body::before{background:#0b1624}
 html.ny header.hero h1::before{content:"\2744";display:block;font-size:34px;line-height:1.1;color:#9fe2ff;margin-bottom:2px;text-shadow:0 0 14px #6fd3ff;animation:nyglow 3.2s ease-in-out infinite}
 #snow{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:28}
-#snow i{position:absolute;left:0;right:0;bottom:0;will-change:transform;animation:nyfall linear infinite}
-#snow i:nth-child(1){background:radial-gradient(circle,rgba(255,255,255,.9) 0 1.5px,transparent 2.5px) 10px 20px/59px 83px;--h:830px;top:-830px;animation-duration:24s}
-#snow i:nth-child(2){top:-786px;background:radial-gradient(circle,rgba(255,255,255,.85) 0 2px,transparent 3px) 40px 60px/97px 131px;--h:786px;animation-duration:17s}
-#snow i:nth-child(3){top:-764px;background:radial-gradient(circle,rgba(255,255,255,.95) 0 3px,transparent 4px) 80px 10px/173px 191px;--h:764px;animation-duration:11s}
-@keyframes nyfall{to{transform:translate3d(0,var(--h),0)}}
+/* Снег: каждая снежинка отдельная, случайное место, размер, скорость и снос ветром (всё задаёт скрипт ниже, snowHtml) */
+#snow i{position:absolute;top:-12px;will-change:transform;animation:nyfall linear infinite}
+#snow i::before{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,#fff 0,rgba(255,255,255,.8) 35%,rgba(255,255,255,0) 72%);animation:nysway var(--sd,4s) ease-in-out var(--sl,0s) infinite alternate}
+@keyframes nyfall{to{transform:translate3d(var(--dx,0px),var(--h),0)}}
+@keyframes nysway{from{transform:translateX(calc(var(--sw,8px) * -1))}to{transform:translateX(var(--sw,8px))}}
 @keyframes nyglow{50%{opacity:.55}}
-@media (prefers-reduced-motion:reduce){#snow i,html.ny header.hero h1::before{animation:none}}
+@media (prefers-reduced-motion:reduce){#snow{display:none}html.ny header.hero h1::before{animation:none}}
 /* Тема «Тыква» на Хэллоуин: с 25 октября по 1 ноября включительно (по Минску) */
 html.hw:root,html.hw:root[data-theme]{--bg:#120a05;--surface:#1f130a;--surface-2:#2b1a0c;--line:#4d2f12;--fg:#fff0dc;--muted:#c9a47f;--accent:#ff8a1f;--accent-fg:#1a0c00;--chip:#33200f;--mark:#6b3300;--resv:#ffc46b;color-scheme:dark}
 html.hw body{background:radial-gradient(90% 40% at 50% 0,#4a2208 0,#120a05 70%) fixed}
@@ -465,12 +465,23 @@ html.dm .card{box-shadow:0 1px 3px rgba(18,51,42,.12)}
     return "";
   }
   function pref(){ try{ return localStorage.getItem("napivo-theme") || ""; }catch(e){ return ""; } }
+  /* Снежинки: 36 штук, у каждой свой размер (3–9 px, мелких больше), скорость (крупные быстрее), снос и покачивание */
+  function snowHtml(){
+    var H = Math.max(window.innerHeight || 700, (window.screen && screen.height) || 0) + 30, s = "", n, r, z, k, dur;
+    for(n = 0; n < 36; n++){
+      r = Math.random(); z = 3 + 6 * r * r; k = (z - 3) / 6; dur = 26 - 14 * k + Math.random() * 6;
+      s += '<i data-f="' + (0.25 + 0.65 * k).toFixed(2) + '" style="left:' + (Math.random() * 100).toFixed(1) + '%;width:' + z.toFixed(1) + 'px;height:' + z.toFixed(1) + 'px;opacity:' + (0.55 + 0.45 * k).toFixed(2) +
+        ';--h:' + H + 'px;--dx:' + Math.round((Math.random() - 0.35) * 70) + 'px;--sw:' + (6 + Math.random() * 14).toFixed(0) + 'px;--sd:' + (3 + Math.random() * 4).toFixed(1) + 's;--sl:-' + (Math.random() * 6).toFixed(1) +
+        's;animation-duration:' + dur.toFixed(1) + 's;animation-delay:-' + (Math.random() * dur).toFixed(1) + 's"></i>';
+    }
+    return s;
+  }
   function apply(){
     try{
       var p = pref(), t = p === "off" ? "" : (p === "ny" || p === "hw" || p === "m8" || p === "v14" || p === "f23" || p === "br" || p === "dn" || p === "dm") ? p : byDate(), h = document.documentElement;
       ["ny","hw","m8","v14","f23","br","dn","dm"].forEach(function(c){ h.classList.toggle(c, t === c); });
       var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", ({ny:"#0b1624",hw:"#120a05",m8:"#fff4f7",v14:"#1c0a12",f23:"#141a12",br:"#140c08",dn:"#0a0612",dm:"#effaf4"})[t] || "#0e0b14");
-      [["leaves", "hw", "<i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i>"], ["snow", "ny", "<i></i><i></i><i></i>"], ["bubbles", "br", "<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>"], ["petals", "m8", "<i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i><i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i>"], ["hearts", "v14", "<i>\u2764\uFE0F</i><i>\u{1F497}</i><i>\u2764\uFE0F</i><i>\u{1F495}</i><i>\u{1F497}</i><i>\u2764\uFE0F</i>"], ["bats", "hw", "<i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i>"]].forEach(function(x){
+      [["leaves", "hw", "<i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i>"], ["snow", "ny", snowHtml()], ["bubbles", "br", "<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>"], ["petals", "m8", "<i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i><i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i>"], ["hearts", "v14", "<i>\u2764\uFE0F</i><i>\u{1F497}</i><i>\u2764\uFE0F</i><i>\u{1F495}</i><i>\u{1F497}</i><i>\u2764\uFE0F</i>"], ["bats", "hw", "<i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i>"]].forEach(function(x){
         var e = document.getElementById(x[0]);
         if(t === x[1] && !e && document.body){ e = document.createElement("div"); e.id = x[0]; e.setAttribute("aria-hidden", "true"); e.innerHTML = x[2]; document.body.appendChild(e); }
         else if(t !== x[1] && e) e.parentNode.removeChild(e);
@@ -1208,7 +1219,7 @@ chips(); render();
         if(a.playState === "running") a.pause();
         var travel = el._tv || (el._tv = parseFloat(getComputedStyle(el).getPropertyValue("--h")) || 0);
         if(!travel) travel = 1.1 * window.innerHeight;
-        var f = S.f[Math.min(k, S.f.length - 1)], dur = tm.duration, d = tm.delay || 0;
+        var f = el.hasAttribute("data-f") ? +el.getAttribute("data-f") : S.f[Math.min(k, S.f.length - 1)], dur = tm.duration, d = tm.delay || 0;
         var ct = Number(a.currentTime) + dt + S.dir * take * f * (dur / travel);
         if(ct - d < 0) ct += Math.ceil((d - ct) / dur) * dur;
         a.currentTime = ct;
