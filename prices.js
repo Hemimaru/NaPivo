@@ -13,7 +13,6 @@ window.PRICE_TEXT = `
 
 telegram: kooot45
 //код 27553 | имя:Дима | тг:gmmrhs | t:1794417986 | r:Bjorn Сон Призрака :: Киви банан ::  | q:Картриджи Xros :: Картридж Xros 0.4 3мл :: 1
-//код 43159 | имя:Я человек | t:1794428097 | r:Rick And Morty Bad Trip :: Ягодный энергетик :: 
 //код 56052 | имя:Siesta Tilla | тг:arifermipr | t:1794416787 | r:Rick And Morty Bad Acid :: Малина арбуз :: 
 //код 86884 | имя:Хахаль м | t:1794324275 | r:Catswill Classic :: Клубника киви ::  | r:Catswill Classic :: Клубнично-арбузная хубба-бубба ::  | r:Rick And Morty & Catswill :: Черника яблоко ::  | r:Podonki V1/V2 New :: Яблоко вишня ::  | r:Bjorn Joker :: Киви маракуйя :: 
 
@@ -115,7 +114,6 @@ telegram: kooot45
 - Клубника земляника
 - Садовые ягоды
 - Северные ягоды
-- Ягодный энергетик · бронь
 
 ## Bjorn Joker | 50 | 15 | 15.jpg
 - Киви клубника
