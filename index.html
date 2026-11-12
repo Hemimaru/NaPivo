@@ -607,6 +607,7 @@ html.dm .card{box-shadow:0 1px 3px rgba(18,51,42,.12)}
 <div class="toast" id="toast" hidden></div>
 
 <script>document.write('<script src="prices.js?t='+Math.floor(Date.now()/60000)+'"><\/script>')</script>
+<script>if("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });</script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function parsePrice(text){
