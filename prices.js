@@ -14,6 +14,7 @@ window.PRICE_TEXT = `
 telegram: kooot45
 //код 56052 | имя:Siesta Tilla | тг:arifermipr | t:1794416787 | r:Rick And Morty Bad Acid :: Малина арбуз :: 
 //код 86884 | имя:Хахаль м | t:1794324275 | r:Catswill Classic :: Клубника киви ::  | r:Catswill Classic :: Клубнично-арбузная хубба-бубба ::  | r:Rick And Morty & Catswill :: Черника яблоко ::  | r:Podonki V1/V2 New :: Яблоко вишня ::  | r:Bjorn Joker :: Киви маракуйя :: 
+//код 26142 | рука | q:Картриджи Xros :: Картридж Xros 0.6 2мл :: 1
 
 # Жидкости за *10* | За 10
 
@@ -292,7 +293,7 @@ telegram: kooot45
 
 ## Картриджи Xros | - | 15 | 43.jpg
 - Картридж Xros 0.4 3мл · 50 шт
-- Картридж Xros 0.6 2мл · 6 шт
+- Картридж Xros 0.6 2мл · 5 шт
 
 ## Картриджи Vmate | - | 15 | 44.jpg
 - Картридж Vmate 0.7 3мл · 4 шт
