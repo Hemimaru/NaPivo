@@ -157,6 +157,8 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .add:hover{background:var(--mark)}
 .add.in{background:var(--accent);color:var(--accent-fg);font-size:13px}
 .add:focus-visible,.fab:focus-visible,.cart button:focus-visible,.cart a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#obPill{position:fixed;left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:15;height:44px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:600 13px var(--body);box-shadow:0 6px 18px rgba(0,0,0,.2);cursor:pointer}
+#obPill[hidden]{display:none}
 .fab{position:fixed;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:15;display:flex;align-items:center;gap:8px;height:52px;padding:0 18px;border-radius:999px;border:0;background:var(--accent);color:var(--accent-fg);font:inherit;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.3)}
 .fab b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--accent-fg);color:var(--accent);font-size:13px;font-variant-numeric:tabular-nums}
 .intro-on .fab{opacity:0}
@@ -607,6 +609,7 @@ html.dm .card{box-shadow:0 1px 3px rgba(18,51,42,.12)}
 <div class="toast" id="toast" hidden></div>
 
 <script>document.write('<script src="prices.js?t='+Math.floor(Date.now()/60000)+'"><\/script>')</script>
+<script>try{ window.PRICE_SERVER = window.PRICE_TEXT; var __ob = JSON.parse(localStorage.getItem("napivo-outbox") || "null"); if(__ob && typeof __ob.text === "string") window.PRICE_TEXT = "\n" + __ob.text + "\n"; }catch(e){}</script>
 <script>if("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });</script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
@@ -648,6 +651,7 @@ function serialize(){
   return out.join("\n").replace(/\s+$/,"");
 }
 var __P = parsePrice(window.PRICE_TEXT), CFG = __P.cfg, DATA = __P.data, PRE = __P.pre, EDIT = null, PREV = {};
+try{ var __o2 = JSON.parse(localStorage.getItem("napivo-outbox") || "null"); if(__o2 && __o2.imgs) Object.keys(__o2.imgs).forEach(function(n){ PREV[n] = __o2.imgs[n]; }); }catch(e){}
 function picSrc(n){ return PREV[n] || ("img/" + encodeURI(n)); }
 var state = {sec:"all", q:"", tags:[]};
 
@@ -1621,6 +1625,135 @@ chips(); render();
   /* визуальный редактор прайса */
   function getTok(){ try{ return localStorage.getItem("napivo-gh") || ""; }catch(e){ return ""; } }
   function b64(s){ return btoa(unescape(encodeURIComponent(s))); }
+  /* ===== офлайн-очередь: правки без интернета копятся на устройстве и уходят сами, когда появится связь ===== */
+  var OBK = "napivo-outbox", obBusy = false;
+  function n1(t){ return String(t == null ? "" : t).replace(/^\n/, "").replace(/\n$/, ""); }
+  function obGet(){ try{ var o = JSON.parse(localStorage.getItem(OBK) || "null"); return o && typeof o.text === "string" ? o : null; }catch(e){ return null; } }
+  function obSet(o){ try{ if(o) localStorage.setItem(OBK, JSON.stringify(o)); else localStorage.removeItem(OBK); return true; }catch(e){ return false; } }
+  function isNet(e){ return !(e && typeof e.status === "number"); }
+  function lcsMap(a, b){
+    var n = a.length, k = b.length, dp = [], i, j, m = [];
+    for(i = 0; i <= n; i++) dp.push(new Uint16Array(k + 1));
+    for(i = n - 1; i >= 0; i--) for(j = k - 1; j >= 0; j--) dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    for(i = 0; i < n; i++) m.push(-1);
+    i = 0; j = 0;
+    while(i < n && j < k){ if(a[i] === b[j]){ m[i] = j; i++; j++; } else if(dp[i + 1][j] >= dp[i][j + 1]) i++; else j++; }
+    return m;
+  }
+  /* слияние трёх версий по строкам: base — с чего начали, mine — мои правки, theirs — что сейчас на сайте */
+  function merge3(B, M, T){
+    var b = B.split("\n"), m = M.split("\n"), t = T.split("\n"), mm = lcsMap(b, m), tm = lcsMap(b, t), out = [], conflict = false, bi = 0, mi = 0, ti = 0, i;
+    function chunk(eb, em, et){
+      var cb = b.slice(bi, eb).join("\n"), cm = m.slice(mi, em), ct = t.slice(ti, et), sm = cm.join("\n"), st = ct.join("\n");
+      if(sm === cb) out.push.apply(out, ct); else if(st === cb || st === sm) out.push.apply(out, cm); else { conflict = true; out.push.apply(out, cm); }
+      bi = eb; mi = em; ti = et;
+    }
+    for(i = 0; i < b.length; i++){
+      if(mm[i] >= 0 && tm[i] >= 0){ chunk(i, mm[i], tm[i]); out.push(b[i]); bi = i + 1; mi = mm[i] + 1; ti = tm[i] + 1; }
+    }
+    chunk(b.length, m.length, t.length);
+    return {text: out.join("\n"), conflict: conflict};
+  }
+  function adopt(txt, server){
+    window.PRICE_TEXT = "\n" + txt + "\n"; if(server) window.PRICE_SERVER = window.PRICE_TEXT;
+    var P = parsePrice(txt), nn = 0; DATA = P.data; PRE = P.pre;
+    DATA.forEach(function(g, gx){ g.id = "s" + gx; g.items.forEach(function(x){ x.g = g; x.id = nn++; }); });
+    MENU = DATA.map(function(g){ return [g.id, g.menu]; }); chips();
+    render(); if(window.rebuildLook) window.rebuildLook();
+  }
+  var obPill = document.createElement("button"); obPill.id = "obPill"; obPill.type = "button"; obPill.hidden = true; document.body.appendChild(obPill);
+  function obUi(){ var o = obGet(); obPill.hidden = !o; if(o) obPill.textContent = "⏳ Ждёт отправки: " + (o.log.length || 1); }
+  function queueWrite(base, text, log, sb, sa, imgs){
+    var o = obGet() || {base:n1(base), log:[], sheet:[], imgs:{}};
+    o.text = n1(text); o.log = o.log.concat(log || []); o.sheet.push({b:sb, a:sa}); o.imgs = o.imgs || {};
+    Object.keys(imgs || {}).forEach(function(n){ o.imgs[n] = imgs[n]; });
+    if(!obSet(o)) return false;
+    window.PRICE_TEXT = "\n" + o.text + "\n"; obUi(); return true;
+  }
+  async function commit(base, ser, log, sb, sa, imgs, ask){
+    if(!queueWrite(base, ser, log, sb, sa, imgs)) throw {status:-2};
+    if(!EDIT) adopt(ser, false);
+    return await flushOutbox(ask);
+  }
+  async function flushOutbox(ask){
+    var o = obGet(); if(!o) return "none";
+    if(obBusy) return "busy";
+    if(navigator.onLine === false) return "offline";
+    var tok = getTok();
+    if(!tok){
+      if(!ask) return "notoken";
+      var f = await form("Токен GitHub (нужен один раз, хранится только в этом браузере)", [{k:"t", l:"Токен", type:"password", ph:"github_pat_…"}], "Дальше");
+      if(!f || !f.t.trim()) return "notoken"; tok = f.t.trim();
+    }
+    obBusy = true;
+    var base = "https://api.github.com/repos/" + REPO + "/contents/", H = {Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"};
+    try{
+      for(var attempt = 0; attempt < 2; attempt++){
+        var r = await fetch(base + "prices.js?ref=main&x=" + Date.now(), {headers:{Accept:"application/vnd.github+json"}});
+        if(!r.ok) throw {status:r.status};
+        var j = await r.json(), t = decodeURIComponent(escape(atob(String(j.content).replace(/\s/g, "")))), m = t.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/);
+        if(!m) throw {status:0};
+        var theirs = n1(m[1]), res = o.text;
+        if(theirs !== o.base && theirs !== o.text){
+          var mg = merge3(o.base, o.text, theirs);
+          if(mg.conflict){
+            if(!ask) return "conflict";
+            var ch = await sheet("Правки, сделанные без интернета, пересекаются с тем, что на сайте изменилось за это время. Что оставить?", [{t:"Оставить мои правки"},{t:"Взять версию сайта (мои пропадут)", d:1},{t:"Решу позже"}], true);
+            if(ch === 1){ obSet(null); adopt(theirs, true); obUi(); return "dropped"; }
+            if(ch !== 0) return "conflict";
+          } else res = mg.text;
+        }
+        var names = Object.keys(o.imgs || {}).filter(function(n){ return res.indexOf(n) >= 0; });
+        for(var i = 0; i < names.length; i++){
+          var ri = await fetch(base + "img/" + names[i], {method:"PUT", headers:H, body:JSON.stringify({message:"Фото для прайса", content:o.imgs[names[i]].split(",")[1], branch:"main"})});
+          if(!ri.ok && ri.status !== 422) throw {status:ri.status};
+        }
+        var msg = "Правка прайса: " + (o.log.length || 1) + " изм.\n\n" + o.log.join("\n");
+        var rp = await fetch(base + "prices.js", {method:"PUT", headers:H, body:JSON.stringify({message:msg, content:b64("window.PRICE_TEXT = `\n" + res + "\n`;\n"), sha:j.sha, branch:"main"})});
+        if((rp.status === 409 || rp.status === 422) && attempt === 0) continue;
+        if(!rp.ok) throw {status:rp.status};
+        try{ localStorage.setItem("napivo-gh", tok); }catch(e){}
+        obSet(null);
+        (o.sheet || []).forEach(function(x){ try{ syncSheet(x.b, x.a); }catch(e){} });
+        if(EDIT){ window.PRICE_SERVER = "\n" + res + "\n"; setTimeout(function(){ if(!EDIT) adopt(res, true); }, 800); } else adopt(res, true);
+        return "ok";
+      }
+      return "error";
+    }catch(e){
+      var st = e && e.status;
+      if(st === 401 || st === 403 || st === 404){ try{ localStorage.removeItem("napivo-gh"); }catch(x){} return "badtoken"; }
+      return isNet(e) ? "offline" : "error";
+    }finally{ obBusy = false; obUi(); }
+  }
+  function obReport(st, auto){
+    var M = {
+      ok: auto ? "Правки, сделанные без интернета, отправлены. На сайте обновится через минуту" : "Сохранено. На сайте обновится через минуту",
+      offline: "Нет интернета. Правки сохранены на этом устройстве и отправятся сами, когда появится связь",
+      notoken: "Правки сохранены на устройстве. Нужен токен GitHub: нажмите значок ожидания внизу слева",
+      conflict: "Правки пересекаются с изменениями на сайте. Нажмите значок ожидания внизу слева",
+      badtoken: "GitHub не принял токен. Нужен доступ Contents → Read and write. Нажмите значок ожидания внизу слева",
+      error: "Не удалось отправить. Правки сохранены на устройстве, попробую позже",
+      dropped: "Взята версия сайта"
+    };
+    if(st === "ok"){ checkmark(); say(M.ok, 3500); return; }
+    if(M[st] && !(auto && st === "offline")) say(M[st], 4500);
+  }
+  obPill.addEventListener("click", async function(){ say("Отправляю…", 2500); obReport(await flushOutbox(true), false); });
+  window.addEventListener("online", function(){ setTimeout(async function(){ var s = await flushOutbox(false); if(s !== "none" && s !== "busy") obReport(s, true); flushSheet([]); }, 1500); });
+  setTimeout(async function(){
+    obUi(); if(navigator.onLine === false) return;
+    if(obGet()){ var s = await flushOutbox(false); if(s !== "none" && s !== "busy" && s !== "offline") obReport(s, true); }
+    flushSheet([]);
+  }, 2500);
+  function localCopy(){ var o = obGet(); return {P:parsePrice(n1(window.PRICE_TEXT)), base:o ? o.base : n1(window.PRICE_SERVER)}; }
+  async function workingCopy(){
+    if(obGet()){ await flushOutbox(false); if(obGet()) return localCopy(); }
+    if(navigator.onLine !== false){
+      try{ var L = await loadPrices(); return {P:L.P, base:L.raw}; }catch(e){ if(!isNet(e)) throw e; }
+    }
+    return localCopy();
+  }
+
   function clean(v){ return String(v||"").replace(/[`\\]/g,"").replace(/\$\{/g,"").replace(/\|/g,"/").replace(/·/g,"-").replace(/\s+/g," ").trim(); }
   function pop(html, mid){
     var back = document.createElement("div"); back.className = "sheet-back" + (mid ? " mid" : ""); back.innerHTML = '<div class="sheet" role="dialog" aria-modal="true">' + html + '</div>';
@@ -1975,18 +2108,20 @@ chips(); render();
 
   var bar = $("editbar");
   function enterEdit(P, sha){
-    EDIT = {log:[], imgs:{}, sha:sha, back:{d:DATA, p:PRE, g:state.sec, q:state.q}};
+    EDIT = {log:[], imgs:{}, sha:sha, base:n1(window.PRICE_SERVER), back:{d:DATA, p:PRE, g:state.sec, q:state.q}};
     DATA = P.data; PRE = P.pre; DATA.forEach(function(g){ g.items.forEach(function(it){ it._o = it.n; }); }); state.sec = "all"; state.q = ""; document.getElementById("q").value = ""; if(window.resetTags) window.resetTags(true);
     document.body.classList.add("editing"); bar.hidden = false; render(); window.scrollTo(0, 0);
     if(!rm && bar.animate){ bar.animate([{transform:"translateY(-100%)"},{transform:"none"}],{duration:300,easing:"cubic-bezier(.2,.8,.2,1)"}); mainEl.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,easing:"ease-out"}); }
   }
   async function startEdit(){
     dev.set(false);
+    if(obGet() && navigator.onLine !== false){ say("Отправляю накопленные правки…", 2500); await flushOutbox(false); }
     var local = String(window.PRICE_TEXT || ""), P0 = null;
     try{ P0 = parsePrice(local.replace(/^\n/,"")); }catch(e){}
     if(!P0 || !P0.data || !P0.data.length){ P0 = null; }
     if(P0){
       enterEdit(P0, ""); var E = EDIT; E.pending = true;
+      if(obGet() || navigator.onLine === false){ E.pending = false; E.offline = true; say(obGet() ? "Есть правки, ожидающие отправки. Правьте дальше, всё уйдёт, когда появится связь" : "Нет интернета. Править можно, правки отправятся, когда появится связь", 4200); return; }
       say("Открыто. Сверяю с сервером…", 2200);
       (async function(){
         try{
@@ -2003,8 +2138,9 @@ chips(); render();
             if(!E.log.length){
               var P = parsePrice(m[1].replace(/^\n/,""));
               DATA = P.data; PRE = P.pre; DATA.forEach(function(g){ g.items.forEach(function(it){ it._o = it.n; }); }); render();
+              window.PRICE_TEXT = window.PRICE_SERVER = "\n" + n1(m[1]) + "\n"; E.base = n1(m[1]);
               say("Прайс обновлён с сервера", 2400);
-            } else { E.stale = true; say("Прайс на сайте изменился. Сохранить не получится: отмените и откройте заново", 5000); }
+            } else { say("Прайс на сайте изменился. При сохранении объединю с вашими правками", 4000); }
           }
         }catch(e){ if(EDIT === E){ E.pending = false; E.offline = true; say("Нет связи с сервером. Править можно, сверю при сохранении", 3200); } }
       })();
@@ -2049,40 +2185,12 @@ chips(); render();
     if(saving) return;
     if(!EDIT.log.length){ leave(true); say("Изменений нет"); return; }
     if(EDIT.pending){ say("Сверяю с сервером, секунду…", 2000); return; }
-    if(EDIT.stale){ say("Прайс на сайте изменился. Отмените и откройте редактор заново", 4500); return; }
-    var tok = getTok();
-    if(!tok){
-      var o = await form("Токен GitHub (нужен один раз, хранится только в этом браузере)", [{k:"t", l:"Токен", type:"password", ph:"github_pat_…"}], "Сохранить");
-      if(!o || !o.t.trim()) return; tok = o.t.trim();
-    }
-    saving = true; say("Сохраняю…", 6000);
-    var H = {Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, base = "https://api.github.com/repos/" + REPO + "/contents/";
-    try{
-      var sha = EDIT.sha;
-      if(!sha || EDIT.offline){
-        var cur = await fetch(base + "prices.js?ref=main&x=" + Date.now(), {headers:{Accept:"application/vnd.github+json"}}); if(!cur.ok) throw new Error("sha");
-        var cj = await cur.json(), ct = decodeURIComponent(escape(atob(String(cj.content).replace(/\s/g,"")))), cm = ct.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/);
-        if(!cm || cm[1].replace(/^\n/,"").trim() !== String(window.PRICE_TEXT || "").replace(/^\n/,"").trim()) throw {status:409};
-        sha = cj.sha;
-      }
-      var used = Object.keys(EDIT.imgs).filter(function(n){ return DATA.some(function(g){ return g.items.some(function(it){ return it.img === n; }); }); });
-      for(var i = 0; i < used.length; i++){
-        var ri = await fetch(base + "img/" + used[i], {method:"PUT", headers:H, body:JSON.stringify({message:"Фото для прайса", content:EDIT.imgs[used[i]].split(",")[1], branch:"main"})});
-        if(!ri.ok) throw {status:ri.status};
-      }
-      var msg = "Правка прайса: " + EDIT.log.length + " изм.\n\n" + EDIT.log.join("\n");
-      var res = await fetch(base + "prices.js", {method:"PUT", headers:H, body:JSON.stringify({message:msg, content:b64("window.PRICE_TEXT = `\n" + serialize() + "\n`;\n"), sha:sha, branch:"main"})});
-      if(!res.ok) throw {status:res.status};
-      try{ localStorage.setItem("napivo-gh", tok); }catch(e){}
-      var sBefore = snapLines(EDIT.back.d, false), sAfter = snapLines(DATA, true);
-      leave(false); checkmark(); say("Сохранено. На сайте обновится через минуту", 3200);
-      syncSheet(sBefore, sAfter);
-    }catch(e){
-      var st = e && e.status;
-      if(st === 401 || st === 403 || st === 404){ try{ localStorage.removeItem("napivo-gh"); }catch(x){} say("GitHub не принял токен. Нужен доступ Contents → Read and write", 4500); }
-      else if(st === 409 || st === 422){ say("Прайс на сайте уже изменился. Отмените и откройте редактор заново", 4500); }
-      else say("Не удалось сохранить. Проверьте интернет и попробуйте снова", 3500);
-    }
+    saving = true;
+    var imgs = {}, sBefore = snapLines(EDIT.back.d, false), sAfter = snapLines(DATA, true), log = EDIT.log.slice(), base = EDIT.base;
+    Object.keys(EDIT.imgs).forEach(function(n){ if(DATA.some(function(g){ return g.items.some(function(it){ return it.img === n; }); })) imgs[n] = EDIT.imgs[n]; });
+    if(!queueWrite(base, serialize(), log, sBefore, sAfter, imgs)){ say("Не хватило места на устройстве. Подключитесь к интернету и сохраните снова", 4500); saving = false; return; }
+    leave(false); say("Сохраняю…", 3000);
+    obReport(await flushOutbox(true), false);
     saving = false;
   });
   window.addEventListener("beforeunload", function(e){ if(EDIT && EDIT.log.length){ e.preventDefault(); e.returnValue = ""; } });
@@ -2200,19 +2308,9 @@ chips(); render();
     var hs = want.map(function(w){ return norm(w.line) + "|" + norm(w.fl) + "|" + w.n; }).sort().join(";"), hv = 7;
     for(var hi = 0; hi < hs.length; hi++) hv = (hv * 31 + hs.charCodeAt(hi)) % 90000;
     var code = String(10000 + hv);
-    var tok = getTok();
-    if(!tok){
-      var o = await form("Токен GitHub (нужен один раз, хранится только в этом браузере)", [{k:"t", l:"Токен", type:"password", ph:"github_pat_…"}], "Дальше");
-      if(!o || !o.t.trim()) return; tok = o.t.trim();
-    }
     cdBusy = true; cmsg("Применяю…", true);
-    var api = "https://api.github.com/repos/" + REPO + "/contents/prices.js";
     try{
-      var r = await fetch(api + "?ref=main&x=" + Date.now(), {headers:{Accept:"application/vnd.github+json"}});
-      if(!r.ok) throw {status:r.status};
-      var j = await r.json(), sha = j.sha, text = decodeURIComponent(escape(atob(String(j.content).replace(/\s/g,""))));
-      var m = text.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/); if(!m) throw {status:0};
-      var P = parsePrice(m[1].replace(/^\n/,"")), codes = readCodes(P.pre), log = [], head = "", sBefore = snapLines(P.data, false);
+      var W = await workingCopy(), P = W.P, codes = readCodes(P.pre), log = [], head = "", sBefore = snapLines(P.data, false);
       if(codes[code]){
         codes[code].forEach(function(e){
           var f = findFl(P.data, e.line, e.fl); if(!f) return;
@@ -2245,14 +2343,10 @@ chips(); render();
       }
       if(!log.length){ cdBusy = false; cmsg("Нечего менять: вкусы из кода уже убраны из прайса."); return; }
       var ser = (function(){ var oD = DATA, oP = PRE; DATA = P.data; PRE = P.pre; var t = serialize(); DATA = oD; PRE = oP; return t; })();
-      var res = await fetch(api, {method:"PUT", headers:{Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, body:JSON.stringify({message:"Правка прайса: " + log.length + " изм.\n\n" + log.join("\n"), content:b64("window.PRICE_TEXT = `\n" + ser + "\n`;\n"), sha:sha, branch:"main"})});
-      if(!res.ok) throw {status:res.status};
-      try{ localStorage.setItem("napivo-gh", tok); }catch(e){}
-      syncSheet(sBefore, snapLines(P.data, false));
-      DATA = P.data; PRE = P.pre; EDIT = null;
-      var nn = 0; DATA.forEach(function(g){ g.items.forEach(function(x){ x.id = nn++; }); });
-      render(); if(window.rebuildLook) window.rebuildLook();
-      cdText.value = ""; cdName.value = ""; cdTg.value = ""; cmsg(head + ". На сайте обновится через минуту.", true); checkmark();
+      var fs = await commit(W.base, ser, log, sBefore, snapLines(P.data, false), {}, true);
+      cdText.value = ""; cdName.value = ""; cdTg.value = "";
+      cmsg(head + ". " + (fs === "ok" ? "На сайте обновится через минуту." : fs === "offline" ? "Нет интернета: сохранено на устройстве, отправится само, когда появится связь." : "Сохранено на устройстве, но ещё не отправлено: нажмите значок ожидания внизу слева."), true);
+      if(fs === "ok") checkmark();
     }catch(e){
       var st = e && e.status;
       if(st === 401 || st === 403 || st === 404){ try{ localStorage.removeItem("napivo-gh"); }catch(x){} cmsg("GitHub не принял токен. Нужен доступ Contents → Read and write."); }
@@ -2361,7 +2455,7 @@ chips(); render();
     if(!r.ok) throw {status:r.status};
     var j = await r.json(), t = decodeURIComponent(escape(atob(String(j.content).replace(/\s/g,"")))), m = t.match(/window\.PRICE_TEXT\s*=\s*`([\s\S]*)`\s*;?\s*$/);
     if(!m) throw {status:0};
-    return {P:parsePrice(m[1].replace(/^\n/,"")), sha:j.sha};
+    return {P:parsePrice(m[1].replace(/^\n/,"")), sha:j.sha, raw:n1(m[1])};
   }
   var rvOpen = {}, rvCollapse = "";
   function toggleBk(sec, open){
@@ -2473,27 +2567,17 @@ chips(); render();
   function freeCode(codes){ var c; do{ c = String(10000 + Math.floor(Math.random() * 90000)); }while(codes[c]); return c; }
   async function rvRun(mutate, okMsg, errMsg, restore){
     if(rvBusy) return;
-    var tok = getTok();
-    if(!tok){
-      var o = await form("Токен GitHub (нужен один раз, хранится только в этом браузере)", [{k:"t", l:"Токен", type:"password", ph:"github_pat_…"}], "Дальше");
-      if(!o || !o.t.trim()) return; tok = o.t.trim();
-    }
     rvBusy = true;
     try{
-      var L = await loadPrices(), P = L.P, sBefore = snapLines(P.data), codes = readCodes(P.pre);
+      var W = await workingCopy(), P = W.P, sBefore = snapLines(P.data), codes = readCodes(P.pre);
       var log = mutate(P, codes); if(!log || !log.length) throw {status:-1};
       cleanData(P);
       P.pre = P.pre.filter(function(l){ return !/^\/\/\s*код\s+\d{5}\b/.test(l.trim()); });
       Object.keys(codes).forEach(function(c){ if(codes[c].length) P.pre.push(codeLine(c, codes[c])); });
       var ser = (function(){ var oD = DATA, oP = PRE; DATA = P.data; PRE = P.pre; var t = serialize(); DATA = oD; PRE = oP; return t; })();
-      var res = await fetch("https://api.github.com/repos/" + REPO + "/contents/prices.js", {method:"PUT", headers:{Accept:"application/vnd.github+json", Authorization:"Bearer " + tok, "Content-Type":"application/json"}, body:JSON.stringify({message:"Правка прайса: " + log.length + " изм.\n\n" + log.join("\n"), content:b64("window.PRICE_TEXT = `\n" + ser + "\n`;\n"), sha:L.sha, branch:"main"})});
-      if(!res.ok) throw {status:res.status};
-      try{ localStorage.setItem("napivo-gh", tok); }catch(x){}
-      syncSheet(sBefore, snapLines(P.data, false));
-      DATA = P.data; PRE = P.pre; var nn = 0; DATA.forEach(function(g, gx){ g.id = "s" + gx; g.items.forEach(function(x){ x.g = g; x.id = nn++; }); });
-      MENU = DATA.map(function(g){ return [g.id, g.menu]; }); chips();
-      render(); if(window.rebuildLook) window.rebuildLook();
-      drawResv(DATA, PRE); checkmark(); say(okMsg, 3000);
+      var fs = await commit(W.base, ser, log, sBefore, snapLines(P.data, false), {}, true);
+      drawResv(DATA, PRE);
+      if(fs === "ok"){ checkmark(); say(okMsg, 3000); } else obReport(fs, false);
     }catch(err){
       var st = err && err.status;
       if(st === 401 || st === 403 || st === 404){ try{ localStorage.removeItem("napivo-gh"); }catch(x){} say("GitHub не принял токен", 3500); }
