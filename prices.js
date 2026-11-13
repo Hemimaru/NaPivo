@@ -12,8 +12,8 @@ window.PRICE_TEXT = `
 // В разделах «Жидкости» у вкуса без пометки в наличии 1 банка. В остальных разделах без пометки можно брать до 9.
 
 telegram: kooot45
+//код 46852 | имя:Лиза | тг:Liz_kiss102 | t:1794587388 | r:Podonki Arcade :: Киви персик ::  | r:Podonki Malasian :: Розовый лимонад малина лемон ::  | r:Podonki Malasian New :: Виноградный лимонад :: 
 //код 86884 | имя:Хахаль м | t:1794324275 | r:Catswill Classic :: Клубника киви ::  | r:Catswill Classic :: Клубнично-арбузная хубба-бубба ::  | r:Rick And Morty & Catswill :: Черника яблоко ::  | r:Podonki V1/V2 New :: Яблоко вишня ::  | r:Bjorn Joker :: Киви маракуйя :: 
-//код 46852 | имя:Лиза | t:1794587388 | r:Podonki Arcade :: Киви персик ::  | r:Podonki Malasian :: Розовый лимонад малина лемон ::  | r:Podonki Malasian New :: Виноградный лимонад :: 
 
 # Жидкости за *10* | За 10
 
