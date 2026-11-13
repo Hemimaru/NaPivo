@@ -14,7 +14,7 @@ window.PRICE_TEXT = `
 telegram: kooot45
 //код 46852 | имя:Лиза | тг:Liz_kiss102 | t:1794587388 | r:Podonki Arcade :: Киви персик ::  | r:Podonki Malasian :: Розовый лимонад малина лемон ::  | r:Podonki Malasian New :: Виноградный лимонад :: 
 //код 51272 | имя:Я человек | t:1794595400 | r:DUALL Extra :: Морозный Ред Булл :: 
-//код 57512 | имя:Siesta | t:1794608796 | q:Картриджи Xros :: Картридж Xros 0.4 3мл :: 1
+//код 57512 | имя:Siesta | тг:arifermipr | t:1794608796 | q:Картриджи Xros :: Картридж Xros 0.4 3мл :: 1
 //код 86884 | имя:Хахаль м | t:1794324275 | r:Catswill Classic :: Клубника киви ::  | r:Catswill Classic :: Клубнично-арбузная хубба-бубба ::  | r:Rick And Morty & Catswill :: Черника яблоко ::  | r:Podonki V1/V2 New :: Яблоко вишня ::  | r:Bjorn Joker :: Киви маракуйя :: 
 
 # Жидкости за *10* | За 10
