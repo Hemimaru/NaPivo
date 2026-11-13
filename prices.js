@@ -13,7 +13,6 @@ window.PRICE_TEXT = `
 
 telegram: kooot45
 //код 86884 | имя:Хахаль м | t:1794324275 | r:Catswill Classic :: Клубника киви ::  | r:Catswill Classic :: Клубнично-арбузная хубба-бубба ::  | r:Rick And Morty & Catswill :: Черника яблоко ::  | r:Podonki V1/V2 New :: Яблоко вишня ::  | r:Bjorn Joker :: Киви маракуйя :: 
-//код 91796 | имя:Косяк | тг:kosy44 | t:1794578498 | r:Rick And Morty Bad Ice :: Арбуз манго :: 
 
 # Жидкости за *10* | За 10
 
@@ -95,7 +94,6 @@ telegram: kooot45
 - Ягодный мармелад
 
 ## Rick And Morty Bad Ice | 50 | 15 | 13.jpg
-- Арбуз манго · бронь
 - Гранатовый мармелад
 - Киви манго
 - Клубника манго
