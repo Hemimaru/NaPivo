@@ -14,6 +14,7 @@ window.PRICE_TEXT = `
 telegram: kooot45
 //код 34411 | имя:Ghostik | тг:ghostik_toxsis | t:1794590593 | r:Злая Монашка Bubble :: Клубничный бабл-гам :: 
 //код 46852 | имя:Лиза | тг:Liz_kiss102 | t:1794587388 | r:Podonki Arcade :: Киви персик ::  | r:Podonki Malasian :: Розовый лимонад малина лемон ::  | r:Podonki Malasian New :: Виноградный лимонад :: 
+//код 51272 | имя:Я человек | t:1794595400 | r:DUALL Extra :: Морозный Ред Булл :: 
 //код 86884 | имя:Хахаль м | t:1794324275 | r:Catswill Classic :: Клубника киви ::  | r:Catswill Classic :: Клубнично-арбузная хубба-бубба ::  | r:Rick And Morty & Catswill :: Черника яблоко ::  | r:Podonki V1/V2 New :: Яблоко вишня ::  | r:Bjorn Joker :: Киви маракуйя :: 
 
 # Жидкости за *10* | За 10
