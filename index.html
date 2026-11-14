@@ -1811,9 +1811,10 @@ chips(); render();
     return new Promise(function(res, rej){
       var u = URL.createObjectURL(file), im = new Image();
       im.onload = function(){
-        var s = Math.min(im.width, im.height), c = document.createElement("canvas"), x;
-        c.width = c.height = 440; x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0,0,440,440);
-        x.drawImage(im, (im.width - s)/2, (im.height - s)/2, s, s, 0, 0, 440, 440);
+        var s = Math.min(im.width, im.height), c = document.createElement("canvas"), x, N = 576, R = Math.round(N * .087);
+        c.width = c.height = N; x = c.getContext("2d"); x.fillStyle = "#181624"; x.fillRect(0,0,N,N);   // фон как у остальных фото
+        x.beginPath(); x.moveTo(R, 0); x.arcTo(N, 0, N, N, R); x.arcTo(N, N, 0, N, R); x.arcTo(0, N, 0, 0, R); x.arcTo(0, 0, N, 0, R); x.closePath(); x.clip();
+        x.drawImage(im, (im.width - s)/2, (im.height - s)/2, s, s, 0, 0, N, N);
         URL.revokeObjectURL(u); res(c.toDataURL("image/jpeg", .85));
       };
       im.onerror = function(){ URL.revokeObjectURL(u); rej(new Error("img")); };
