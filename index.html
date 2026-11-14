@@ -2398,7 +2398,23 @@ chips(); render();
   function secTitle(g){ return String(g.raw || "").replace(/^#\s*/, "").split("|")[0].replace(/\*/g, "").trim(); }
   function snapLines(data, useOrigin){
     var o = {lines:{}, secs:{}};
-    data.forEach(function(g){ if(!g.liq) return; var t = secTitle(g); o.secs[t] = [];
+    data.forEach(function(g){
+      var t = secTitle(g); o.secs[t] = [];
+      if(!g.liq){
+        /* POD и картриджи: количество в таблицу не пишем; картриджи в таблице одним блоком «Картриджи» */
+        var names = function(it){ return it.f.map(function(f){ return f.split(" · ")[0].trim(); }).filter(function(x){ return x && x !== "-"; }).map(function(x){ return {t:x, r:false}; }); };
+        if(/^картридж/i.test(t)){
+          var all = []; g.items.forEach(function(it){ all = all.concat(names(it)); });
+          if(all.length){ o.lines["\u0001cart"] = {n:"Картриджи", img:"", fl:all}; o.secs[t].push("\u0001cart"); }
+          return;
+        }
+        g.items.forEach(function(it){
+          var key = useOrigin ? (it._o !== undefined ? it._o : "+" + it.n) : it.n;
+          o.lines[key] = {n:it.n, img:it.img || "", fl:names(it)};
+          o.secs[t].push(key);
+        });
+        return;
+      }
       g.items.forEach(function(it){
         var key = useOrigin ? (it._o !== undefined ? it._o : "+" + it.n) : it.n;
         o.lines[key] = {n:it.n, img:it.img || "", fl:it.f.map(function(f){ var p = f.split(" · "), r = rvOf(p[1]); return {t:p[0] + (p[1] && !r ? " · " + p[1] : ""), r:!!r && !r.expired}; })};
