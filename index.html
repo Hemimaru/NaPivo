@@ -2428,9 +2428,13 @@ chips(); render();
     Object.keys(a.lines).forEach(function(k){ if(!b.lines[k]) ops.push({t:"del", name:a.lines[k].n}); });
     Object.keys(b.secs).forEach(function(t){
       var ks = b.secs[t], sig = ks.map(function(k){ return k + "=" + b.lines[k].n; }).join("|"), bk = a.secs[t], bsig = bk ? bk.map(function(k){ return k + "=" + a.lines[k].n; }).join("|") : null;
-      ks.forEach(function(k){ var x = a.lines[k], y = b.lines[k]; if(!x || x.img !== y.img) manual.push(y.n); });
-      if(sig !== bsig){ ops.push({t:"sec", title:t, lines:ks.map(function(k){ return {n:b.lines[k].n, o:a.lines[k] ? a.lines[k].n : null, fl:b.lines[k].fl}; })}); return; }
-      ks.forEach(function(k){ if(JSON.stringify(a.lines[k].fl) !== JSON.stringify(b.lines[k].fl)) ops.push({t:"fl", line:b.lines[k].n, fl:b.lines[k].fl}); });
+      var im = {};   // у каких линеек фото новое или заменено: скрипт таблицы возьмёт его с сайта
+      ks.forEach(function(k){ var x = a.lines[k], y = b.lines[k]; if(y.img && y.img !== "-" && (!x || x.img !== y.img)) im[k] = y.img; });
+      if(sig !== bsig){ ops.push({t:"sec", title:t, lines:ks.map(function(k){ return {n:b.lines[k].n, o:a.lines[k] ? a.lines[k].n : null, fl:b.lines[k].fl, im:im[k] || ""}; })}); return; }
+      ks.forEach(function(k){
+        if(JSON.stringify(a.lines[k].fl) !== JSON.stringify(b.lines[k].fl)) ops.push({t:"fl", line:b.lines[k].n, fl:b.lines[k].fl});
+        if(im[k]) ops.push({t:"img", line:b.lines[k].n, img:im[k]});
+      });
     });
     return {ops:ops, manual:manual};
   }
