@@ -13,7 +13,6 @@ window.PRICE_TEXT = `
 
 telegram: kooot45
 //код 44073 | имя:Sovka | тг:katiikxzzx | t:1794659556 | r:Самоубийца v2 Danger :: Виноград киви лёд :: 
-//код 46852 | имя:Лиза | тг:Liz_kiss102 | t:1794587388 | r:Podonki Arcade :: Киви персик ::  | r:Podonki Malasian :: Розовый лимонад малина лемон :: 
 //код 51272 | имя:Я человек | t:1794595400 | r:DUALL Extra :: Морозный Ред Булл :: 
 //код 86884 | имя:Хахаль м | t:1794324275 | r:Catswill Classic :: Клубника киви ::  | r:Catswill Classic :: Клубнично-арбузная хубба-бубба ::  | r:Rick And Morty & Catswill :: Черника яблоко ::  | r:Podonki V1/V2 New :: Яблоко вишня ::  | r:Bjorn Joker :: Киви маракуйя :: 
 
@@ -50,7 +49,6 @@ telegram: kooot45
 - Черника яблоко · бронь
 
 ## Podonki Arcade | 50 | 15 | 05.jpg
-- Киви персик · бронь
 - Клубника ананасовые кольца
 - Арбузный слаш
 - Банан дыня клубника
@@ -59,9 +57,6 @@ telegram: kooot45
 ## Podonki Isterika | 50 | 15 | 06.jpg
 - Арбузная конфета
 - Зелёный виноград черника
-
-## Podonki Malasian | 50 | 15 | 07.jpg
-- Розовый лимонад малина лемон · бронь
 
 ## Podonki Malasian New | 50 | 15 | 08.jpg
 - Виноград клубника
