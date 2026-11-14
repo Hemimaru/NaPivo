@@ -1870,11 +1870,12 @@ chips(); render();
     }
     return {moved:moved, note:note};
   }
+  function qfix(q){ return /^\d+$/.test(q) ? q + " шт" : q; }   // «2» → «2 шт»
   async function onAddFlavor(c){
     var o = await form("Новый вкус в «" + c.it.n + "»", [{k:"n", l:"Название вкуса"},{k:"q", l:"Пометка (например: 2 шт; необязательно)", ph:"2 шт"}], "Добавить");
     if(!o) return;
     var nn = clean(o.n); if(!nn){ say("Название не может быть пустым"); return; }
-    var nq = clean(o.q);
+    var nq = qfix(clean(o.q));
     c.it.f.push(nn + (nq ? " · " + nq : "")); stampNew(c.it.n, nn); EDIT.log.push("Добавлен вкус: " + c.it.n + " — " + nn);
     render();
     var li = document.querySelectorAll('article.card[data-gi="' + DATA.indexOf(c.g) + '"][data-ii="' + c.g.items.indexOf(c.it) + '"] ul.fl li[data-j]'); li = li[li.length - 1];
@@ -1927,7 +1928,7 @@ chips(); render();
       var o = await form("Вкус", [{k:"n", l:"Название вкуса", v:name},{k:"q", l:"Пометка (например: 2 шт; необязательно)", v: rv ? "" : qty, ph:"2 шт"}], "Сохранить");
       if(!o) return;
       var nn = clean(o.n); if(!nn){ say("Название не может быть пустым"); return; }
-      var nq = rv ? qty : clean(o.q);
+      var nq = rv ? qty : qfix(clean(o.q));
       c.it.f[c.j] = nn + (nq ? " · " + nq : "");
       if(nn !== name) EDIT.log.push("Вкус переименован: " + c.it.n + " — " + name + " → " + nn);
       if(!rv && nq !== qty) EDIT.log.push("Изменено количество: " + c.it.n + " — " + nn + (nq ? " (" + nq + ")" : " (без пометки)"));
