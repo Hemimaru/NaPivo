@@ -286,7 +286,7 @@ telegram: kooot45
 ## BRUSKO VILTER S | - | 30 | 41.jpg
 - Цвет: серый · 13 шт
 
-## Тест | - | 2000 | umwhkuqzi.jpg
+## Тест | - | 50 | umwhkuqzi.jpg
 - Розовый
 - Красный · 55 шт
 
