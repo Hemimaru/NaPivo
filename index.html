@@ -1053,7 +1053,7 @@ chips(); render();
     setTotal(keys.length ? sum : null);
     window.syncAdd(); save();
   }
-  function priceNum(v){ var x = parseFloat(String(v).replace(",", ".")); return isNaN(x) ? 0 : x; }
+  function priceNum(v){ var x = parseFloat(String(v).replace(/[\s\u00a0\u202f]/g, "").replace(",", ".")); return isNaN(x) ? 0 : x; }
   function fmt(x){ return (Math.round(x * 100) / 100).toString(); }
   var totShown = 0, totRaf = 0;
   function setTotal(v){
@@ -2465,14 +2465,14 @@ chips(); render();
         }
         g.items.forEach(function(it){
           var key = useOrigin ? (it._o !== undefined ? it._o : "+" + it.n) : it.n;
-          o.lines[key] = {n:it.n, img:it.img || "", fl:names(it), s:it.s || 0, p:String(it.p || "")};
+          o.lines[key] = {n:it.n, img:it.img || "", fl:names(it), s:it.s || 0, p:String(it.p || "").replace(/[\s\u00a0\u202f]/g, "")};
           o.secs[t].push(key);
         });
         return;
       }
       g.items.forEach(function(it){
         var key = useOrigin ? (it._o !== undefined ? it._o : "+" + it.n) : it.n;
-        o.lines[key] = {n:it.n, img:it.img || "", s:it.s || 0, p:String(it.p || ""), fl:it.f.map(function(f){ var p = f.split(" · "), r = rvOf(p[1]); return {t:p[0] + (p[1] && !r ? " · " + p[1] : ""), r:!!r && !r.expired}; })};
+        o.lines[key] = {n:it.n, img:it.img || "", s:it.s || 0, p:String(it.p || "").replace(/[\s\u00a0\u202f]/g, ""), fl:it.f.map(function(f){ var p = f.split(" · "), r = rvOf(p[1]); return {t:p[0] + (p[1] && !r ? " · " + p[1] : ""), r:!!r && !r.expired}; })};
         o.secs[t].push(key);
       });
     });
@@ -2613,7 +2613,7 @@ chips(); render();
     Object.keys(idx).forEach(function(key){ var ref = idx[key]; if(ref.ri && !claimed[key]) free.push({ref:ref, n:0, ri:ref.ri}); });
     Object.keys(manQ).forEach(function(key){ if(idx[key]) for(var u = 0; u < manQ[key]; u++) free.push({ref:idx[key], n:1, ri:null}); });
     free.sort(function(a, b){ return a.ref.gi - b.ref.gi || a.ref.ii - b.ref.ii || a.ref.j - b.ref.j; });
-    function price(r){ return parseFloat(String(r.ref.it.p).replace(",", ".")) || 0; }
+    function price(r){ return parseFloat(String(r.ref.it.p).replace(/[\s\u00a0\u202f]/g, "").replace(",", ".")) || 0; }
     function cnt(r){ return r.n ? r.n : (r.ri && r.ri.expired ? 0 : 1); }
     function rowsHtml(rows, selectable, code){
       var order = [], by = {};
