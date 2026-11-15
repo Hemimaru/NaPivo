@@ -750,11 +750,26 @@ function setEt(n, on, newName){   // отметка «едет 🚚» у лин�
   for(var i = PRE.length - 1; i >= 0; i--){ var x = PRE[i].trim().match(/^\/\/\s*едет\s*\|\s*(.+?)\s*$/); if(x && x[1].toLowerCase() === k) PRE.splice(i, 1); }
   if(on) PRE.push("//едет | " + (newName || n));
 }
+function lineNewT(n){   // «новинка» у самой линейки (когда она добавлена целиком): строка «//новинка линейка | t:… | Название»
+  var k = String(n).trim().toLowerCase(), t = 0;
+  PRE.forEach(function(l){ var x = l.trim().match(/^\/\/\s*новинка линейка\s*\|\s*t:(\d+)\s*\|\s*(.+?)\s*$/); if(x && x[2].toLowerCase() === k) t = +x[1] * 1000; });
+  return t;
+}
+function isLineNew(n){ var t = lineNewT(n); return !!t && Date.now() - t < NEW_MS && Date.now() >= t - 60e3; }
+function dropLineNew(n){
+  var k = String(n).trim().toLowerCase();
+  for(var i = PRE.length - 1; i >= 0; i--){ var x = PRE[i].trim().match(/^\/\/\s*новинка линейка\s*\|\s*t:\d+\s*\|\s*(.+?)\s*$/); if(x && x[1].toLowerCase() === k) PRE.splice(i, 1); }
+}
+function stampLine(n){ dropLineNew(n); PRE.push("//новинка линейка | t:" + Math.floor(Date.now() / 1000) + " | " + n); }
+function flavNewOn(line, flavor){ var t = newMap()[line + "\u0001" + flavor]; return !!t && Date.now() - t < NEW_MS && Date.now() >= t - 60e3; }
+function dropNew(line, flavor){
+  for(var i = PRE.length - 1; i >= 0; i--){ var x = PRE[i].trim().match(/^\/\/\s*новинка\s*\|\s*t:\d+\s*\|\s*(.+?)\s*::\s*(.+)$/); if(x && x[1] === line && x[2] === flavor) PRE.splice(i, 1); }
+}
 function stampNew(line, flavor){
   var now = Date.now();
   for(var i = PRE.length - 1; i >= 0; i--){
-    var x = PRE[i].trim().match(/^\/\/\s*новинка\s*\|\s*t:(\d+)\s*\|/);
-    if(x && now - (+x[1]) * 1000 > 30*24*3600e3) PRE.splice(i, 1);
+    var x = PRE[i].trim().match(/^\/\/\s*новинка( линейка)?\s*\|\s*t:(\d+)\s*\|/);
+    if(x && now - (+x[2]) * 1000 > 30*24*3600e3) PRE.splice(i, 1);
   }
   PRE.push("//новинка | t:" + Math.floor(now / 1000) + " | " + line + " :: " + flavor);
 }
@@ -772,7 +787,7 @@ function card(it,q,single){
   var img = it.img ? '<img class="pic"'+(EDIT?' data-e="pic"':'')+' alt="'+esc(it.n)+'" loading="lazy" src="'+picSrc(it.img)+'">' : (EDIT ? '<div class="pic nopic" data-e="pic" contenteditable="true" spellcheck="false">Без изображения</div>' : '<div class="pic"></div>');
   var gi = DATA.indexOf(it.g), ii = it.g.items.indexOf(it);
   var list = vis(it,q), et = isEt(it.n), lock = et && !EDIT;
-  return '<article class="card'+(single?' one':'')+'" data-gi="'+gi+'" data-ii="'+ii+'">'+img+'<div><div class="top">'+(EDIT?'<span class="cgrip" data-e="cgrip" aria-label="Перетащить линейку"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span>':'')+'<h3'+(EDIT?' data-e="line"':'')+'>'+hl(it.n,q)+(et?'<span class="qty et">🚚 едет</span>':'')+'</h3><div class="pills"'+(EDIT?' data-e="line"':'')+'>'+pills+'</div></div><ul class="fl">'+list.map(function(a){return flav(a[0],q,it.id+"."+a[1],a[1],it.n,lock);}).join("")+(EDIT?'<li class="addf" data-e="addf">+ Добавить вкус</li>':"")+'</ul></div></article>';
+  return '<article class="card'+(single?' one':'')+'" data-gi="'+gi+'" data-ii="'+ii+'">'+img+'<div><div class="top">'+(EDIT?'<span class="cgrip" data-e="cgrip" aria-label="Перетащить линейку"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span>':'')+'<h3'+(EDIT?' data-e="line"':'')+'>'+hl(it.n,q)+(et?'<span class="qty et">едет 🚚</span>':'')+(isLineNew(it.n)?'<span class="qty nw">'+IC.nw+'новинка</span>':'')+'</h3><div class="pills"'+(EDIT?' data-e="line"':'')+'>'+pills+'</div></div><ul class="fl">'+list.map(function(a){return flav(a[0],q,it.id+"."+a[1],a[1],it.n,lock);}).join("")+(EDIT?'<li class="addf" data-e="addf">+ Добавить вкус</li>':"")+'</ul></div></article>';
 }
 function render(){
   var q = state.q.trim().toLowerCase(), html = "", shown = 0, nf = 0, tg = state.tags.length && !EDIT;
@@ -1891,7 +1906,7 @@ chips(); render();
     if(!o) return;
     var nn = clean(o.n); if(!nn){ say("Название не может быть пустым"); return; }
     var nq = qfix(clean(o.q));
-    c.it.f.push(nn + (nq ? " · " + nq : "")); stampNew(c.it.n, nn); EDIT.log.push("Добавлен вкус: " + c.it.n + " — " + nn);
+    c.it.f.push(nn + (nq ? " · " + nq : "")); if(!isLineNew(c.it.n)) stampNew(c.it.n, nn); EDIT.log.push("Добавлен вкус: " + c.it.n + " — " + nn);
     render();
     var li = document.querySelectorAll('article.card[data-gi="' + DATA.indexOf(c.g) + '"][data-ii="' + c.g.items.indexOf(c.it) + '"] ul.fl li[data-j]'); li = li[li.length - 1];
     if(li){ li.scrollIntoView({block:"center", behavior:"smooth"}); if(!rm && li.animate) li.animate([{background:"var(--accent)",opacity:.4},{background:"transparent",opacity:1}],{duration:900}); }
@@ -1908,6 +1923,7 @@ chips(); render();
     var rl = relocate(it, g, np, ns);
     EDIT.log.push("Добавлена линейка: " + nn + (rl.note ? " (" + rl.note + ")" : " — " + gtitle(rl.moved || g)));
     if(!it.f.length && !g.liq) it.f.push("-");
+    stampLine(nn);   // новая линейка целиком: плашка «новинка» у самой линейки, а не у вкусов
     fixup(); render();
     say("Линейка добавлена. Нажмите «Добавить вкус» и картинку"); focusItem(it);
   }
@@ -1937,6 +1953,8 @@ chips(); render();
     var f = c.it.f[c.j], parts = f.split(" · "), name = parts[0], qty = parts[1] || "", ri = rvOf(qty), rv = !!ri;
     var opts = [{t:"Редактировать", k:"edit"}];
     if(rv){ opts.push({t:"Изменить срок брони", k:"term"}); opts.push({t:"Снять бронь", k:"off"}); } else opts.push({t:"Отметить как забронированный", k:"on"});
+    var fnew = flavNewOn(c.it.n, name);
+    opts.push(fnew ? {t:"Убрать плашку «новинка»", k:"nwoff"} : {t:"Отметить как новинку", k:"nwon"});
     opts.push({t:"Удалить", d:1, k:"del"});
     var i = await sheet(c.it.n + " — " + name + (rv ? " (" + rvLabel(ri) + ")" : ""), opts), act = opts[i] && opts[i].k;
     if(act === "edit"){
@@ -1971,6 +1989,10 @@ chips(); render();
       c.it.f[c.j] = name + " · " + rvText(u);
       EDIT.log.push((act === "on" ? "Забронирован: " : "Изменён срок брони: ") + c.it.n + " — " + name + (u ? " (до " + mskStr(u) + ")" : " (без срока)"));
       render();
+    } else if(act === "nwon"){
+      stampNew(c.it.n, name); EDIT.log.push("Отмечено новинкой: " + c.it.n + " — " + name); render();
+    } else if(act === "nwoff"){
+      dropNew(c.it.n, name); EDIT.log.push("Убрана плашка «новинка»: " + c.it.n + " — " + name); render();
     } else if(act === "off"){
       c.it.f[c.j] = name; EDIT.log.push("Снята бронь: " + c.it.n + " — " + name);
       render();
@@ -1990,8 +2012,8 @@ chips(); render();
     }
   }
   async function onLine(c){
-    var et = isEt(c.it.n);
-    var i = await sheet("Линейка «" + c.it.n + "»", [{t:"Редактировать"},{t: et ? "Снять отметку «едет» (станет новинкой)" : "Отметить как «едет» 🚚"},{t:"Удалить линейку", d:1}]);
+    var et = isEt(c.it.n), lnew = isLineNew(c.it.n);
+    var i = await sheet("Линейка «" + c.it.n + "»", [{t:"Редактировать"},{t: et ? "Снять отметку «едет» (станет новинкой)" : "Отметить как «едет» 🚚"},{t: lnew ? "Убрать плашку «новинка»" : "Отметить как новинку"},{t:"Удалить линейку", d:1}]);
     if(i === 0){
       var o = await form("Линейка", [{k:"n", l:"Название", v:c.it.n},{k:"s", l:"Крепость (пусто, если не нужна)", v:String(c.it.s || "")},{k:"p", l:"Цена", v:c.it.p}], "Сохранить");
       if(!o) return;
@@ -1999,7 +2021,7 @@ chips(); render();
       var ns = parseInt(o.s, 10) || 0, np = clean(o.p), o0p = c.it.p;
       var oldN = c.it.n, oldP = c.it.p, oldS = c.it.s;
       c.it.n = nn; c.it.s = ns; c.it.p = np;
-      if(nn !== oldN){ EDIT.log.push("Линейка переименована: " + oldN + " → " + nn); if(et){ setEt(oldN, false); setEt(nn, true); } }
+      if(nn !== oldN){ EDIT.log.push("Линейка переименована: " + oldN + " → " + nn); if(et){ setEt(oldN, false); setEt(nn, true); } if(lineNewT(oldN)){ var t0 = lineNewT(oldN); dropLineNew(oldN); PRE.push("//новинка линейка | t:" + Math.floor(t0 / 1000) + " | " + nn); } }
       if(ns !== oldS) EDIT.log.push("Крепость изменена: " + nn + " — " + (oldS || "-") + " → " + (ns || "-"));
       var rl = (np !== oldP) ? relocate(c.it, c.g, np, ns) : {moved:null, note:""}, moved = rl.moved, note = rl.note;
       if(np !== oldP) EDIT.log.push("Цена изменена: " + nn + " — " + oldP + " → " + np + (note ? " (" + note + ")" : ""));
@@ -2008,14 +2030,21 @@ chips(); render();
     } else if(i === 1){
       if(et){
         setEt(c.it.n, false);
-        c.it.f.forEach(function(f){ stampNew(c.it.n, f.split(" · ")[0]); });   // приехала: вкусы получают плашку «новинка» на 3 дня
+        stampLine(c.it.n);   // приехала: плашка «новинка» у линейки на 3 дня
         EDIT.log.push("Линейка приехала: " + c.it.n + " (новинка на 3 дня)");
       } else { setEt(c.it.n, true); EDIT.log.push("Отмечено «едет»: " + c.it.n); }
       render();
     } else if(i === 2){
+      if(lnew){
+        dropLineNew(c.it.n); c.it.f.forEach(function(f){ dropNew(c.it.n, f.split(" · ")[0]); });
+        EDIT.log.push("Убрана плашка «новинка»: " + c.it.n);
+      } else { stampLine(c.it.n); EDIT.log.push("Отмечено новинкой: " + c.it.n); }
+      render();
+    } else if(i === 3){
       if(!(await confirmDel("Удалить линейку «" + c.it.n + "» вместе со всеми вкусами (" + c.it.f.length + ")?"))) return;
       await fade(c.card);
       if(et) setEt(c.it.n, false);
+      dropLineNew(c.it.n);
       c.g.items.splice(c.g.items.indexOf(c.it), 1); EDIT.log.push("Удалена линейка: " + c.it.n); fixup(); render();
     }
   }
