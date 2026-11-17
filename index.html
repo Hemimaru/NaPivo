@@ -1968,12 +1968,19 @@ chips(); render();
       if(!rv && nq !== qty) EDIT.log.push("Изменено количество: " + c.it.n + " — " + nn + (nq ? " (" + nq + ")" : " (без пометки)"));
       render();
     } else if(act === "on" && /^\d+\s*шт/i.test(qty) && parseInt(qty, 10) >= 2){
-      var have = parseInt(qty, 10), btn = [], k;
-      for(k = 1; k < have && k <= 8; k++) btn.push({t:String(k)});
-      btn.push({t:"Все (" + have + ")"}); btn.push({t:"Отмена"});
+      var have = parseInt(qty, 10), btn = [{t:"1", n:1}];
+      if(have > 2) btn.push({t:"2", n:2});
+      if(have > 3) btn.push({t:"Другое число…", n:-1});
+      btn.push({t:"Все (" + have + ")", n:have}); btn.push({t:"Отмена", n:0});
       var pk = await sheet("Сколько бронировать? Есть " + have + " шт: " + c.it.n + " — " + name, btn);
-      if(pk < 0 || pk >= btn.length - 1) return;
-      var take = pk === btn.length - 2 ? have : pk + 1;
+      if(pk < 0 || !btn[pk].n) return;
+      var take = btn[pk].n;
+      if(take < 0){
+        var oc = await form("Сколько бронировать", [{k:"c", l:"Количество (от 1 до " + have + ")", v:"", ph:"5", type:"number"}], "Далее");
+        if(!oc) return;
+        take = parseInt(oc.c, 10);
+        if(!(take >= 1 && take <= have)){ say("Введите число от 1 до " + have); return; }
+      }
       if(take < have){
         c.it.f[c.j] = name + " · " + (have - take) + " шт";
         PRE.push("//код " + String(10000 + Date.now() % 90000) + " | рука | q:" + c.it.n + " :: " + name + " :: " + take);
