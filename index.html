@@ -773,11 +773,10 @@ function stampNew(line, flavor){
   }
   PRE.push("//новинка | t:" + Math.floor(now / 1000) + " | " + line + " :: " + flavor);
 }
-var CUR_LIQ = false;
 function flav(f,q,k,j,ln,lk){
   var parts = f.split(" · "), name = parts[0], qty = parts[1], ri = rvOf(qty), rv = !!ri && !ri.expired;
   if(ri && ri.expired && !EDIT) qty = "";
-  if(!EDIT && CUR_LIQ && !ri && qty && (parseInt(qty,10)||0) === 1) qty = "";   // в «Жидкостях» 1 банка и так по умолчанию: метку «1 шт» не показываем (от 2 шт показываем)
+  if(!EDIT && !ri && qty && (parseInt(qty,10)||0) === 1) qty = "";   // метку «1 шт» нигде не показываем (в корзине всё равно максимум 1), от 2 шт показываем
   var nt = ln ? newMap()[ln + "\u0001" + name] : 0, nb = (nt && Date.now() - nt < NEW_MS && Date.now() >= nt - 60e3) ? '<span class="qty nw">' + IC.nw + 'новинка</span>' : "";
   if(EDIT) return '<li data-e="fl" data-j="'+j+'"'+(rv?' class="rv"':'')+'><span class="ft">'+esc(name)+(qty?'<span class="qty'+(ri?' resv':'')+'">'+(ri?IC.bk:IC.pk)+esc(ri?rvLabel(ri):qty)+"</span>":"")+nb+'</span><span class="grip" data-e="grip" aria-label="Перетащить"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span></li>';
   if(lk && !EDIT) return '<li class="lk"><span class="ft">'+hl(name,q)+(qty?'<span class="qty">'+IC.pk+esc(qty)+"</span>":"")+nb+'</span></li>';
@@ -803,7 +802,7 @@ function render(){
     });
     if(!items.length) return;
     shown += items.length;
-    var head = g.head; CUR_LIQ = !!g.liq;
+    var head = g.head;
     html += '<section class="group" id="s-'+g.id+'"><div class="ghead"><h2>'+head+'</h2><span>'+items.length+' '+(g.liq?"линеек":"поз.")+'</span></div><div class="grid">'+
       items.map(function(it,k){return card(it,q,items.length%2===1 && k===items.length-1 && items.length>1 && false);}).join("")+'</div>'+(EDIT?'<button class="addl" type="button" data-e="addl" data-gi="'+DATA.indexOf(g)+'">+ Добавить линейку</button>':'')+'</section>';
   });
