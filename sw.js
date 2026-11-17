@@ -31,7 +31,7 @@ async function netFirst(q, u){
   var c = await caches.open(V), scope = self.registration.scope;
   var key = q.mode === "navigate" ? scope : new URL(u.pathname, u.origin).href;
   try{
-    var r = await Promise.race([fetch(q), new Promise(function(_, no){ setTimeout(no, 4000); })]);
+    var r = await Promise.race([fetch(q, {cache: "no-cache"}), new Promise(function(_, no){ setTimeout(no, 4000); })]);
     if(r && r.ok) c.put(key, r.clone());
     return r;
   }catch(err){
