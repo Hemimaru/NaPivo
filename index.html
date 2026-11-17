@@ -181,7 +181,7 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .step i{min-width:20px;text-align:center;font-style:normal;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums}
 .cart-f{padding:14px 16px;border-top:1px solid var(--line);display:grid;gap:8px}
 .cart-f p{margin:0;font-size:12px;color:var(--muted)}
-.buy{display:block;text-align:center;text-decoration:none;padding:14px;border-radius:12px;background:var(--accent);color:var(--accent-fg);font-weight:800;font-size:16px}
+.buy{display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;text-decoration:none;padding:14px;border-radius:12px;background:var(--accent);color:var(--accent-fg);font-weight:800;font-size:16px}
 .buy[aria-disabled="true"]{opacity:.4;pointer-events:none}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:50;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:999px;background:var(--fg);color:var(--bg);font-size:14px;font-weight:700;text-align:center}
 .toast[hidden]{display:none}
@@ -313,7 +313,7 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .cart-tot[hidden]{display:none}
 .cart-tot span{color:var(--muted);font-size:13px;font-weight:700}
 .cart-tot b{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
-.fly{position:fixed;z-index:80;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--accent);pointer-events:none;box-shadow:0 0 0 4px rgba(255,92,138,.25)}
+.fly{position:fixed;z-index:80;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--accent);pointer-events:none;box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent)}
 .grip{margin-left:auto;flex:none;padding:8px 6px 8px 12px;color:var(--muted);cursor:grab;touch-action:none;display:inline-flex;align-items:center}
 ul.fl li.dragging{position:relative;z-index:5;background:var(--surface-2);box-shadow:0 8px 22px rgba(0,0,0,.35);cursor:grabbing}
 body.editing .card{position:relative}
@@ -617,7 +617,7 @@ html.dm .card{box-shadow:0 1px 3px rgba(18,51,42,.12)}
   <div class="cart-list" id="cartList"></div>
   <div class="cart-f">
     <div class="cart-tot" id="cartTotW" hidden><span>Итого</span><b id="cartTot">0</b></div>
-    <a class="buy" id="buy" href="https://t.me/kooot45" target="_blank" rel="noopener" aria-disabled="true">Купить</a>
+    <a class="buy" id="buy" href="https://t.me/kooot45" target="_blank" rel="noopener" aria-disabled="true"><svg class="tgi" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>Перейти в чат с продавцом</a>
     <p id="tgnote">Заказ скопируется, и откроется чат в Telegram. Вставьте текст в сообщение и отправьте.</p>
   </div>
 </aside>
@@ -1208,12 +1208,12 @@ chips(); render();
     last.onfinish = done;
   }
   $("clr").addEventListener("click", clearCart);
-  var flashT = 0;
+  var flashT = 0, BUY_HTML = buy.innerHTML;   // исходная надпись кнопки (иконка Telegram и текст)
   function buyFlash(){
     clearTimeout(flashT);
-    buy.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px;margin-right:6px"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Скопировано';
+    buy.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="flex:none"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Скопировано';
     if(!reduce && buy.animate) buy.animate([{transform:"scale(.94)"},{transform:"scale(1.04)",offset:.6},{transform:"scale(1)"}],{duration:320,easing:"ease-out"});
-    flashT = setTimeout(function(){ if(!buy.animate || reduce){ buy.textContent = "Купить"; return; } var a = buy.animate([{opacity:1},{opacity:0}],{duration:140}); a.onfinish = function(){ buy.textContent = "Купить"; buy.animate([{opacity:0},{opacity:1}],{duration:180}); }; }, 1500);
+    flashT = setTimeout(function(){ if(!buy.animate || reduce){ buy.innerHTML = BUY_HTML; return; } var a = buy.animate([{opacity:1},{opacity:0}],{duration:140}); a.onfinish = function(){ buy.innerHTML = BUY_HTML; buy.animate([{opacity:0},{opacity:1}],{duration:180}); }; }, 1500);
   }
   function afterBuy(){ buyFlash(); setTimeout(clearCart, 600); }
   document.addEventListener("keydown",function(e){ if(e.key==="Escape" && !panel.hidden) openCart(false); });
