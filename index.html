@@ -194,6 +194,8 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .cart-f p{margin:0;font-size:12px;color:var(--muted)}
 .buy{display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;text-decoration:none;padding:14px;border-radius:12px;background:var(--accent);color:var(--accent-fg);font-weight:800;font-size:16px}
 .buy[aria-disabled="true"]{opacity:.4;pointer-events:none}
+.cbk{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font:inherit;font-weight:700;font-size:15px;cursor:pointer}
+.cbk:active{transform:scale(.98)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:50;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:999px;background:var(--fg);color:var(--bg);font-size:14px;font-weight:700;text-align:center}
 .toast[hidden]{display:none}
 .stp{display:flex;align-items:center;gap:2px;border:1.5px solid var(--accent);border-radius:999px;padding:1px}
@@ -629,6 +631,7 @@ html:is(.ny,.hw,.m8,.v14,.f23,.br) .modebtn{display:none}
   <div class="cart-f">
     <div class="cart-tot" id="cartTotW" hidden><span>Итого</span><b id="cartTot">0</b></div>
     <a class="buy" id="buy" href="https://t.me/kooot45" target="_blank" rel="noopener" aria-disabled="true">Купить</a>
+    <button class="cbk" id="cartBk" type="button"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l-6 6 6 6"/></svg>Вернуться в прайс</button>
     <p id="tgnote">Заказ скопируется, и откроется чат в Telegram. Вставьте текст в сообщение и отправьте.</p>
   </div>
 </aside>
@@ -1151,6 +1154,7 @@ chips(); render();
   });
   $("fab").addEventListener("click",function(){ openCart(true); });
   $("cx").addEventListener("click",function(){ openCart(false); });
+  $("cartBk").addEventListener("click",function(){ openCart(false); });
   back.addEventListener("click",function(){ openCart(false); });
   /* Свайпы: справа налево открывает корзину, слева направо закрывает и возвращает в прайс на то же место (страница под корзиной не прокручивается). Панель едет за пальцем. */
   (function(){
