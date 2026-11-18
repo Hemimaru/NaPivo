@@ -167,7 +167,16 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .cart[hidden],.cart-back[hidden]{display:none}
 .cart-h{display:flex;align-items:center;gap:10px;padding:16px;border-bottom:1px solid var(--line)}
 .cart-h h2{margin:0;font-family:var(--display);font-weight:500;font-size:18px;text-transform:uppercase;letter-spacing:.02em}
-.cart-h .clr{margin-left:auto;border:0;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline}
+.cart-h .hist{margin-left:auto;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font:inherit;font-size:12.5px;font-weight:600;border-radius:999px;padding:6px 11px;cursor:pointer;white-space:nowrap}
+.cart-h .clr{border:0;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline}
+.oh{padding:12px 16px;border-bottom:1px solid var(--line)}
+.oh .od{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.oh .od b{color:var(--fg)}
+.oh .ol{display:flex;gap:10px;align-items:center;padding:4px 0;font-size:14px}
+.oh .ol img,.oh .ol i{width:34px;height:34px;border-radius:8px;object-fit:cover;flex:none;background:var(--surface-2)}
+.oh .ol span{flex:1;min-width:0}.oh .ol small{display:block;color:var(--muted);font-size:11.5px}
+.oh .ol em{font-style:normal;color:var(--muted);font-size:13px;white-space:nowrap}
+.cart.hv .cart-f{display:none}.cart.hv .clr{display:none}
 .cart-h .x{width:36px;height:36px;border-radius:50%;border:0;background:var(--surface-2);color:var(--fg);font-size:20px;line-height:1;cursor:pointer}
 .cart-list{flex:1;min-height:0;overflow-y:auto;padding:8px 16px}
 .cart-empty{margin:40px 0;text-align:center;color:var(--muted)}
@@ -613,7 +622,7 @@ html:is(.ny,.hw,.m8,.v14,.f23,.br) .modebtn{display:none}
 <button class="fab" id="fab" type="button" aria-label="Открыть корзину">Корзина <b id="fabN">0</b></button>
 <div class="cart-back" id="cartBack" hidden></div>
 <aside class="cart" id="cart" hidden role="dialog" aria-modal="true" aria-label="Корзина">
-  <div class="cart-h"><h2>Корзина</h2><button class="clr" id="clr" type="button">Очистить</button><button class="x" id="cx" type="button" aria-label="Закрыть">×</button></div>
+  <div class="cart-h"><h2 id="cartTitle">Корзина</h2><button class="hist" id="hist" type="button">Недавние заказы</button><button class="clr" id="clr" type="button">Очистить</button><button class="x" id="cx" type="button" aria-label="Закрыть">×</button></div>
   <div class="cart-list" id="cartList"></div>
   <div class="cart-f">
     <div class="cart-tot" id="cartTotW" hidden><span>Итого</span><b id="cartTot">0</b></div>
@@ -1047,6 +1056,7 @@ chips(); render();
   function draw(){
     var keys = Object.keys(cart);
     $("fabN").textContent = count();
+    if(histOn){ setTotal(null); window.syncAdd(); save(); return; }
     if(!keys.length){
       listEl.innerHTML = '<p class="cart-empty">Корзина пуста. Нажмите «+» рядом с вкусом, чтобы добавить его.</p>';
       buy.setAttribute("aria-disabled","true"); buy.href = "https://t.me/"+CFG.telegram;
@@ -1105,6 +1115,7 @@ chips(); render();
   function openCart(o){
     cartAnim.forEach(function(a){ try{ a.cancel(); }catch(e){} }); cartAnim = [];
     if(o){
+      if(histOn) showHist(false);
       panel.hidden = false; back.hidden = false;
       if(reduce || !panel.animate) return;
       cartAnim.push(panel.animate([{transform:"translateX(100%)"},{transform:"none"}],{duration:340,easing:"cubic-bezier(.2,.8,.2,1)"}));
@@ -1223,7 +1234,35 @@ chips(); render();
     if(!reduce && buy.animate) buy.animate([{transform:"scale(.94)"},{transform:"scale(1.04)",offset:.6},{transform:"scale(1)"}],{duration:320,easing:"ease-out"});
     flashT = setTimeout(function(){ if(!buy.animate || reduce){ buy.innerHTML = BUY_HTML; return; } var a = buy.animate([{opacity:1},{opacity:0}],{duration:140}); a.onfinish = function(){ buy.innerHTML = BUY_HTML; buy.animate([{opacity:0},{opacity:1}],{duration:180}); }; }, 1500);
   }
-  function afterBuy(){ buyFlash(); setTimeout(clearCart, 600); }
+  var HK = "napivo-orders", histOn = false;
+  function loadHist(){ try{ var a = JSON.parse(localStorage.getItem(HK)||"[]"); return Array.isArray(a) ? a : []; }catch(e){ return []; } }
+  function pushHist(){
+    var items = Object.keys(cart).filter(function(k){ return LOOK[k]; }).map(function(k){ var l = LOOK[k]; return {n:l.n, f:l.f, img:l.img||"", p:l.p, q:cart[k]}; });
+    if(!items.length) return;
+    var sum = items.reduce(function(a,i){ return a + priceNum(i.p)*i.q; }, 0), h = loadHist();
+    h.unshift({t:Date.now(), items:items, sum:sum});
+    try{ localStorage.setItem(HK, JSON.stringify(h.slice(0,30))); }catch(e){}
+    if(histOn) drawHist();
+  }
+  function drawHist(){
+    var h = loadHist();
+    listEl.innerHTML = h.length ? h.map(function(o){
+      var d = new Date(o.t), ds = ""; try{ ds = d.toLocaleString("ru-RU",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Minsk"}); }catch(e){ ds = d.toLocaleString(); }
+      return '<div class="oh"><div class="od"><span>'+esc(ds)+'</span>'+(o.sum ? '<b>'+fmt(o.sum)+'</b>' : '')+'</div>'+o.items.map(function(i){
+        var pr = priceNum(i.p);
+        return '<div class="ol">'+(i.img ? '<img alt="" src="'+picSrc(i.img)+'" onerror="this.outerHTML=\'<i></i>\'">' : '<i></i>')+'<span><small>'+esc(i.n)+'</small>'+esc(i.f)+'</span><em>'+(i.q>1 ? '× '+i.q : '')+(pr ? (i.q>1 ? ' · ' : '')+fmt(pr*i.q) : '')+'</em></div>';
+      }).join("")+'</div>';
+    }).join("") : '<p class="cart-empty">Заказов пока нет. Когда нажмёте «Купить», заказ появится здесь.</p>';
+  }
+  function showHist(on){
+    histOn = on; panel.classList.toggle("hv", on);
+    $("cartTitle").textContent = on ? "Заказы" : "Корзина";
+    $("hist").textContent = on ? "Назад в корзину" : "Недавние заказы";
+    if(on){ drawHist(); listEl.scrollTop = 0; } else draw();
+    if(!reduce && listEl.animate) listEl.animate([{opacity:0,transform:"translateY(8px)"},{opacity:1,transform:"none"}],{duration:240,easing:"ease-out"});
+  }
+  $("hist").addEventListener("click", function(){ showHist(!histOn); });
+  function afterBuy(){ pushHist(); buyFlash(); setTimeout(clearCart, 600); }
   document.addEventListener("keydown",function(e){ if(e.key==="Escape" && !panel.hidden) openCart(false); });
   buy.addEventListener("click",function(e){
     if(!count()){ e.preventDefault(); return; }
