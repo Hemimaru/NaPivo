@@ -194,8 +194,18 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .cart-f p{margin:0;font-size:12px;color:var(--muted)}
 .buy{display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;text-decoration:none;padding:14px;border-radius:12px;background:var(--accent);color:var(--accent-fg);font-weight:800;font-size:16px}
 .buy[aria-disabled="true"]{opacity:.4;pointer-events:none}
-.cbk{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font:inherit;font-weight:700;font-size:15px;cursor:pointer}
-.cbk:active{transform:scale(.98)}
+.cart-h{padding:22px 20px 6px;border-bottom:0}
+.cart-h h2{font-size:22px;margin-right:auto}
+.cart-h .x{width:42px;height:42px}
+.cart-h .clr[hidden]{display:none}
+.ctabs{display:flex;margin:12px 20px 0;padding:4px;border-radius:14px;background:var(--surface-2);flex:none}
+.ctabs button{flex:1;border:0;border-radius:11px;padding:10px;background:none;color:var(--muted);font:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:background .22s,color .22s}
+.ctabs button.on{background:var(--accent);color:var(--accent-fg)}
+.cart-list{padding:8px 20px}
+.cart-empty{margin:64px 0 0}
+.cart-f{border-top:0;padding:8px 20px 22px;gap:14px}
+.cart-f .buy{padding:17px;font-size:17px;border-radius:16px}
+.cart-f p{text-align:center;line-height:1.45;padding:0 8px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:50;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:999px;background:var(--fg);color:var(--bg);font-size:14px;font-weight:700;text-align:center}
 .toast[hidden]{display:none}
 .stp{display:flex;align-items:center;gap:2px;border:1.5px solid var(--accent);border-radius:999px;padding:1px}
@@ -626,13 +636,13 @@ html:is(.ny,.hw,.m8,.v14,.f23,.br) .modebtn{display:none}
 <button class="fab" id="fab" type="button" aria-label="Открыть корзину">Корзина <b id="fabN">0</b></button>
 <div class="cart-back" id="cartBack" hidden></div>
 <aside class="cart" id="cart" hidden role="dialog" aria-modal="true" aria-label="Корзина">
-  <div class="cart-h"><h2 id="cartTitle">Корзина</h2><button class="hist" id="hist" type="button">Недавние заказы</button><button class="clr" id="clr" type="button">Очистить</button><button class="x" id="cx" type="button" aria-label="Закрыть">×</button></div>
+  <div class="cart-h"><h2 id="cartTitle">Корзина</h2><button class="hist" id="hist" type="button" hidden>Недавние заказы</button><button class="clr" id="clr" type="button" hidden>Очистить</button><button class="x" id="cx" type="button" aria-label="Закрыть">×</button></div>
+  <div class="ctabs" id="ctabs" role="tablist"><button type="button" id="tabCart" role="tab" aria-selected="true" class="on">Корзина</button><button type="button" id="tabHist" role="tab" aria-selected="false">Недавние заказы</button></div>
   <div class="cart-list" id="cartList"></div>
   <div class="cart-f">
     <div class="cart-tot" id="cartTotW" hidden><span>Итого</span><b id="cartTot">0</b></div>
     <a class="buy" id="buy" href="https://t.me/kooot45" target="_blank" rel="noopener" aria-disabled="true">Купить</a>
-    <button class="cbk" id="cartBk" type="button"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l-6 6 6 6"/></svg>Вернуться в прайс</button>
-    <p id="tgnote">Заказ скопируется, и откроется чат в Telegram. Вставьте текст в сообщение и отправьте.</p>
+    <p id="tgnote">Заказ скопируется и откроется Telegram. Вставьте его в чат.</p>
   </div>
 </aside>
 <div class="editbar" id="editbar" hidden><b>Редактирование прайса</b><button class="ghost" id="ebCancel" type="button">Отмена</button><button id="ebSave" type="button">Сохранить</button><div class="ebrow"><button class="ghost ebmenu" id="ebMenu" type="button" aria-label="Разделы" aria-expanded="false" aria-controls="ebNav"><svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M1 1.5h18M1 7h18M1 12.5h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><input class="ebq" id="ebQ" type="search" placeholder="Найти вкус, линейку или картридж" autocomplete="off" aria-label="Поиск по прайсу"><div class="ebnav" id="ebNav" role="menu" hidden></div></div></div>
@@ -1061,6 +1071,7 @@ chips(); render();
   function draw(){
     var keys = Object.keys(cart);
     $("fabN").textContent = count();
+    $("clr").hidden = !keys.length;
     if(histOn){ setTotal(null); window.syncAdd(); save(); return; }
     if(!keys.length){
       listEl.innerHTML = '<p class="cart-empty">Корзина пуста. Нажмите «+» рядом с вкусом, чтобы добавить его.</p>';
@@ -1154,7 +1165,6 @@ chips(); render();
   });
   $("fab").addEventListener("click",function(){ openCart(true); });
   $("cx").addEventListener("click",function(){ openCart(false); });
-  $("cartBk").addEventListener("click",function(){ openCart(false); });
   back.addEventListener("click",function(){ openCart(false); });
   /* Свайпы: справа налево открывает корзину, слева направо закрывает и возвращает в прайс на то же место (страница под корзиной не прокручивается). Панель едет за пальцем. */
   (function(){
@@ -1187,7 +1197,7 @@ chips(); render();
       var t = e.touches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y;
       if(!sw.on){
         if(Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-        if(Math.abs(dx) < Math.abs(dy) * 1.3 || (sw.opening ? dx >= 0 : dx <= 0)){ sw = null; return; }
+        if(Math.abs(dx) < Math.abs(dy) * 1.3 || (sw.opening ? dx >= 0 : dx <= 0) || (!sw.opening && histOn)){ sw = null; return; }
         sw.on = true; sw.base = dx;
         cartAnim.forEach(function(a){ try{ a.cancel(); }catch(x){} }); cartAnim = [];
         if(sw.opening){ panel.hidden = false; back.hidden = false; }
@@ -1276,6 +1286,7 @@ chips(); render();
     histOn = on; panel.classList.toggle("hv", on);
     ttl.textContent = on ? "Заказы" : "Корзина";
     hb.textContent = on ? "Назад в корзину" : "Недавние заказы";
+    $("tabCart").classList.toggle("on", !on); $("tabHist").classList.toggle("on", on); $("tabCart").setAttribute("aria-selected", String(!on)); $("tabHist").setAttribute("aria-selected", String(on));
     if(on){ drawHist(); listEl.scrollTop = 0; } else draw();
     if(!gl) return;
     function fin(g){ var a = g.animate.apply(g, arguments[1]); a.onfinish = function(){ g.remove(); }; return a; }
@@ -1290,6 +1301,22 @@ chips(); render();
     });
   }
   $("hist").addEventListener("click", function(){ showHist(!histOn); });
+  $("tabCart").addEventListener("click", function(){ if(histOn) showHist(false); });
+  $("tabHist").addEventListener("click", function(){ if(!histOn) showHist(true); });
+  (function(){   // свайп между «Корзина» и «Недавние заказы»
+    var st = null;
+    panel.addEventListener("touchstart", function(e){
+      st = null;
+      if(e.touches.length !== 1 || (e.target.closest && e.target.closest("input, textarea"))) return;
+      st = {x:e.touches[0].clientX, y:e.touches[0].clientY};
+    }, {passive:true});
+    panel.addEventListener("touchend", function(e){
+      if(!st) return;
+      var t = e.changedTouches[0], dx = t.clientX - st.x, dy = t.clientY - st.y; st = null;
+      if(Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      if(dx < 0 && !histOn) showHist(true); else if(dx > 0 && histOn) showHist(false);
+    }, {passive:true});
+  })();
   function afterBuy(){ pushHist(); buyFlash(); setTimeout(clearCart, 600); }
   document.addEventListener("keydown",function(e){ if(e.key==="Escape" && !panel.hidden) openCart(false); });
   buy.addEventListener("click",function(e){
@@ -1312,7 +1339,7 @@ chips(); render();
     toast(done ? "Заказ скопирован. Вставьте его в чат" : "Не удалось скопировать. Заказ передан в ссылке");
     if(done) afterBuy();
   }
-  $("tgnote").textContent = "Заказ скопируется, и откроется чат в Telegram: Кошачий Гарем. Вставьте текст в сообщение и отправьте.";
+  $("tgnote").textContent = "Заказ скопируется и откроется Telegram. Вставьте его в чат.";
   document.addEventListener("input",function(e){
     var i = e.target; if(!i.classList || !i.classList.contains("qin")) return;
     var k = i.getAttribute("data-k"), v = i.value.replace(/\D/g,"");
