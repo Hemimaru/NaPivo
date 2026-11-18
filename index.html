@@ -1254,29 +1254,34 @@ chips(); render();
       }).join("")+'</div>';
     }).join("") : '<p class="cart-empty">Заказов пока нет. Когда нажмёте «Купить», заказ появится здесь.</p>';
   }
-  var hTok = 0;
+  var hTok = 0, hGhost = [];
+  function ghost(el){   // снимок текущего вида, который уезжает, пока приезжает новый
+    var g = el.cloneNode(true), r = el.getBoundingClientRect(), pr = panel.getBoundingClientRect();
+    g.removeAttribute("id"); g.querySelectorAll("[id]").forEach(function(x){ x.removeAttribute("id"); });
+    g.style.cssText += ";position:absolute;margin:0;pointer-events:none;overflow:hidden;left:"+(r.left-pr.left)+"px;top:"+(r.top-pr.top)+"px;width:"+r.width+"px;height:"+r.height+"px";
+    panel.appendChild(g); g.scrollTop = el.scrollTop; hGhost.push(g); return g;
+  }
   function showHist(on, instant){
     var tok = ++hTok, ttl = $("cartTitle"), hb = $("hist"), ft = panel.querySelector(".cart-f"), dir = on ? 1 : -1;
-    function swap(){
-      histOn = on; panel.classList.toggle("hv", on);
-      ttl.textContent = on ? "Заказы" : "Корзина";
-      hb.textContent = on ? "Назад в корзину" : "Недавние заказы";
-      if(on){ drawHist(); listEl.scrollTop = 0; } else draw();
-    }
-    if(instant || reduce || !listEl.animate){ swap(); return; }
-    var out = listEl.animate([{opacity:1,transform:"none"},{opacity:0,transform:"translateX("+(-26*dir)+"px)"}],{duration:170,easing:"cubic-bezier(.4,0,1,1)",fill:"forwards"});
-    ttl.animate([{opacity:1},{opacity:0}],{duration:170,fill:"forwards"});
-    out.onfinish = function(){
-      if(tok !== hTok) return;
-      swap();
-      listEl.getAnimations().forEach(function(x){ x.cancel(); }); ttl.getAnimations().forEach(function(x){ x.cancel(); });
-      listEl.animate([{opacity:0,transform:"translateX("+(34*dir)+"px)"},{opacity:1,transform:"none"}],{duration:300,easing:"cubic-bezier(.2,.8,.2,1)"});
-      ttl.animate([{opacity:0,transform:"translateY(-4px)"},{opacity:1,transform:"none"}],{duration:260,easing:"ease-out"});
-      if(ft && !on) ft.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:300,easing:"cubic-bezier(.2,.8,.2,1)"});
-      if(on) listEl.querySelectorAll(".oh").forEach(function(el,i){
-        el.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,delay:80+Math.min(i,8)*60,easing:"cubic-bezier(.2,.8,.2,1)",fill:"backwards"});
-      });
-    };
+    hGhost.forEach(function(g){ g.remove(); }); hGhost = [];
+    var ease = "cubic-bezier(.22,.7,.2,1)", D = 520;
+    var gl = null, gf = null, gt = null;
+    if(!(instant || reduce || !listEl.animate)){ gl = ghost(listEl); gt = ghost(ttl); if(ft && ft.offsetHeight) gf = ghost(ft); }
+    histOn = on; panel.classList.toggle("hv", on);
+    ttl.textContent = on ? "Заказы" : "Корзина";
+    hb.textContent = on ? "Назад в корзину" : "Недавние заказы";
+    if(on){ drawHist(); listEl.scrollTop = 0; } else draw();
+    if(!gl) return;
+    function fin(g){ var a = g.animate.apply(g, arguments[1]); a.onfinish = function(){ g.remove(); }; return a; }
+    fin(gl, [[{opacity:1,transform:"none"},{opacity:0,transform:"translateX("+(-38*dir)+"%)"}],{duration:D,easing:ease,fill:"forwards"}]);
+    fin(gt, [[{opacity:1,transform:"none"},{opacity:0,transform:"translateX("+(-18*dir)+"px)"}],{duration:D*.6,easing:ease,fill:"forwards"}]);
+    if(gf) fin(gf, [[{opacity:1,transform:"none"},{opacity:0,transform:"translateY(24px)"}],{duration:D*.7,easing:ease,fill:"forwards"}]);
+    listEl.animate([{opacity:0,transform:"translateX("+(38*dir)+"%)"},{opacity:1,transform:"none"}],{duration:D,easing:ease});
+    ttl.animate([{opacity:0,transform:"translateX("+(18*dir)+"px)"},{opacity:1,transform:"none"}],{duration:D*.8,delay:D*.15,easing:ease,fill:"backwards"});
+    if(!on && ft) ft.animate([{opacity:0,transform:"translateY(24px)"},{opacity:1,transform:"none"}],{duration:D*.8,delay:D*.2,easing:ease,fill:"backwards"});
+    if(on) listEl.querySelectorAll(".oh").forEach(function(el,i){
+      el.animate([{opacity:0,transform:"translateY(18px)"},{opacity:1,transform:"none"}],{duration:520,delay:150+Math.min(i,8)*70,easing:ease,fill:"backwards"});
+    });
   }
   $("hist").addEventListener("click", function(){ showHist(!histOn); });
   function afterBuy(){ pushHist(); buyFlash(); setTimeout(clearCart, 600); }
