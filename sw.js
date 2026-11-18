@@ -2,7 +2,7 @@
    Страница и prices.js: сначала сеть (чтобы прайс всегда был свежий), если сети нет или она слишком медленная, берётся сохранённая копия.
    Фото, иконки и шрифты: из сохранённой копии, в фоне обновляются.
    GitHub API и таблицу Google (правки прайса, синхронизация) не трогаем. */
-var V = "napivo-v1";
+var V = "napivo-v2";   // поднимать при замене фото, чтобы устройства скачали новые
 var SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "prices.js"];
 
 self.addEventListener("install", function(e){
@@ -15,7 +15,7 @@ self.addEventListener("install", function(e){
       t.split("\n").forEach(function(l){
         if(/^\s*##(?!#)/.test(l)){ var f = (l.replace(/^\s*##\s*/, "").split("|")[3] || "").trim(); if(f) names[f] = 1; }
       });
-      await Promise.all(Object.keys(names).map(function(n){ return c.add("img/" + encodeURI(n)).catch(function(){}); }));
+      await Promise.all(Object.keys(names).map(function(n){ return c.add(new Request("img/" + encodeURI(n), {cache: "reload"})).catch(function(){}); }));
     }catch(err){}
     self.skipWaiting();
   })());
