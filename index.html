@@ -552,20 +552,20 @@ html:is(.ny,.hw,.m8,.v14,.f23,.br) .modebtn{display:none}
 })();
 
 (function(){
-  var KEY = "napivo-mode", MODES = ["auto","light","dark"];
+  var KEY = "napivo-mode", MODES = ["dark","light"];
   var ICONS = {
     auto:'<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 3a7 7 0 0 1 0 14z" fill="currentColor"/></svg>',
     light:'<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 1.5v2.3M10 16.2v2.3M1.5 10h2.3M16.2 10h2.3M4 4l1.6 1.6M14.4 14.4 16 16M16 4l-1.6 1.6M5.6 14.4 4 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     dark:'<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 12.2A7 7 0 0 1 7.8 3.5a7 7 0 1 0 8.7 8.7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'
   };
   var NAMES = {auto:"как в телефоне", light:"светлая", dark:"тёмная"};
-  function get(){ try{ var v = localStorage.getItem(KEY); return MODES.indexOf(v) >= 0 ? v : "auto"; }catch(e){ return "auto"; } }
+  function get(){ try{ var v = localStorage.getItem(KEY); return MODES.indexOf(v) >= 0 ? v : "dark"; }catch(e){ return "dark"; } }
   function apply(){
     var m = get(), h = document.documentElement;
-    if(m === "auto") h.removeAttribute("data-theme"); else h.setAttribute("data-theme", m);
+    h.setAttribute("data-theme", m);
     if(/(^|\s)(ny|hw|m8|v14|f23|br)(\s|$)/.test(h.className)) return;
     var meta = document.querySelector('meta[name="theme-color"]');
-    var dark = m === "dark" || (m === "auto" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    var dark = m === "dark";
     if(meta) meta.setAttribute("content", dark ? "#0e0b14" : "#f6f3f8");
   }
   function paint(){
@@ -590,7 +590,7 @@ html:is(.ny,.hw,.m8,.v14,.f23,.br) .modebtn{display:none}
 <div class="wrap">
   <header class="hero">
     <h1>НА ПИВО<i>.</i></h1>
-    <button class="modebtn" id="modeBtn" type="button" aria-label="Тема: как в телефоне"></button>
+    <button class="modebtn" id="modeBtn" type="button" aria-label="Тема: тёмная"></button>
   </header>
   <div class="bar">
     <div class="row">
