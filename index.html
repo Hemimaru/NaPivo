@@ -916,11 +916,18 @@ function scrollToEl(el){
 }
 menuEl.addEventListener("click",function(e){
   var b = e.target.closest(".mi"); if(!b) return;
-  var id = b.getAttribute("data-id");
-  if(state.q || state.tags.length){ state.q = ""; document.getElementById("q").value = ""; if(window.resetTags) window.resetTags(true); render(); }
+  var id = b.getAttribute("data-id"), g = DATA.filter(function(x){ return x.id === id; })[0];
+  var keep = state.tags.length > 0 && !EDIT && !!g && g.liq;   // выбрана цена жидкостей: фильтр по вкусу не сбрасываем, показываем этот вкус за эту цену
+  if(state.q || (state.tags.length && !keep)){ state.q = ""; document.getElementById("q").value = ""; if(!keep && window.resetTags) window.resetTags(true); render(); }
   var sec = document.getElementById("s-" + id);
   setMenu(false);
-  if(!sec) return;
+  if(!sec){
+    if(keep && window.napivoToast){
+      var nm = state.tags.map(function(t){ return TAGS.filter(function(x){ return x[0] === t; })[0][1].toLowerCase(); }).join(" + ");
+      window.napivoToast("Вкуса «" + nm + "» " + g.menu.toLowerCase() + " нет");
+    }
+    return;
+  }
   markActive(id); scrollToEl(sec);
 });
 document.addEventListener("click",function(e){ if(menuOpen && !menuEl.contains(e.target)) setMenu(false); });
@@ -1022,6 +1029,7 @@ chips(); render();
     return "Хочу купить:\n"+lines.join("\n");
   }
   function toast(msg, ms){ toastEl.textContent = msg; toastEl.hidden = false; clearTimeout(tt); tt = setTimeout(function(){ toastEl.hidden = true; }, ms || 2600); }
+  window.napivoToast = toast;
   window.toast = toast;
   var reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches), stretchKey = null, shrink = {}, cartAnim = [];
   window.syncAdd = function(){
