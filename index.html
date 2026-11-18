@@ -1963,7 +1963,7 @@ chips(); render();
     return new Promise(function(res, rej){
       var u = URL.createObjectURL(file), im = new Image();
       im.onload = function(){
-        var s = Math.min(im.width, im.height), c = document.createElement("canvas"), x, N = Math.min(s, 1080), R = Math.round(N * .087);   // квадрат до 1080x1080 (Full HD по высоте), мелкие фото не растягиваем
+        var s = Math.min(im.width, im.height), c = document.createElement("canvas"), x, N = Math.min(s, 720), R = Math.round(N * .087);   // квадрат до 720x720 (HD), мелкие фото не растягиваем
         c.width = c.height = N; x = c.getContext("2d"); x.fillStyle = "#181624"; x.fillRect(0,0,N,N);   // фон как у остальных фото
         x.beginPath(); x.moveTo(R, 0); x.arcTo(N, 0, N, N, R); x.arcTo(N, N, 0, N, R); x.arcTo(0, N, 0, 0, R); x.arcTo(0, 0, N, 0, R); x.closePath(); x.clip();
         x.drawImage(im, (im.width - s)/2, (im.height - s)/2, s, s, 0, 0, N, N);
