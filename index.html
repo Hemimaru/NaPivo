@@ -410,7 +410,7 @@ header.hero{position:relative}
 .modebtn:active{transform:scale(.92)}
 .modebtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .modebtn svg{display:block}
-html:is(.ny,.hw,.m8,.v14,.f23,.br,.dn,.dm) .modebtn{display:none}
+html:is(.ny,.hw,.m8,.v14,.f23,.br,.dn,.dm,.pn) .modebtn{display:none}
 
 #leaves{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:28}
 #leaves i{position:absolute;top:0;font-style:normal;line-height:1;will-change:transform;animation:petfall linear infinite}
@@ -466,6 +466,11 @@ html.dm body::before{background:#e2f7ec}
 html.dm header.hero h1{color:#0b6e4b}
 html.dm header.hero h1 i{color:#f0a020}
 html.dm .card{box-shadow:0 1px 3px rgba(18,51,42,.12)}
+/* Тема «Ночной пион»: тёмная версия 8 Марта, включается только вручную в меню разработчика (по дате не включается) */
+html.pn:root,html.pn:root[data-theme]{--bg:#1a0d18;--surface:#261325;--surface-2:#331a32;--line:#5a2b55;--fg:#ffeef8;--muted:#cfa0c6;--accent:#ff7ab8;--accent-fg:#2a0a1e;--chip:#3a1a38;--mark:#6b2260;--resv:#ffc46b;color-scheme:dark}
+html.pn body{background:radial-gradient(90% 40% at 50% 0,#5c1f52 0,#1a0d18 70%) fixed}
+html.pn body::before{background:#1a0d18}
+html.pn header.hero h1::before{content:"\1F338";display:block;font-size:30px;line-height:1.1;margin-bottom:3px;filter:drop-shadow(0 0 12px #ff7ab8)}
 </style>
 <script>
 (function(){
@@ -541,13 +546,14 @@ html.dm .card{box-shadow:0 1px 3px rgba(18,51,42,.12)}
   function fxOff(){ try{ return localStorage.getItem("napivo-fx") === "off"; }catch(e){ return false; } }
   function apply(){
     try{
-      var p = pref(), t = p === "off" ? "" : (p === "ny" || p === "hw" || p === "m8" || p === "v14" || p === "f23" || p === "br" || p === "dn" || p === "dm") ? p : byDate(), h = document.documentElement;
-      ["ny","hw","m8","v14","f23","br","dn","dm"].forEach(function(c){ h.classList.toggle(c, t === c); });
-      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", ({ny:"#0b1624",hw:"#120a05",m8:"#fff4f7",v14:"#1c0a12",f23:"#141a12",br:"#140c08",dn:"#0a0612",dm:"#effaf4"})[t] || "#0e0b14");
+      var p = pref(), t = p === "off" ? "" : (p === "ny" || p === "hw" || p === "m8" || p === "v14" || p === "f23" || p === "br" || p === "dn" || p === "dm" || p === "pn") ? p : byDate(), h = document.documentElement;
+      ["ny","hw","m8","v14","f23","br","dn","dm","pn"].forEach(function(c){ h.classList.toggle(c, t === c); });
+      var te = t === "pn" ? "m8" : t;   // «Ночной пион» показывает те же лепестки, что и «8 Марта»
+      var m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", ({ny:"#0b1624",hw:"#120a05",m8:"#fff4f7",v14:"#1c0a12",f23:"#141a12",br:"#140c08",dn:"#0a0612",dm:"#effaf4",pn:"#1a0d18"})[t] || "#0e0b14");
       [["leaves", "hw", "<i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i><i>\u{1F341}</i><i>\u{1F342}</i>"], ["snow", "ny", "<canvas></canvas>"], ["bubbles", "br", "<i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>"], ["petals", "m8", "<i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i><i>\u{1F338}</i><i>\u{1F337}</i><i>\u{1F338}</i>"], ["hearts", "v14", "<i>\u2764\uFE0F</i><i>\u{1F497}</i><i>\u2764\uFE0F</i><i>\u{1F495}</i><i>\u{1F497}</i><i>\u2764\uFE0F</i>"], ["bats", "hw", "<i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i><i>\u{1F987}</i>"]].forEach(function(x){
         var e = document.getElementById(x[0]);
-        if(t === x[1] && !e && !fxOff() && document.body){ e = document.createElement("div"); e.id = x[0]; e.setAttribute("aria-hidden", "true"); e.innerHTML = x[2]; document.body.appendChild(e); if(x[0] === "snow") snowStart(e); }
-        else if(t !== x[1] && e) e.parentNode.removeChild(e);
+        if(te === x[1] && !e && !fxOff() && document.body){ e = document.createElement("div"); e.id = x[0]; e.setAttribute("aria-hidden", "true"); e.innerHTML = x[2]; document.body.appendChild(e); if(x[0] === "snow") snowStart(e); }
+        else if(te !== x[1] && e) e.parentNode.removeChild(e);
       });
     }catch(e){}
   }
@@ -567,7 +573,7 @@ html.dm .card{box-shadow:0 1px 3px rgba(18,51,42,.12)}
   function apply(){
     var m = get(), h = document.documentElement;
     if(m === "auto") h.removeAttribute("data-theme"); else h.setAttribute("data-theme", m);
-    if(/(^|\s)(ny|hw|m8|v14|f23|br|dn|dm)(\s|$)/.test(h.className)) return;
+    if(/(^|\s)(ny|hw|m8|v14|f23|br|dn|dm|pn)(\s|$)/.test(h.className)) return;
     var meta = document.querySelector('meta[name="theme-color"]');
     var dark = m === "dark" || (m === "auto" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
     if(meta) meta.setAttribute("content", dark ? "#0e0b14" : "#f6f3f8");
@@ -1379,7 +1385,7 @@ chips(); render();
 /* Выключатель эффектов тем: нажатие на значок у названия (снежинка, тыква, цветок, сердце; у «Дня пива» кружка после названия) плавно убирает падающее и всплывающее:
    оно доезжает до конца своего пути (быстрее обычного) и не появляется снова. Повторное нажатие плавно возвращает: частицы выезжают по одной. Выбор хранится на устройстве. */
 (function(){
-  var KEY = "napivo-fx", EFF = ["snow","leaves","bats","petals","hearts","bubbles"], TH = ["ny","hw","m8","v14","br"], LOOP = "#petals i, #leaves i, #hearts i, #bubbles i";
+  var KEY = "napivo-fx", EFF = ["snow","leaves","bats","petals","hearts","bubbles"], TH = ["ny","hw","m8","v14","br","pn"], LOOP = "#petals i, #leaves i, #hearts i, #bubbles i";
   var hero = document.querySelector("header.hero"), title = hero && hero.querySelector("h1");
   if(!title) return;
   function isOff(){ try{ return localStorage.getItem(KEY) === "off"; }catch(e){ return false; } }
@@ -2421,7 +2427,7 @@ chips(); render();
   lg.onClose = function(){ drawMenu(); dev.set(true); };
   lg.box.addEventListener("click", function(e){ if(e.target.getAttribute && e.target.getAttribute("data-close")) lg.set(false); });
   async function openThemes(){
-    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате"],["off", "Обычная"],["ny", "Новый год"],["hw", "Хэллоуин"],["m8", "8 Марта"],["v14", "14 Февраля"],["f23", "23 Февраля"],["br", "День пива"],["dn", "Неон"],["dm", "Мята"]];
+    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате"],["off", "Обычная"],["ny", "Новый год"],["hw", "Хэллоуин"],["m8", "8 Марта"],["v14", "14 Февраля"],["f23", "23 Февраля"],["br", "День пива"],["dn", "Неон"],["dm", "Мята"],["pn", "Ночной пион"]];
     var i = await sheet("Тема сайта только для вас, на этом устройстве. У покупателей она не меняется.", L.map(function(x){ return {t:(x[0] === cur ? "✓ " : "") + x[1], p:x[0] === cur}; }).concat([{t:"Закрыть"}]), true);
     if(i >= 0 && i < L.length && window.napivoTheme){ window.napivoTheme.set(L[i][0]); say("Тема: " + L[i][1], 2200); }
   }
