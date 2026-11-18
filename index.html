@@ -170,7 +170,6 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .cart-h{display:flex;align-items:center;gap:10px;padding:16px;border-bottom:1px solid var(--line)}
 .cart-h h2{margin:0;font-family:var(--display);font-weight:500;font-size:18px;text-transform:uppercase;letter-spacing:.02em}
 .cart-h .hist{margin-left:auto;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font:inherit;font-size:12.5px;font-weight:600;border-radius:999px;padding:6px 11px;cursor:pointer;white-space:nowrap}
-.cart-h .clr{border:0;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline}
 .oh{padding:12px 16px;border-bottom:1px solid var(--line)}
 .oh .od{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--muted);margin-bottom:6px}
 .oh .od b{color:var(--fg)}
@@ -178,7 +177,10 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .oh .ol img,.oh .ol i{width:34px;height:34px;border-radius:8px;object-fit:cover;flex:none;background:var(--surface-2)}
 .oh .ol span{flex:1;min-width:0}.oh .ol small{display:block;color:var(--muted);font-size:11.5px}
 .oh .ol em{font-style:normal;color:var(--muted);font-size:13px;white-space:nowrap}
-.cart.hv .cart-f{display:none}.cart.hv .clr{display:none}
+.hpane{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;background:var(--surface);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.hpane[hidden]{display:none}
+.cart-clr{display:flex;justify-content:flex-end;padding:12px 0 6px}
+.cart-clr .clr{border:1px solid var(--line);background:var(--surface-2);color:var(--resv);font:inherit;font-size:13px;font-weight:600;border-radius:999px;padding:7px 14px;cursor:pointer}
 .cart-h .x{width:36px;height:36px;border-radius:50%;border:0;background:var(--surface-2);color:var(--fg);font-size:20px;line-height:1;cursor:pointer}
 .cart-list{flex:1;min-height:0;overflow-y:auto;padding:8px 16px}
 .cart-empty{margin:40px 0;text-align:center;color:var(--muted)}
@@ -194,18 +196,6 @@ ul.fl li .ft{flex:1 1 0;min-width:0}
 .cart-f p{margin:0;font-size:12px;color:var(--muted)}
 .buy{display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;text-decoration:none;padding:14px;border-radius:12px;background:var(--accent);color:var(--accent-fg);font-weight:800;font-size:16px}
 .buy[aria-disabled="true"]{opacity:.4;pointer-events:none}
-.cart-h{padding:22px 20px 6px;border-bottom:0}
-.cart-h h2{font-size:22px;margin-right:auto}
-.cart-h .x{width:42px;height:42px}
-.cart-h .clr[hidden]{display:none}
-.ctabs{display:flex;margin:12px 20px 0;padding:4px;border-radius:14px;background:var(--surface-2);flex:none}
-.ctabs button{flex:1;border:0;border-radius:11px;padding:10px;background:none;color:var(--muted);font:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:background .22s,color .22s}
-.ctabs button.on{background:var(--accent);color:var(--accent-fg)}
-.cart-list{padding:8px 20px}
-.cart-empty{margin:64px 0 0}
-.cart-f{border-top:0;padding:8px 20px 22px;gap:14px}
-.cart-f .buy{padding:17px;font-size:17px;border-radius:16px}
-.cart-f p{text-align:center;line-height:1.45;padding:0 8px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:50;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:999px;background:var(--fg);color:var(--bg);font-size:14px;font-weight:700;text-align:center}
 .toast[hidden]{display:none}
 .stp{display:flex;align-items:center;gap:2px;border:1.5px solid var(--accent);border-radius:999px;padding:1px}
@@ -427,7 +417,6 @@ html.br header.hero h1::after{content:" \1F37B"}
 .qty,.stats,.tginfo,.cart-f p{font-size:13px}
 .pills{font-size:13px}
 .pills span.price{margin-left:2px}
-.cart-h .clr{color:var(--resv);padding:8px 4px;margin-right:6px}
 .cart-tot b{font-size:24px}
 header.hero{position:relative}
 .modebtn{position:absolute;right:0;top:34px;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -636,13 +625,16 @@ html:is(.ny,.hw,.m8,.v14,.f23,.br) .modebtn{display:none}
 <button class="fab" id="fab" type="button" aria-label="Открыть корзину">Корзина <b id="fabN">0</b></button>
 <div class="cart-back" id="cartBack" hidden></div>
 <aside class="cart" id="cart" hidden role="dialog" aria-modal="true" aria-label="Корзина">
-  <div class="cart-h"><h2 id="cartTitle">Корзина</h2><button class="hist" id="hist" type="button" hidden>Недавние заказы</button><button class="clr" id="clr" type="button" hidden>Очистить</button><button class="x" id="cx" type="button" aria-label="Закрыть">×</button></div>
-  <div class="ctabs" id="ctabs" role="tablist"><button type="button" id="tabCart" role="tab" aria-selected="true" class="on">Корзина</button><button type="button" id="tabHist" role="tab" aria-selected="false">Недавние заказы</button></div>
+  <div class="cart-h"><h2 id="cartTitle">Корзина</h2><button class="hist" id="hist" type="button">Недавние заказы</button><button class="x" id="cx" type="button" aria-label="Закрыть">×</button></div>
   <div class="cart-list" id="cartList"></div>
   <div class="cart-f">
     <div class="cart-tot" id="cartTotW" hidden><span>Итого</span><b id="cartTot">0</b></div>
     <a class="buy" id="buy" href="https://t.me/kooot45" target="_blank" rel="noopener" aria-disabled="true">Купить</a>
     <p id="tgnote">Заказ скопируется и откроется Telegram. Вставьте его в чат.</p>
+  </div>
+  <div class="hpane" id="hpane" hidden role="dialog" aria-label="Недавние заказы">
+    <div class="cart-h"><h2>Заказы</h2><button class="hist" id="histBack" type="button">Назад в корзину</button><button class="x" id="hx" type="button" aria-label="Закрыть">×</button></div>
+    <div class="cart-list" id="histList"></div>
   </div>
 </aside>
 <div class="editbar" id="editbar" hidden><b>Редактирование прайса</b><button class="ghost" id="ebCancel" type="button">Отмена</button><button id="ebSave" type="button">Сохранить</button><div class="ebrow"><button class="ghost ebmenu" id="ebMenu" type="button" aria-label="Разделы" aria-expanded="false" aria-controls="ebNav"><svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M1 1.5h18M1 7h18M1 12.5h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><input class="ebq" id="ebQ" type="search" placeholder="Найти вкус, линейку или картридж" autocomplete="off" aria-label="Поиск по прайсу"><div class="ebnav" id="ebNav" role="menu" hidden></div></div></div>
@@ -1071,8 +1063,6 @@ chips(); render();
   function draw(){
     var keys = Object.keys(cart);
     $("fabN").textContent = count();
-    $("clr").hidden = !keys.length;
-    if(histOn){ setTotal(null); window.syncAdd(); save(); return; }
     if(!keys.length){
       listEl.innerHTML = '<p class="cart-empty">Корзина пуста. Нажмите «+» рядом с вкусом, чтобы добавить его.</p>';
       buy.setAttribute("aria-disabled","true"); buy.href = "https://t.me/"+CFG.telegram;
@@ -1080,7 +1070,7 @@ chips(); render();
       listEl.innerHTML = keys.map(function(k){
         var it = LOOK[k], n = cart[k], pr = priceNum(it.p), prTxt = pr ? (n > 1 ? it.p+" × "+n+" = "+fmt(pr*n) : String(it.p)) : "";
         return '<div class="ci">'+(it.img ? '<img class="ci-p" alt="" src="'+picSrc(it.img)+'">' : '<div class="ci-p"></div>')+'<div class="tx"><small>'+esc(it.n)+'</small><span>'+esc(it.f)+'</span>'+(prTxt ? '<em class="pr">'+esc(prTxt)+'</em>' : '')+'</div><div class="step"><button type="button" data-a="dec" data-k="'+k+'" aria-label="Убрать один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><i>'+n+'</i><button type="button" data-a="inc" data-k="'+k+'" aria-label="Добавить один"'+(n>=it.max?' disabled':'')+'><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></div></div>';
-      }).join("");
+      }).join("") + '<div class="cart-clr"><button class="clr" id="clr" type="button">Очистить</button></div>';
       buy.removeAttribute("aria-disabled");
       buy.href = "https://t.me/"+CFG.telegram+"?text="+encodeURIComponent(orderText());
     }
@@ -1242,7 +1232,7 @@ chips(); render();
     });
     last.onfinish = done;
   }
-  $("clr").addEventListener("click", clearCart);
+  listEl.addEventListener("click", function(e){ if(e.target.closest && e.target.closest(".clr")) clearCart(); });
   var flashT = 0, BUY_HTML = buy.innerHTML;   // исходная надпись кнопки (иконка Telegram и текст)
   function buyFlash(){
     clearTimeout(flashT);
@@ -1258,11 +1248,11 @@ chips(); render();
     var sum = items.reduce(function(a,i){ return a + priceNum(i.p)*i.q; }, 0), h = loadHist();
     h.unshift({t:Date.now(), items:items, sum:sum});
     try{ localStorage.setItem(HK, JSON.stringify(h.slice(0,30))); }catch(e){}
-    if(histOn){ drawHist(); var f = listEl.querySelector(".oh"); if(f && f.animate && !reduce) f.animate([{opacity:0,transform:"translateY(-12px)"},{opacity:1,transform:"none"}],{duration:380,easing:"cubic-bezier(.2,.8,.2,1)"}); }
+    if(histOn){ drawHist(); var f = histList.querySelector(".oh"); if(f && f.animate && !reduce) f.animate([{opacity:0,transform:"translateY(-12px)"},{opacity:1,transform:"none"}],{duration:380,easing:"cubic-bezier(.2,.8,.2,1)"}); }
   }
   function drawHist(){
     var h = loadHist();
-    listEl.innerHTML = h.length ? h.map(function(o){
+    histList.innerHTML = h.length ? h.map(function(o){
       var d = new Date(o.t), ds = ""; try{ ds = d.toLocaleString("ru-RU",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Minsk"}); }catch(e){ ds = d.toLocaleString(); }
       return '<div class="oh"><div class="od"><span>'+esc(ds)+'</span>'+(o.sum ? '<b>'+fmt(o.sum)+'</b>' : '')+'</div>'+o.items.map(function(i){
         var pr = priceNum(i.p);
@@ -1270,40 +1260,31 @@ chips(); render();
       }).join("")+'</div>';
     }).join("") : '<p class="cart-empty">Заказов пока нет. Когда нажмёте «Купить», заказ появится здесь.</p>';
   }
-  var hTok = 0, hGhost = [];
-  function ghost(el){   // снимок текущего вида, который уезжает, пока приезжает новый
-    var g = el.cloneNode(true), r = el.getBoundingClientRect(), pr = panel.getBoundingClientRect();
-    g.removeAttribute("id"); g.querySelectorAll("[id]").forEach(function(x){ x.removeAttribute("id"); });
-    g.style.cssText += ";position:absolute;margin:0;pointer-events:none;overflow:hidden;left:"+(r.left-pr.left)+"px;top:"+(r.top-pr.top)+"px;width:"+r.width+"px;height:"+r.height+"px";
-    panel.appendChild(g); g.scrollTop = el.scrollTop; hGhost.push(g); return g;
+  var hTok = 0, hAnim = [], hpane = $("hpane"), histList = $("histList");
+  function showHist(on, instant){   // «Недавние заказы» выезжают справа поверх корзины, так же как корзина поверх прайса
+    var tok = ++hTok;
+    hAnim.forEach(function(a){ try{ a.cancel(); }catch(e){} }); hAnim = [];
+    histOn = on;
+    var still = instant || reduce || !hpane.animate;
+    if(on){
+      drawHist(); histList.scrollTop = 0; hpane.hidden = false;
+      if(still) return;
+      hAnim.push(hpane.animate([{transform:"translateX(100%)"},{transform:"none"}],{duration:340,easing:"cubic-bezier(.2,.8,.2,1)"}));
+      histList.querySelectorAll(".oh").forEach(function(el,i){
+        if(i < 8) hAnim.push(el.animate([{opacity:0,transform:"translateX(20px)"},{opacity:1,transform:"none"}],{duration:320,delay:140+i*45,easing:"ease-out",fill:"backwards"}));
+      });
+    } else {
+      if(hpane.hidden) return;
+      if(still){ hpane.hidden = true; return; }
+      var a = hpane.animate([{transform:"none"},{transform:"translateX(100%)"}],{duration:340,easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"});
+      hAnim.push(a);
+      a.onfinish = function(){ if(tok === hTok){ hpane.hidden = true; try{ a.cancel(); }catch(e){} } };
+    }
   }
-  function showHist(on, instant){
-    var tok = ++hTok, ttl = $("cartTitle"), hb = $("hist"), ft = panel.querySelector(".cart-f"), dir = on ? 1 : -1;
-    hGhost.forEach(function(g){ g.remove(); }); hGhost = [];
-    var ease = "cubic-bezier(.22,.7,.2,1)", D = 520;
-    var gl = null, gf = null, gt = null;
-    if(!(instant || reduce || !listEl.animate)){ gl = ghost(listEl); gt = ghost(ttl); if(ft && ft.offsetHeight) gf = ghost(ft); }
-    histOn = on; panel.classList.toggle("hv", on);
-    ttl.textContent = on ? "Заказы" : "Корзина";
-    hb.textContent = on ? "Назад в корзину" : "Недавние заказы";
-    $("tabCart").classList.toggle("on", !on); $("tabHist").classList.toggle("on", on); $("tabCart").setAttribute("aria-selected", String(!on)); $("tabHist").setAttribute("aria-selected", String(on));
-    if(on){ drawHist(); listEl.scrollTop = 0; } else draw();
-    if(!gl) return;
-    function fin(g){ var a = g.animate.apply(g, arguments[1]); a.onfinish = function(){ g.remove(); }; return a; }
-    fin(gl, [[{opacity:1,transform:"none"},{opacity:0,transform:"translateX("+(-38*dir)+"%)"}],{duration:D,easing:ease,fill:"forwards"}]);
-    fin(gt, [[{opacity:1,transform:"none"},{opacity:0,transform:"translateX("+(-18*dir)+"px)"}],{duration:D*.6,easing:ease,fill:"forwards"}]);
-    if(gf) fin(gf, [[{opacity:1,transform:"none"},{opacity:0,transform:"translateY(24px)"}],{duration:D*.7,easing:ease,fill:"forwards"}]);
-    listEl.animate([{opacity:0,transform:"translateX("+(38*dir)+"%)"},{opacity:1,transform:"none"}],{duration:D,easing:ease});
-    ttl.animate([{opacity:0,transform:"translateX("+(18*dir)+"px)"},{opacity:1,transform:"none"}],{duration:D*.8,delay:D*.15,easing:ease,fill:"backwards"});
-    if(!on && ft) ft.animate([{opacity:0,transform:"translateY(24px)"},{opacity:1,transform:"none"}],{duration:D*.8,delay:D*.2,easing:ease,fill:"backwards"});
-    if(on) listEl.querySelectorAll(".oh").forEach(function(el,i){
-      el.animate([{opacity:0,transform:"translateY(18px)"},{opacity:1,transform:"none"}],{duration:520,delay:150+Math.min(i,8)*70,easing:ease,fill:"backwards"});
-    });
-  }
-  $("hist").addEventListener("click", function(){ showHist(!histOn); });
-  $("tabCart").addEventListener("click", function(){ if(histOn) showHist(false); });
-  $("tabHist").addEventListener("click", function(){ if(!histOn) showHist(true); });
-  (function(){   // свайп между «Корзина» и «Недавние заказы»
+  $("hist").addEventListener("click", function(){ showHist(true); });
+  $("histBack").addEventListener("click", function(){ showHist(false); });
+  $("hx").addEventListener("click", function(){ openCart(false); });
+  (function(){   // свайп: влево из корзины — «Недавние заказы», вправо из заказов — назад в корзину
     var st = null;
     panel.addEventListener("touchstart", function(e){
       st = null;
