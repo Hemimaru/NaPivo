@@ -349,7 +349,7 @@ html.hw header.hero h1::before{content:"\1F383";display:block;font-size:34px;lin
 @keyframes hwfly{0%{transform:translate3d(-60px,0,0) rotate(-8deg)}25%{transform:translate3d(25vw,-26px,0) rotate(8deg)}50%{transform:translate3d(52vw,10px,0) rotate(-6deg)}75%{transform:translate3d(78vw,-22px,0) rotate(8deg)}100%{transform:translate3d(calc(100vw + 60px),0,0) rotate(-8deg)}}
 @keyframes hwglow{50%{filter:drop-shadow(0 0 4px #ff8a1f);opacity:.8}}
 @media (prefers-reduced-motion:reduce){#bats i,html.hw header.hero h1::before{animation:none}#bats i:nth-child(1){left:70%}#bats i:nth-child(2){left:30%}#bats i:nth-child(n+3){display:none}}
-/* Даты-темы: 8 Марта (1–8.03), 14 Февраля (10–14.02), 23 Февраля (18–23.02), по Минску, включительно */
+/* Даты-темы: 8 Марта (только 8.03), 14 Февраля (только 14.02), 23 Февраля (только 23.02), по Минску */
 html.m8:root,html.m8:root[data-theme]{--bg:#1a0d18;--surface:#261325;--surface-2:#331a32;--line:#5a2b55;--fg:#ffeef8;--muted:#cfa0c6;--accent:#ff7ab8;--accent-fg:#2a0a1e;--chip:#3a1a38;--mark:#6b2260;--resv:#ffc46b;color-scheme:dark}
 html.m8 body{background:radial-gradient(90% 40% at 50% 0,#5c1f52 0,#1a0d18 70%) fixed}
 html.m8 body::before{background:#1a0d18}
@@ -474,9 +474,9 @@ html.dm .card{box-shadow:0 1px 3px rgba(18,51,42,.12)}
     var d = new Date(Date.now() + 3*3600e3), mo = d.getUTCMonth(), da = d.getUTCDate();
     if(mo === 11 || (mo === 0 && da < 6)) return "ny";
     if((mo === 9 && da >= 25) || (mo === 10 && da <= 1)) return "hw";
-    if(mo === 2 && da <= 8) return "m8";
-    if(mo === 1 && da >= 10 && da <= 14) return "v14";
-    if(mo === 1 && da >= 18 && da <= 23) return "f23";
+    if(mo === 2 && da === 8) return "m8";
+    if(mo === 1 && da === 14) return "v14";
+    if(mo === 1 && da === 23) return "f23";
     if(mo === 7 && da === 7) return "br";
     return "";
   }
