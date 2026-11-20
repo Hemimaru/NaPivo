@@ -642,7 +642,7 @@ html:is(.ny,.hw,.m8,.v14,.f23,.br) .modebtn{display:none}
 
 <script>document.write('<script src="prices.js?t='+Math.floor(Date.now()/60000)+'"><\/script>')</script>
 <script>try{ window.PRICE_SERVER = window.PRICE_TEXT; var __ob = JSON.parse(localStorage.getItem("napivo-outbox") || "null"); if(__ob && typeof __ob.text === "string") window.PRICE_TEXT = "\n" + __ob.text + "\n"; }catch(e){}</script>
-<script>if("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").then(function(){ return navigator.serviceWorker.ready; }).then(function(r){ setTimeout(function(){ try{ if(r.active) r.active.postMessage("warm"); }catch(e){} }, 6000); }).catch(function(){}); });</script>
+<script>if("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").then(function(){ return navigator.serviceWorker.ready; }).then(function(r){ setTimeout(function(){ try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); if(r.active) r.active.postMessage("warm"); }catch(e){} }, 6000); }).catch(function(){}); });</script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function parsePrice(text){

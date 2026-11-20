@@ -1,6 +1,6 @@
 /* Офлайн-режим сайта «На пиво».
    Страница и prices.js: сначала сеть (чтобы прайс всегда был свежий), если сети нет или она слишком медленная, берётся сохранённая копия.
-   Фото, иконки и шрифты: из сохранённой копии, в фоне обновляются. Маленькие фото для карточек докачиваются в фоне после показа страницы.
+   Фото, иконки и шрифты: из сохранённой копии, в фоне обновляются. Все фото (маленькие и полные) докачиваются в фоне после показа страницы.
    GitHub API и таблицу Google (правки прайса, синхронизация) не трогаем. */
 var V = "napivo-v3";   // поднимать при замене фото, чтобы устройства скачали новые
 var SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "prices.js"];
@@ -19,25 +19,34 @@ self.addEventListener("activate", function(e){
   }).then(function(){ return self.clients.claim(); }));
 });
 
-/* Фото докачиваются в фоне уже после показа страницы: страница шлёт сообщение "warm", качаем по 2 штуки, чтобы не мешать видимым фото */
+/* Фото докачиваются в фоне после показа страницы (страница шлёт сообщение "warm" при каждом заходе).
+   Сначала маленькие копии, потом полные фото. Что уже сохранено, пропускается, поэтому недокачанное продолжается при следующем заходе. */
+var warming = false;
 self.addEventListener("message", function(e){
-  if(e.data !== "warm") return;
+  if(e.data !== "warm" || warming) return;
+  warming = true;
   e.waitUntil((async function(){
-    var c = await caches.open(V), names = {};
     try{
+      var c = await caches.open(V), names = {};
       var t = await (await c.match("prices.js")).text();
       t.split("\n").forEach(function(l){
         if(/^\s*##(?!#)/.test(l)){ var f = (l.replace(/^\s*##\s*/, "").split("|")[3] || "").trim(); if(f) names[f] = 1; }
       });
-    }catch(err){ return; }
-    var list = Object.keys(names).map(function(n){ return "img/t/" + encodeURI(n); });
-    async function worker(){
-      while(list.length){
-        var u = list.shift();
-        try{ if(!(await c.match(u))) await c.add(new Request(u)); }catch(err){}
+      var keys = Object.keys(names).map(encodeURI);
+      async function run(list, n){
+        async function worker(){
+          while(list.length){
+            var u = list.shift();
+            try{ if(!(await c.match(u))) await c.add(new Request(u)); }catch(err){}
+          }
+        }
+        var w = []; for(var k = 0; k < n; k++) w.push(worker());
+        await Promise.all(w);
       }
-    }
-    await Promise.all([worker(), worker()]);
+      await run(keys.map(function(n){ return "img/t/" + n; }), 2);
+      await run(keys.map(function(n){ return "img/" + n; }), 1);
+    }catch(err){}
+    warming = false;
   })());
 });
 
