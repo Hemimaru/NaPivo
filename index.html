@@ -642,7 +642,7 @@ html:is(.ny,.hw,.m8,.v14,.f23,.br) .modebtn{display:none}
 
 <script>document.write('<script src="prices.js?t='+Math.floor(Date.now()/60000)+'"><\/script>')</script>
 <script>try{ window.PRICE_SERVER = window.PRICE_TEXT; var __ob = JSON.parse(localStorage.getItem("napivo-outbox") || "null"); if(__ob && typeof __ob.text === "string") window.PRICE_TEXT = "\n" + __ob.text + "\n"; }catch(e){}</script>
-<script>if("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });</script>
+<script>if("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").then(function(){ return navigator.serviceWorker.ready; }).then(function(r){ setTimeout(function(){ try{ if(r.active) r.active.postMessage("warm"); }catch(e){} }, 6000); }).catch(function(){}); });</script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function parsePrice(text){
@@ -685,6 +685,8 @@ function serialize(){
 var __P = parsePrice(window.PRICE_TEXT), CFG = __P.cfg, DATA = __P.data, PRE = __P.pre, EDIT = null, PREV = {};
 try{ var __o2 = JSON.parse(localStorage.getItem("napivo-outbox") || "null"); if(__o2 && __o2.imgs) Object.keys(__o2.imgs).forEach(function(n){ PREV[n] = __o2.imgs[n]; }); }catch(e){}
 function picSrc(n){ return PREV[n] || ("img/" + encodeURI(n)); }
+function thumbSrc(n){ return PREV[n] || ("img/t/" + encodeURI(n)); }   /* маленькая копия для карточек; если её нет, подставляется полное фото */
+function picFb(el){ el.onerror = null; if(el.dataset.full) el.src = el.dataset.full; }
 var state = {sec:"all", q:"", tags:[]};
 
 /* бронь на срок: «бронь» или «бронь до 2026-11-09 18:00» (время по Минску) */
@@ -801,7 +803,7 @@ function flav(f,q,k,j,ln,lk){
 }
 function card(it,q,single){
   var pills = (it.s?'<span>крепость '+it.s+'</span>':'')+'<span class="price">цена '+it.p+'</span>';
-  var img = it.img ? '<img class="pic"'+(EDIT?' data-e="pic"':'')+' alt="'+esc(it.n)+'" loading="lazy" src="'+picSrc(it.img)+'">' : (EDIT ? '<div class="pic nopic" data-e="pic" contenteditable="true" spellcheck="false">Без изображения</div>' : '<div class="pic"></div>');
+  var img = it.img ? '<img class="pic"'+(EDIT?' data-e="pic"':'')+' alt="'+esc(it.n)+'" loading="lazy" decoding="async" data-full="'+picSrc(it.img)+'" onerror="picFb(this)" src="'+thumbSrc(it.img)+'">' : (EDIT ? '<div class="pic nopic" data-e="pic" contenteditable="true" spellcheck="false">Без изображения</div>' : '<div class="pic"></div>');
   var gi = DATA.indexOf(it.g), ii = it.g.items.indexOf(it);
   var list = vis(it,q), et = isEt(it.n), lock = et && !EDIT;
   return '<article class="card'+(single?' one':'')+'" data-gi="'+gi+'" data-ii="'+ii+'">'+img+'<div><div class="top">'+(EDIT?'<span class="cgrip" data-e="cgrip" aria-label="Перетащить линейку"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span>':'')+'<h3'+(EDIT?' data-e="line"':'')+'>'+hl(it.n,q)+(et?'<span class="qty et">едет 🚚</span>':'')+(isLineNew(it.n)?'<span class="qty nw">'+IC.nw+'новинка</span>':'')+'</h3><div class="pills"'+(EDIT?' data-e="line"':'')+'>'+pills+'</div></div><ul class="fl">'+list.map(function(a){return flav(a[0],q,it.id+"."+a[1],a[1],it.n,lock);}).join("")+(EDIT?'<li class="addf" data-e="addf">+ Добавить вкус</li>':"")+'</ul></div></article>';
@@ -1069,7 +1071,7 @@ chips(); render();
     } else {
       listEl.innerHTML = keys.map(function(k){
         var it = LOOK[k], n = cart[k], pr = priceNum(it.p), prTxt = pr ? (n > 1 ? it.p+" × "+n+" = "+fmt(pr*n) : String(it.p)) : "";
-        return '<div class="ci">'+(it.img ? '<img class="ci-p" alt="" src="'+picSrc(it.img)+'">' : '<div class="ci-p"></div>')+'<div class="tx"><small>'+esc(it.n)+'</small><span>'+esc(it.f)+'</span>'+(prTxt ? '<em class="pr">'+esc(prTxt)+'</em>' : '')+'</div><div class="step"><button type="button" data-a="dec" data-k="'+k+'" aria-label="Убрать один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><i>'+n+'</i><button type="button" data-a="inc" data-k="'+k+'" aria-label="Добавить один"'+(n>=it.max?' disabled':'')+'><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></div></div>';
+        return '<div class="ci">'+(it.img ? '<img class="ci-p" alt="" decoding="async" data-full="'+picSrc(it.img)+'" onerror="picFb(this)" src="'+thumbSrc(it.img)+'">' : '<div class="ci-p"></div>')+'<div class="tx"><small>'+esc(it.n)+'</small><span>'+esc(it.f)+'</span>'+(prTxt ? '<em class="pr">'+esc(prTxt)+'</em>' : '')+'</div><div class="step"><button type="button" data-a="dec" data-k="'+k+'" aria-label="Убрать один"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button><i>'+n+'</i><button type="button" data-a="inc" data-k="'+k+'" aria-label="Добавить один"'+(n>=it.max?' disabled':'')+'><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 6h9M6 1.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></div></div>';
       }).join("") + '<div class="cart-clr"><button class="clr" id="clr" type="button">Очистить</button></div>';
       buy.removeAttribute("aria-disabled");
       buy.href = "https://t.me/"+CFG.telegram+"?text="+encodeURIComponent(orderText());
@@ -1561,11 +1563,11 @@ chips(); render();
     var n = idx + d, W = window.innerWidth;
     if(n < 0 || n >= list.length){ if(!reduceLb && img.animate) img.animate([{transform:"none"},{transform:"translateX(" + (-d*26) + "px)"},{transform:"none"}], {duration:240, easing:"ease-out"}); return; }
     var nx = list[n];
-    if(reduceLb || !img.animate){ idx = n; img.src = nx.src; img.alt = nx.alt; s = 1; tx = 0; ty = 0; apply(); return; }
+    if(reduceLb || !img.animate){ idx = n; img.src = nx.dataset.full || nx.src; img.alt = nx.alt; s = 1; tx = 0; ty = 0; apply(); return; }
     swiping = true;
     var a = img.animate([{transform:"translateX(0)", opacity:1},{transform:"translateX(" + (-d*W*.5) + "px)", opacity:0}], {duration:150, easing:"ease-in", fill:"forwards"});
     a.onfinish = function(){
-      idx = n; img.src = nx.src; img.alt = nx.alt; s = 1; tx = 0; ty = 0; apply(); a.cancel();
+      idx = n; img.src = nx.dataset.full || nx.src; img.alt = nx.alt; s = 1; tx = 0; ty = 0; apply(); a.cancel();
       var b = img.animate([{transform:"translateX(" + (d*W*.5) + "px)", opacity:0},{transform:"none", opacity:1}], {duration:240, easing:"cubic-bezier(.2,.8,.2,1)"});
       b.onfinish = function(){ swiping = false; };
     };
@@ -1573,7 +1575,7 @@ chips(); render();
   document.addEventListener("click",function(e){
     if(Date.now() - closedAt < 500 || EDIT) return;
     var p = e.target.closest && e.target.closest("img.pic");
-    if(p) open(p.src, p.alt, p);
+    if(p) open(p.dataset.full || p.src, p.alt, p);
   });
   function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
   lb.addEventListener("pointerdown",function(e){
@@ -2824,7 +2826,7 @@ chips(); render();
       rows.forEach(function(r){ var k = r.ref.gi + "-" + r.ref.ii; if(!by[k]){ by[k] = []; order.push(k); } by[k].push(r); });
       return order.map(function(k){
         var it = by[k][0].ref.it, a0 = by[k][0].ref;
-        return '<div class="rv-i">' + (it.img ? '<img class="rv-p" alt="" src="' + picSrc(it.img) + '">' : '<div class="rv-p rv-n"></div>') +
+        return '<div class="rv-i">' + (it.img ? '<img class="rv-p" alt="" decoding="async" data-full="' + picSrc(it.img) + '" onerror="picFb(this)" src="' + thumbSrc(it.img) + '">' : '<div class="rv-p rv-n"></div>') +
           '<div class="rv-t"><b>' + esc(it.n) + '</b><ul>' + by[k].map(function(r){
             var ref = r.ref, at = 'data-gi="' + ref.gi + '" data-ii="' + ref.ii + '" data-j="' + ref.j + '"' + (r.n ? ' data-q="1" data-n="' + r.n + '"' : '') + (code ? ' data-c="' + code + '"' : ''), nm = ref.it.f[ref.j].split(" · ")[0];
             return '<li class="rv-li">' + (selectable ? '<input type="checkbox" class="rv-c" aria-label="Выбрать" ' + at + '> ' : '') + '<span class="rv-nm" role="button" tabindex="0" aria-expanded="false">' + esc(nm) +

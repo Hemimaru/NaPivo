@@ -1,22 +1,14 @@
 /* Офлайн-режим сайта «На пиво».
    Страница и prices.js: сначала сеть (чтобы прайс всегда был свежий), если сети нет или она слишком медленная, берётся сохранённая копия.
-   Фото, иконки и шрифты: из сохранённой копии, в фоне обновляются.
+   Фото, иконки и шрифты: из сохранённой копии, в фоне обновляются. Маленькие фото для карточек докачиваются в фоне после показа страницы.
    GitHub API и таблицу Google (правки прайса, синхронизация) не трогаем. */
-var V = "napivo-v2";   // поднимать при замене фото, чтобы устройства скачали новые
+var V = "napivo-v3";   // поднимать при замене фото, чтобы устройства скачали новые
 var SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "prices.js"];
 
 self.addEventListener("install", function(e){
   e.waitUntil((async function(){
     var c = await caches.open(V);
     await Promise.all(SHELL.map(function(u){ return c.add(new Request(u, {cache: "reload"})).catch(function(){}); }));
-    try{
-      /* фото берём из самого прайса: строки "## Линейка | крепость | цена | файл" */
-      var t = await (await c.match("prices.js")).text(), names = {};
-      t.split("\n").forEach(function(l){
-        if(/^\s*##(?!#)/.test(l)){ var f = (l.replace(/^\s*##\s*/, "").split("|")[3] || "").trim(); if(f) names[f] = 1; }
-      });
-      await Promise.all(Object.keys(names).map(function(n){ return c.add(new Request("img/" + encodeURI(n), {cache: "reload"})).catch(function(){}); }));
-    }catch(err){}
     self.skipWaiting();
   })());
 });
@@ -25,6 +17,28 @@ self.addEventListener("activate", function(e){
   e.waitUntil(caches.keys().then(function(ks){
     return Promise.all(ks.filter(function(k){ return k !== V; }).map(function(k){ return caches.delete(k); }));
   }).then(function(){ return self.clients.claim(); }));
+});
+
+/* Фото докачиваются в фоне уже после показа страницы: страница шлёт сообщение "warm", качаем по 2 штуки, чтобы не мешать видимым фото */
+self.addEventListener("message", function(e){
+  if(e.data !== "warm") return;
+  e.waitUntil((async function(){
+    var c = await caches.open(V), names = {};
+    try{
+      var t = await (await c.match("prices.js")).text();
+      t.split("\n").forEach(function(l){
+        if(/^\s*##(?!#)/.test(l)){ var f = (l.replace(/^\s*##\s*/, "").split("|")[3] || "").trim(); if(f) names[f] = 1; }
+      });
+    }catch(err){ return; }
+    var list = Object.keys(names).map(function(n){ return "img/t/" + encodeURI(n); });
+    async function worker(){
+      while(list.length){
+        var u = list.shift();
+        try{ if(!(await c.match(u))) await c.add(new Request(u)); }catch(err){}
+      }
+    }
+    await Promise.all([worker(), worker()]);
+  })());
 });
 
 async function netFirst(q, u){
