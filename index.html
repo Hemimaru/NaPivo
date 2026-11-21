@@ -2513,7 +2513,7 @@ chips(); render();
       }
     }
     var v = null; try{ v = JSON.parse(localStorage.getItem(VWK) || "null"); }catch(e){}
-    if(v && v.v === "resv" && Date.now() - (v.t || 0) < 12 * 36e5) openResv();
+    if(v && v.v === "resv" && Date.now() - (v.t || 0) < 5 * 6e4) openResv();
   }
   window.addEventListener("load", function(){ setTimeout(restoreView, 400); });
 
