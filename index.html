@@ -2400,6 +2400,8 @@ chips(); render();
   document.addEventListener("click", function(e){ if(!ebNav.hidden && !ebNav.contains(e.target)) ebClose(); });
   document.addEventListener("keydown", function(e){ if(e.key === "Escape" && !ebNav.hidden){ ebClose(); ebMenu.focus(); } });
   window.addEventListener("resize", ebSize);
+  var DRK = "napivo-draft", VWK = "napivo-view";
+  function draftClear(){ try{ localStorage.removeItem(DRK); }catch(e){} }
   function enterEdit(P, sha){
     EDIT = {log:[], imgs:{}, sha:sha, base:n1(window.PRICE_SERVER), back:{d:DATA, p:PRE, g:state.sec, q:state.q}};
     DATA = P.data; PRE = P.pre; DATA.forEach(function(g){ g.items.forEach(function(it){ it._o = it.n; }); }); state.sec = "all"; state.q = ""; document.getElementById("q").value = ""; ebQ.value = ""; ebClose(); if(window.resetTags) window.resetTags(true);
@@ -2457,7 +2459,7 @@ chips(); render();
     var an = [], go = function(){
       an.forEach(function(x){ try{ x.cancel(); }catch(e){} });
       if(restore && EDIT){ DATA = EDIT.back.d; PRE = EDIT.back.p; }
-      EDIT = null; document.body.classList.remove("editing"); bar.hidden = true; ebQ.value = ""; state.q = ""; ebClose();
+      EDIT = null; draftClear(); document.body.classList.remove("editing"); bar.hidden = true; ebQ.value = ""; state.q = ""; ebClose();
       state.sec = "all"; MENU = DATA.map(function(g){ return [g.id, g.menu]; }); chips();
       render(); if(window.rebuildLook) window.rebuildLook();
       window.scrollTo(0, 0);
@@ -2487,6 +2489,33 @@ chips(); render();
     saving = false;
   });
   window.addEventListener("beforeunload", function(e){ if(EDIT && EDIT.log.length){ e.preventDefault(); e.returnValue = ""; } });
+
+  /* Черновик правок: если телефон выгрузил приложение из памяти, несохранённые правки возвращаются при следующем заходе */
+  function draftSave(){
+    if(!EDIT || !EDIT.log.length) return;
+    var d = {t:Date.now(), base:EDIT.base, sha:EDIT.sha || "", text:serialize(), log:EDIT.log, imgs:EDIT.imgs};
+    try{ localStorage.setItem(DRK, JSON.stringify(d)); }
+    catch(e){ try{ d.imgs = {}; localStorage.setItem(DRK, JSON.stringify(d)); }catch(e2){} }
+  }
+  setInterval(draftSave, 2500);
+  document.addEventListener("visibilitychange", function(){ if(document.hidden) draftSave(); });
+  window.addEventListener("pagehide", draftSave);
+  function restoreView(){
+    if(!isAdmin || EDIT) return;
+    var d = null; try{ d = JSON.parse(localStorage.getItem(DRK) || "null"); }catch(e){}
+    if(d && typeof d.text === "string" && d.log && d.log.length && Date.now() - (d.t || 0) < 7 * 864e5){
+      var P = null; try{ P = parsePrice(d.text); }catch(e){}
+      if(P && P.data && P.data.length){
+        dev.set(false); enterEdit(P, d.sha || ""); EDIT.log = d.log; EDIT.base = d.base; EDIT.pending = false;
+        EDIT.imgs = d.imgs || {}; Object.keys(EDIT.imgs).forEach(function(n){ PREV[n] = EDIT.imgs[n]; });
+        render(); say("Вернул несохранённые правки (" + d.log.length + ")", 4000);
+        return;
+      }
+    }
+    var v = null; try{ v = JSON.parse(localStorage.getItem(VWK) || "null"); }catch(e){}
+    if(v && v.v === "resv" && Date.now() - (v.t || 0) < 12 * 36e5) openResv();
+  }
+  window.addEventListener("load", function(){ setTimeout(restoreView, 400); });
 
   /* журнал изменений: только правки прайса */
   var lg = overlay('<div class="dev adm" role="dialog" aria-modal="true" aria-label="Журнал изменений"><div class="dev-h"><h2>Журнал изменений</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div><div id="lgBody" class="lg"></div></div>');
@@ -2763,7 +2792,7 @@ chips(); render();
 
   /* все брони */
   var rv = overlay('<div class="dev adm" role="dialog" aria-modal="true" aria-label="Все брони"><div class="dev-h"><h2>Все брони</h2><button type="button" data-close="1" aria-label="Закрыть">×</button></div><div id="rvBody" class="rvl"></div></div>');
-  rv.onClose = function(){ drawMenu(); dev.set(true); };
+  rv.onClose = function(){ try{ localStorage.removeItem(VWK); }catch(e){} drawMenu(); dev.set(true); };
   rv.box.addEventListener("click", function(e){ if(e.target.getAttribute && e.target.getAttribute("data-close")) rv.set(false); });
   var rvCtx = null;
   async function loadPrices(){
@@ -2865,7 +2894,7 @@ chips(); render();
     if(!rm && body.animate) Array.prototype.forEach.call(body.querySelectorAll(".bk"), function(x, n){ x.animate([{opacity:0,transform:"translateY(10px)"},{opacity:1,transform:"none"}],{duration:280,delay:n*60,easing:"ease-out",fill:"backwards"}); });
   }
   async function openResv(){
-    dev.set(false); rv.set(true);
+    dev.set(false); rv.set(true); try{ localStorage.setItem(VWK, JSON.stringify({v:"resv", t:Date.now()})); }catch(e){}
     var body = rv.box.querySelector("#rvBody"); body.textContent = "Загрузка…";
     try{ var L = await loadPrices(); rvCtx = L; drawResv(L.P.data, L.P.pre); }
     catch(e){ rvCtx = null; drawResv(DATA); }
