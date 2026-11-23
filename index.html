@@ -2400,7 +2400,7 @@ chips(); render();
   document.addEventListener("click", function(e){ if(!ebNav.hidden && !ebNav.contains(e.target)) ebClose(); });
   document.addEventListener("keydown", function(e){ if(e.key === "Escape" && !ebNav.hidden){ ebClose(); ebMenu.focus(); } });
   window.addEventListener("resize", ebSize);
-  var DRK = "napivo-draft", VWK = "napivo-view";
+  var DRK = "napivo-draft", VWK = "napivo-view", draftSig = "";
   function draftClear(){ try{ localStorage.removeItem(DRK); }catch(e){} }
   function enterEdit(P, sha){
     EDIT = {log:[], imgs:{}, sha:sha, base:n1(window.PRICE_SERVER), back:{d:DATA, p:PRE, g:state.sec, q:state.q}};
@@ -2459,7 +2459,7 @@ chips(); render();
     var an = [], go = function(){
       an.forEach(function(x){ try{ x.cancel(); }catch(e){} });
       if(restore && EDIT){ DATA = EDIT.back.d; PRE = EDIT.back.p; }
-      EDIT = null; draftClear(); document.body.classList.remove("editing"); bar.hidden = true; ebQ.value = ""; state.q = ""; ebClose();
+      EDIT = null; draftSig = ""; draftClear(); document.body.classList.remove("editing"); bar.hidden = true; ebQ.value = ""; state.q = ""; ebClose();
       state.sec = "all"; MENU = DATA.map(function(g){ return [g.id, g.menu]; }); chips();
       render(); if(window.rebuildLook) window.rebuildLook();
       window.scrollTo(0, 0);
@@ -2493,7 +2493,10 @@ chips(); render();
   /* Черновик правок: если телефон выгрузил приложение из памяти, несохранённые правки возвращаются при следующем заходе */
   function draftSave(){
     if(!EDIT || !EDIT.log.length) return;
-    var d = {t:Date.now(), base:EDIT.base, sha:EDIT.sha || "", text:serialize(), log:EDIT.log, imgs:EDIT.imgs};
+    var txt = serialize(), sig = txt.length + "|" + EDIT.log.length + "|" + Object.keys(EDIT.imgs).length + "|" + txt.slice(0, 64) + txt.slice(-64);
+    if(sig === draftSig) return;   /* ничего не менялось: не нагружаем телефон */
+    draftSig = sig;
+    var d = {t:Date.now(), base:EDIT.base, sha:EDIT.sha || "", text:txt, log:EDIT.log, imgs:EDIT.imgs};
     try{ localStorage.setItem(DRK, JSON.stringify(d)); }
     catch(e){ try{ d.imgs = {}; localStorage.setItem(DRK, JSON.stringify(d)); }catch(e2){} }
   }
