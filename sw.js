@@ -2,8 +2,8 @@
    Страница и prices.js: сначала сеть (чтобы прайс всегда был свежий), если сети нет или она слишком медленная, берётся сохранённая копия.
    Фото, иконки и шрифты: из сохранённой копии, в фоне обновляются. Все фото докачиваются в фоне после показа страницы.
    GitHub API и таблицу Google (правки прайса, синхронизация) не трогаем. */
-var V = "napivo-v4";   // поднимать при замене фото, чтобы устройства скачали новые
-var SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "prices.js"];
+var V = "napivo-v5";   // поднимать при замене фото, чтобы устройства скачали новые
+var SHELL = ["./", "index.html", "fonts/manrope.woff", "fonts/unbounded.woff", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "prices.js"];
 
 self.addEventListener("install", function(e){
   e.waitUntil((async function(){

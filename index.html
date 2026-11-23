@@ -26,8 +26,11 @@
 <meta name="twitter:title" content="На пиво">
 <meta name="twitter:description" content="Прайс: жидкости, POD и картриджи. Выберите вкус и закажите в Telegram.">
 <meta name="twitter:image" content="https://hemimaru.github.io/NaPivo/og-v2.png">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;600;800&display=swap">
+<link rel="preload" href="fonts/manrope.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="fonts/unbounded.woff" as="font" type="font/woff" crossorigin>
 <style>
+@font-face{font-family:"Manrope";src:url(fonts/manrope.woff) format("woff");font-weight:400 800;font-style:normal;font-display:swap}
+@font-face{font-family:"Unbounded";src:url(fonts/unbounded.woff) format("woff");font-weight:500 700;font-style:normal;font-display:swap}
 /* Layout: sticky bar with search + section chips, then price sections as 2-column cards (1 column on phones). */
 :root{
   --bg:#f6f3f8; --surface:#ffffff; --surface-2:#efeaf4; --line:#cdc3da;
