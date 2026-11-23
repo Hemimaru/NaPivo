@@ -2410,7 +2410,7 @@ chips(); render();
   }
   async function startEdit(){
     dev.set(false);
-    if(obGet() && navigator.onLine !== false){ say("Отправляю накопленные правки…", 2500); await flushOutbox(false); }
+    if(obGet() && navigator.onLine !== false){ say("Отправляю накопленные правки…", 2500); flushOutbox(false); }   /* в фоне, редактор открывается сразу */
     var local = String(window.PRICE_TEXT || ""), P0 = null;
     try{ P0 = parsePrice(local.replace(/^\n/,"")); }catch(e){}
     if(!P0 || !P0.data || !P0.data.length){ P0 = null; }
