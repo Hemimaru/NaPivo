@@ -685,7 +685,7 @@ function serialize(){
 var __P = parsePrice(window.PRICE_TEXT), CFG = __P.cfg, DATA = __P.data, PRE = __P.pre, EDIT = null, PREV = {};
 try{ var __o2 = JSON.parse(localStorage.getItem("napivo-outbox") || "null"); if(__o2 && __o2.imgs) Object.keys(__o2.imgs).forEach(function(n){ PREV[n] = __o2.imgs[n]; }); }catch(e){}
 function picSrc(n){ return PREV[n] || ("img/" + encodeURI(n)); }
-function thumbSrc(n){ return PREV[n] || ("img/t/" + encodeURI(n)); }   /* маленькая копия для карточек; если её нет, подставляется полное фото */
+function thumbSrc(n){ return picSrc(n); }   
 function picFb(el){ el.onerror = null; if(el.dataset.full) el.src = el.dataset.full; }
 var state = {sec:"all", q:"", tags:[]};
 

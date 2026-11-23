@@ -1,8 +1,8 @@
 /* Офлайн-режим сайта «На пиво».
    Страница и prices.js: сначала сеть (чтобы прайс всегда был свежий), если сети нет или она слишком медленная, берётся сохранённая копия.
-   Фото, иконки и шрифты: из сохранённой копии, в фоне обновляются. Все фото (маленькие и полные) докачиваются в фоне после показа страницы.
+   Фото, иконки и шрифты: из сохранённой копии, в фоне обновляются. Все фото докачиваются в фоне после показа страницы.
    GitHub API и таблицу Google (правки прайса, синхронизация) не трогаем. */
-var V = "napivo-v3";   // поднимать при замене фото, чтобы устройства скачали новые
+var V = "napivo-v4";   // поднимать при замене фото, чтобы устройства скачали новые
 var SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "prices.js"];
 
 self.addEventListener("install", function(e){
@@ -20,7 +20,7 @@ self.addEventListener("activate", function(e){
 });
 
 /* Фото докачиваются в фоне после показа страницы (страница шлёт сообщение "warm" при каждом заходе).
-   Сначала маленькие копии, потом полные фото. Что уже сохранено, пропускается, поэтому недокачанное продолжается при следующем заходе. */
+   Что уже сохранено, пропускается, поэтому недокачанное продолжается при следующем заходе. */
 var warming = false;
 self.addEventListener("message", function(e){
   if(e.data !== "warm" || warming) return;
@@ -43,8 +43,7 @@ self.addEventListener("message", function(e){
         var w = []; for(var k = 0; k < n; k++) w.push(worker());
         await Promise.all(w);
       }
-      await run(keys.map(function(n){ return "img/t/" + n; }), 2);
-      await run(keys.map(function(n){ return "img/" + n; }), 1);
+      await run(keys.map(function(n){ return "img/" + n; }), 2);
     }catch(err){}
     warming = false;
   })());
