@@ -645,9 +645,10 @@ html:is(.ny,.hw,.m8,.v14,.f23,.br) .modebtn{display:none}
 
 <script>document.write('<script src="prices.js?t='+Math.floor(Date.now()/60000)+'"><\/script>')</script>
 <script>try{ window.PRICE_SERVER = window.PRICE_TEXT; var __ob = JSON.parse(localStorage.getItem("napivo-outbox") || "null"); if(__ob && typeof __ob.text === "string") window.PRICE_TEXT = "\n" + __ob.text + "\n"; }catch(e){}</script>
-<script>if("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").then(function(){ return navigator.serviceWorker.ready; }).then(function(r){ setTimeout(function(){ try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); if(r.active){ var d = new Date(), day = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(), last = ""; try{ last = localStorage.getItem("napivo-cleaned") || ""; }catch(e){}
+<script>if("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").then(function(){ return navigator.serviceWorker.ready; }).then(function(r){ setTimeout(function(){ try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); window.napivoSw = function(m){ try{ if(navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage(m); }catch(e){} };
+      if(r.active){ var d = new Date(), day = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(), last = ""; try{ last = localStorage.getItem("napivo-cleaned") || ""; }catch(e){}
         if(last !== day){ r.active.postMessage("clean"); try{ localStorage.setItem("napivo-cleaned", day); }catch(e){} }   /* очистка кэша раз в сутки, после полуночи */
-        r.active.postMessage("warm"); } }catch(e){} }, 6000); }).catch(function(){}); });</script>
+        r.active.postMessage("warm"); } }catch(e){} }, 12000); }).catch(function(){}); });</script>
 <script>
 function esc(s){return s.replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function parsePrice(text){
@@ -1679,6 +1680,7 @@ chips(); render();
   try{ isAdmin = localStorage.getItem("napivo-admin") === "1"; }catch(e){}
   if(!isAdmin){ try{ if(sessionStorage.getItem("napivo-admin") === "1"){ isAdmin = true; localStorage.setItem("napivo-admin","1"); } }catch(e){} }
   var stack = [];
+  function syncWarm(){ if(window.napivoSw) window.napivoSw((stack.length || EDIT) ? "pause" : "resume"); }
   function overlay(html){
     var back = document.createElement("div"); back.className = "dev-back"; back.hidden = true; back.innerHTML = html;
     document.body.appendChild(back);
@@ -1687,8 +1689,10 @@ chips(); render();
       anims.forEach(function(a){ try{ a.cancel(); }catch(e){} }); anims = [];
       var was = o.open; o.open = on;
       var i = stack.indexOf(o); if(i >= 0) stack.splice(i,1);
+      if(on) stack.push(o);
+      syncWarm();
       if(on){
-        stack.push(o); back.hidden = false;
+        back.hidden = false;
         if(rm || !box.animate) return;
         anims.push(back.animate([{opacity:0},{opacity:1}],{duration:220,easing:"ease-out"}));
         anims.push(box.animate([{opacity:0,transform:"translateY(14px) scale(.95)"},{opacity:1,transform:"none"}],{duration:280,easing:"cubic-bezier(.2,.8,.2,1)"}));
@@ -2409,6 +2413,7 @@ chips(); render();
   function draftClear(){ try{ localStorage.removeItem(DRK); }catch(e){} }
   function enterEdit(P, sha){
     EDIT = {log:[], imgs:{}, sha:sha, base:n1(window.PRICE_SERVER), back:{d:DATA, p:PRE, g:state.sec, q:state.q}};
+    syncWarm();
     DATA = P.data; PRE = P.pre; DATA.forEach(function(g){ g.items.forEach(function(it){ it._o = it.n; }); }); state.sec = "all"; state.q = ""; document.getElementById("q").value = ""; ebQ.value = ""; ebClose(); if(window.resetTags) window.resetTags(true);
     document.body.classList.add("editing"); bar.hidden = false; ebSize(); render(); window.scrollTo(0, 0);
     if(!rm && bar.animate){ bar.animate([{transform:"translateY(-100%)"},{transform:"none"}],{duration:300,easing:"cubic-bezier(.2,.8,.2,1)"}); mainEl.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,easing:"ease-out"}); }
@@ -2464,7 +2469,7 @@ chips(); render();
     var an = [], go = function(){
       an.forEach(function(x){ try{ x.cancel(); }catch(e){} });
       if(restore && EDIT){ DATA = EDIT.back.d; PRE = EDIT.back.p; }
-      EDIT = null; draftSig = ""; draftClear(); document.body.classList.remove("editing"); bar.hidden = true; ebQ.value = ""; state.q = ""; ebClose();
+      EDIT = null; draftSig = ""; draftClear(); syncWarm(); document.body.classList.remove("editing"); bar.hidden = true; ebQ.value = ""; state.q = ""; ebClose();
       state.sec = "all"; MENU = DATA.map(function(g){ return [g.id, g.menu]; }); chips();
       render(); if(window.rebuildLook) window.rebuildLook();
       window.scrollTo(0, 0);
@@ -2536,7 +2541,9 @@ chips(); render();
   }
   async function openLog(){
     dev.set(false); lg.set(true);
-    var body = lg.box.querySelector("#lgBody"); body.textContent = "Загрузка…";
+    var body = lg.box.querySelector("#lgBody"), LGK = "napivo-log-html";
+    var old = ""; try{ old = localStorage.getItem(LGK) || ""; }catch(e){}
+    if(old) body.innerHTML = old; else body.textContent = "Загрузка…";   /* прошлая копия сразу, свежий журнал следом */
     try{
       var r = await fetch("https://api.github.com/repos/" + REPO + "/commits?path=prices.js&per_page=40", {headers:{Accept:"application/vnd.github+json"}});
       if(!r.ok) throw new Error(r.status);
@@ -2549,7 +2556,8 @@ chips(); render();
         var ds = d.toLocaleDateString("ru-RU",{day:"numeric",month:"long"}) + ", " + d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
         return '<div class="lg-i"><span class="lg-d">' + ds + '</span><span class="lg-m">' + ls.map(esc).join("<br>") + '</span></div>';
       }).join("") || "Пока пусто.";
-    }catch(e){ body.textContent = "Не удалось загрузить журнал. Попробуйте позже."; }
+      try{ localStorage.setItem(LGK, body.innerHTML); }catch(e){}
+    }catch(e){ if(!old) body.textContent = "Не удалось загрузить журнал. Попробуйте позже."; }
   }
 
 
@@ -2903,9 +2911,10 @@ chips(); render();
   }
   async function openResv(){
     dev.set(false); rv.set(true); try{ localStorage.setItem(VWK, JSON.stringify({v:"resv", t:Date.now()})); }catch(e){}
-    var body = rv.box.querySelector("#rvBody"); body.textContent = "Загрузка…";
-    try{ var L = await loadPrices(); rvCtx = L; drawResv(L.P.data, L.P.pre); }
-    catch(e){ rvCtx = null; drawResv(DATA); }
+    var body = rv.box.querySelector("#rvBody"), shown = false;
+    try{ var L0 = localCopy(); rvCtx = L0; drawResv(L0.P.data, L0.P.pre); shown = true; }catch(e){ body.textContent = "Загрузка…"; }   /* сразу из того, что уже есть, свежее подтянется следом */
+    try{ var L = await loadPrices(); rvCtx = L; if(rv.open && !rvBusy) drawResv(L.P.data, L.P.pre); }
+    catch(e){ if(!shown){ rvCtx = null; drawResv(DATA); } }
   }
   var rvBusy = false;
   function cleanData(P){

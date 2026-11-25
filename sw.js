@@ -34,7 +34,9 @@ self.addEventListener("message", function(e){
   })());
 });
 
-var warming = false;
+var warming = false, paused = false;
+/* Пока вы что-то делаете на сайте (меню, редактор), докачка фото ждёт, чтобы ваши действия шли первыми */
+self.addEventListener("message", function(e){ if(e.data === "pause") paused = true; else if(e.data === "resume") paused = false; });
 self.addEventListener("message", function(e){
   if(e.data !== "warm" || warming) return;
   warming = true;
@@ -49,6 +51,7 @@ self.addEventListener("message", function(e){
       async function run(list, n){
         async function worker(){
           while(list.length){
+            while(paused) await new Promise(function(r){ setTimeout(r, 400); });
             var u = list.shift();
             try{ if(!(await c.match(u))) await c.add(new Request(u)); }catch(err){}
           }
