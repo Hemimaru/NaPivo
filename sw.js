@@ -21,6 +21,19 @@ self.addEventListener("activate", function(e){
 
 /* Фото докачиваются в фоне после показа страницы (страница шлёт сообщение "warm" при каждом заходе).
    Что уже сохранено, пропускается, поэтому недокачанное продолжается при следующем заходе. */
+/* Ежедневная очистка: страница шлёт "clean" при первом заходе после полуночи (по времени телефона).
+   Удаляется всё, кроме фото и шрифтов, и страница с прайсом скачиваются заново. Фото обновляются сами, если на сайте изменились. */
+self.addEventListener("message", function(e){
+  if(e.data !== "clean") return;
+  e.waitUntil((async function(){
+    try{
+      var c = await caches.open(V), ks = await c.keys();
+      await Promise.all(ks.filter(function(r){ return !/\/(img|fonts)\//.test(new URL(r.url).pathname); }).map(function(r){ return c.delete(r); }));
+      await Promise.all(SHELL.filter(function(u){ return !/^fonts\//.test(u); }).map(function(u){ return c.add(new Request(u, {cache: "reload"})).catch(function(){}); }));
+    }catch(err){}
+  })());
+});
+
 var warming = false;
 self.addEventListener("message", function(e){
   if(e.data !== "warm" || warming) return;
