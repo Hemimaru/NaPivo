@@ -814,8 +814,9 @@ function card(it,q,single){
   var list = vis(it,q), et = isEt(it.n), lock = et && !EDIT;
   return '<article class="card'+(single?' one':'')+'" data-gi="'+gi+'" data-ii="'+ii+'">'+img+'<div><div class="top">'+(EDIT?'<span class="cgrip" data-e="cgrip" aria-label="Перетащить линейку"><svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true"><circle cx="4" cy="3" r="1.6"/><circle cx="10" cy="3" r="1.6"/><circle cx="4" cy="9" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="4" cy="15" r="1.6"/><circle cx="10" cy="15" r="1.6"/></svg></span>':'')+'<h3'+(EDIT?' data-e="line"':'')+'>'+hl(it.n,q)+(et?'<span class="qty et">едет 🚚</span>':'')+(isLineNew(it.n)?'<span class="qty nw">'+IC.nw+'новинка</span>':'')+'</h3><div class="pills"'+(EDIT?' data-e="line"':'')+'>'+pills+'</div></div><ul class="fl">'+list.map(function(a){return flav(a[0],q,it.id+"."+a[1],a[1],it.n,lock);}).join("")+(EDIT?'<li class="addf" data-e="addf">+ Добавить вкус</li>':"")+'</ul></div></article>';
 }
+window.RCAP = 0;   /* >0: нарисовать только первые N линеек (быстрый первый кадр редактора) */
 function render(){
-  var q = state.q.trim().toLowerCase(), html = "", shown = 0, nf = 0, tg = state.tags.length && !EDIT;
+  var q = state.q.trim().toLowerCase(), html = "", shown = 0, nf = 0, tg = state.tags.length && !EDIT, cap = window.RCAP;
   DATA.forEach(function(g){
     if(state.sec!=="all" && state.sec!==g.id) return;
     if(tg && !g.liq) return;
@@ -824,6 +825,8 @@ function render(){
       if(tg){ if(isEt(it.n)) return false; var n = vis(it,q).length; nf += n; return n > 0; }
       return !q || it.n.toLowerCase().indexOf(q)>=0 || it.f.some(function(x){return !hiddenF(x) && x.toLowerCase().indexOf(q)>=0;});
     });
+    if(cap && shown >= cap) return;
+    if(cap && shown + items.length > cap) items = items.slice(0, cap - shown);
     if(!items.length) return;
     shown += items.length;
     var head = g.head;
@@ -2415,7 +2418,12 @@ chips(); render();
     EDIT = {log:[], imgs:{}, sha:sha, base:n1(window.PRICE_SERVER), back:{d:DATA, p:PRE, g:state.sec, q:state.q}};
     syncWarm();
     DATA = P.data; PRE = P.pre; DATA.forEach(function(g){ g.items.forEach(function(it){ it._o = it.n; }); }); state.sec = "all"; state.q = ""; document.getElementById("q").value = ""; ebQ.value = ""; ebClose(); if(window.resetTags) window.resetTags(true);
-    document.body.classList.add("editing"); bar.hidden = false; ebSize(); render(); window.scrollTo(0, 0);
+    document.body.classList.add("editing"); bar.hidden = false;
+    var eh = 0; try{ eh = parseInt(localStorage.getItem("napivo-ebh"), 10) || 0; }catch(e){}
+    if(eh) document.body.style.setProperty("--ebh", eh + "px"); else ebSize();
+    window.RCAP = 6; render(); window.scrollTo(0, 0);   /* первый кадр: верх прайса, остальное дорисуется следом */
+    requestAnimationFrame(function(){ ebSize(); try{ localStorage.setItem("napivo-ebh", String(bar.offsetHeight)); }catch(e){} });
+    var E0 = EDIT; setTimeout(function(){ window.RCAP = 0; if(EDIT !== E0) return; var y = window.pageYOffset || 0; render(); window.scrollTo(0, y); }, 380);
     if(!rm && bar.animate){ bar.animate([{transform:"translateY(-100%)"},{transform:"none"}],{duration:300,easing:"cubic-bezier(.2,.8,.2,1)"}); mainEl.animate([{opacity:0,transform:"translateY(14px)"},{opacity:1,transform:"none"}],{duration:340,easing:"ease-out"}); }
   }
   async function startEdit(){
