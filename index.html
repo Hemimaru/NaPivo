@@ -274,7 +274,7 @@ body.editing{padding-top:calc(var(--ebh,112px) + 8px)}
 .rv-dt.td{background:var(--accent);color:var(--accent-fg)}
 .rv-dt.ex{background:var(--resv);color:#1a1524}
 .rv-dl{color:var(--muted);font-size:12.5px;margin:6px 0 2px}
-.rv-nt{margin:6px 0 2px;display:inline-block;width:auto}.rv-nt::after{content:" ▾"}.rv-nt[aria-expanded="true"]::after{content:" ▴"}
+.rv-nt{margin:0;display:inline-block;width:auto;flex:none;padding:6px 10px;font-size:12.5px}.rv-nt::after{content:" ▾"}.rv-nt[aria-expanded="true"]::after{content:" ▴"}
 .rv-note{margin:4px 0 6px;padding:10px 12px;border-radius:10px;background:var(--bg);color:var(--fg);font-size:13.5px;line-height:1.4;white-space:pre-wrap;word-break:break-word}
 body.editing .card h3,body.editing .pills,body.editing ul.fl li,body.editing .pic{cursor:pointer;-webkit-tap-highlight-color:transparent}
 body.editing ul.fl li{border-radius:8px}
@@ -290,6 +290,15 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .sheet .sb.pri{background:var(--accent);color:var(--accent-fg)}
 .sheet .sb.dan{color:#e5484d}
 .sheet .dev-in{width:100%;box-sizing:border-box}
+.th-g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.th-l{margin:8px 4px 0;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.th{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1.5px solid transparent;border-radius:14px;background:var(--surface-2);color:var(--fg);font:inherit;text-align:left;cursor:pointer;min-width:0}
+.th-i{font-size:22px;line-height:1;flex:none}
+.th-t{display:grid;gap:2px;min-width:0}.th-t b{font-size:14px;font-weight:700}.th-t small{font-size:11px;color:var(--muted);font-weight:600}
+.th.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--surface-2))}
+.th.on b::after{content:" \2713";color:var(--accent)}
+.th-top .th{background:var(--surface-2)}
+
 .rvl{display:grid;align-content:start;grid-auto-rows:max-content;gap:10px;padding:0 4px 4px;color:var(--muted);font-size:14px;max-height:62vh;overflow:auto}
 .rv-i{display:flex;gap:12px;align-items:flex-start;padding:10px;border-radius:14px;background:var(--surface-2);color:var(--fg)}
 .rv-p{width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none;background:var(--bg)}
@@ -316,7 +325,11 @@ body.editing ul.fl li.rv{background:rgba(255,180,84,.12)}
 .bk-in{padding:0 12px 12px;display:grid;gap:8px}
 .bk-h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}.bk-h b{font-size:15px}.bk-n{font-weight:800;color:var(--accent)}
 .bk-f{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:700;padding:2px 4px}.bk-f b{font-size:17px;font-variant-numeric:tabular-nums}
-.bk-a{display:flex;flex-wrap:wrap;gap:8px}
+.bk-a,.bk-m{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bk-a .rv-g{padding:12px 10px;text-align:center}
+.rv-g.rv-s{background:var(--accent);color:var(--accent-fg)}
+.rv-g.rv-m{background:none;border:1px solid var(--line);color:var(--muted);font-weight:600;font-size:12.5px;padding:9px 6px;text-align:center;white-space:nowrap}
+.rv-inf{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0}.rv-inf .rv-dl{margin:0;flex:1;min-width:0}
 .rv-g{padding:9px 14px;border:0;border-radius:10px;background:var(--bg);color:var(--fg);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .rv-g.rv-l{padding:3px 8px;background:none;color:var(--muted);text-decoration:underline;font-weight:600}
 .rv-c{width:18px;height:18px;accent-color:var(--accent);vertical-align:-3px;margin-right:4px}
@@ -2545,9 +2558,27 @@ chips(); render();
   lg.onClose = function(){ drawMenu(); dev.set(true); };
   lg.box.addEventListener("click", function(e){ if(e.target.getAttribute && e.target.getAttribute("data-close")) lg.set(false); });
   async function openThemes(){
-    var cur = window.napivoTheme ? window.napivoTheme.get() : "", L = [["", "По дате"],["off", "Обычная"],["ny", "Новый год"],["hw", "Хэллоуин"],["m8", "8 Марта"],["v14", "14 Февраля"],["f23", "23 Февраля"],["br", "День пива"]];
-    var i = await sheet("Тема сайта только для вас, на этом устройстве. У покупателей она не меняется.", L.map(function(x){ return {t:(x[0] === cur ? "✓ " : "") + x[1], p:x[0] === cur}; }).concat([{t:"Закрыть"}]), true);
-    if(i >= 0 && i < L.length && window.napivoTheme){ window.napivoTheme.set(L[i][0]); say("Тема: " + L[i][1], 2200); }
+    var cur = window.napivoTheme ? window.napivoTheme.get() : "";
+    var H = [["ny","\u{1F384}","Новый год","1 дек – 5 янв",11,1,0,5],["v14","\u{1F498}","14 Февраля","14 фев",1,14,1,14],["f23","\u{1F396}\uFE0F","23 Февраля","23 фев",1,23,1,23],["m8","\u{1F337}","8 Марта","8 мар",2,8,2,8],["br","\u{1F37A}","День пива","7 авг",7,7,7,7],["hw","\u{1F383}","Хэллоуин","25 окт – 1 ноя",9,25,10,1]];
+    var n = new Date(Date.now() + 3*3600e3), c = n.getUTCMonth() * 31 + n.getUTCDate();
+    H.forEach(function(h){
+      var s = h[4]*31 + h[5], e = h[6]*31 + h[7], act = s <= e ? (c >= s && c <= e) : (c >= s || c <= e);
+      h.d = act ? 0 : (s - c + 372) % 372;
+    });
+    H.sort(function(x, y){ return x.d - y.d; });
+    function it(v, ic, nm, sub){ return '<button type="button" class="th' + (v === cur ? ' on' : '') + '" data-v="' + v + '"><span class="th-i">' + ic + '</span><span class="th-t"><b>' + nm + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</span></button>'; }
+    var html = '<p>Тема сайта только для вас, на этом устройстве. У покупателей она не меняется.</p>' +
+      '<div class="th-g th-top">' + it("", "\u{1F4C5}", "По дате", "сама, по празднику") + it("off", "\u{1F319}", "Обычная", "без праздников") + '</div>' +
+      '<div class="th-l">Праздники по очереди</div><div class="th-g">' + H.map(function(h){ return it(h[0], h[1], h[2], h[3]); }).join("") + '</div>' +
+      '<button type="button" class="sb" data-no="1">Закрыть</button>';
+    var p = pop(html, true);
+    p.back.addEventListener("click", function(e){
+      var t = e.target.closest && e.target.closest(".th");
+      if(t){
+        var v = t.getAttribute("data-v"); p.close();
+        if(window.napivoTheme){ window.napivoTheme.set(v); var nm = t.querySelector("b").textContent; say("Тема: " + nm, 2200); }
+      } else if(e.target === p.back || (e.target.getAttribute && e.target.getAttribute("data-no"))) p.close();
+    });
   }
   async function openLog(){
     dev.set(false); lg.set(true);
@@ -2903,13 +2934,17 @@ chips(); render();
       var t = tot(g.rows); all.c += t.c; all.s += t.s;
       var when = g.ts ? esc(mskStr(g.ts * 1000).replace(/^\d{4}-(\d{2})-(\d{2})/, "$2.$1")) : "";
       var dti = dtInfo(g.dt, g.tm), dtc = dti ? '<span class="rv-dt' + (dti.cls ? " " + dti.cls : "") + '">' + dti.lab + '</span>' : "";
-      var inner = rowsHtml(g.rows, false, g.code) + (dti ? '<div class="rv-dl">Продажа: ' + dti.lab + ' · ' + dti.hint + '</div>' : '') + (g.ds ? '<button type="button" class="rv-g rv-nt" data-g="note" aria-expanded="false">Описание</button><div class="rv-note" hidden>' + esc(g.ds) + '</div>' : '') + '<div class="bk-f"><span>' + t.c + ' шт</span><b>' + t.s + '</b></div>' +
-        '<div class="bk-a"><button type="button" class="rv-g" data-g="off" data-c="' + g.code + '">Снять всю бронь</button><button type="button" class="rv-g rv-s" data-g="sold" data-c="' + g.code + '">Продано всё</button><button type="button" class="rv-g" data-g="dt" data-c="' + g.code + '">' + (g.dt || g.ds ? "Изменить дату/описание" : "Дата, время и описание") + '</button><button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Изменить имя</button></div>';
+      var rnB = '<button type="button" class="rv-g rv-m" data-g="rn" data-c="' + g.code + '">\u270E Имя</button>';
+      var inner = rowsHtml(g.rows, false, g.code) +
+        (dti || g.ds ? '<div class="rv-inf"><span class="rv-dl">' + (dti ? '\u{1F4C5} ' + dti.lab + ' · ' + dti.hint : '') + '</span>' + (g.ds ? '<button type="button" class="rv-g rv-nt" data-g="note" aria-expanded="false">Описание</button>' : '') + '</div>' + (g.ds ? '<div class="rv-note" hidden>' + esc(g.ds) + '</div>' : '') : '') +
+        '<div class="bk-f"><span>' + t.c + ' шт</span><b>' + t.s + '</b></div>' +
+        '<div class="bk-a"><button type="button" class="rv-g rv-s" data-g="sold" data-c="' + g.code + '">Продано всё</button><button type="button" class="rv-g" data-g="off" data-c="' + g.code + '">Снять бронь</button></div>' +
+        '<div class="bk-m"><button type="button" class="rv-g rv-m" data-g="dt" data-c="' + g.code + '">\u{1F4C5} ' + "Дата и описание" + '</button>' + rnB + '</div>';
       if(g.nm || g.tg){
         var open = !!rvOpen[g.code] || rvCollapse === g.code;
         html += '<section class="bk bk-c" data-c="' + g.code + '" data-w="' + when + '" data-l="' + esc(g.nm || tgLabel(g.tg)) + '"><button type="button" class="bk-t" aria-expanded="' + (open ? "true" : "false") + '"><b class="bk-name">' + nameHtml(g) + '</b>' + (dtc || (when ? '<span class="rv-u">' + when + '</span>' : '')) + '<span class="bk-sum">' + t.s + '</span><svg class="bk-ch" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="bk-body"' + (open ? '' : ' hidden') + '><div class="bk-in">' + inner + '</div></div></section>';
       } else {
-        html += '<section class="bk" data-c="' + g.code + '" data-w="' + when + '" data-l=""><div class="bk-h"><b>Бронь без имени</b>' + (dtc ? ' ' + dtc : when ? ' <span class="rv-u">' + when + '</span>' : '') + ' <button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Добавить имя</button></div>' + inner.replace('<button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Изменить имя</button>', '') + '</section>';
+        html += '<section class="bk" data-c="' + g.code + '" data-w="' + when + '" data-l=""><div class="bk-h"><b>Бронь без имени</b>' + (dtc ? ' ' + dtc : when ? ' <span class="rv-u">' + when + '</span>' : '') + ' <button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Добавить имя</button></div>' + inner.replace(rnB, "") + '</section>';
       }
     });
     if(free.length){
@@ -2991,7 +3026,7 @@ chips(); render();
     if(tg){ toggleBk(tg.parentNode, tg.getAttribute("aria-expanded") !== "true"); return; }
     var gb = e.target.closest && e.target.closest(".rv-g");
     if(gb && gb.getAttribute("data-g") === "note"){
-      var nbx = gb.nextElementSibling, opn = gb.getAttribute("aria-expanded") !== "true";
+      var nbx = gb.parentNode.nextElementSibling, opn = gb.getAttribute("aria-expanded") !== "true";
       gb.setAttribute("aria-expanded", opn ? "true" : "false"); if(nbx) nbx.hidden = !opn; return;
     }
     if(gb && !rvBusy){
