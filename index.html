@@ -2826,6 +2826,7 @@ chips(); render();
     if(!m) throw {status:0};
     return {P:parsePrice(m[1].replace(/^\n/,"")), sha:j.sha, raw:n1(m[1])};
   }
+  function bkNm(e){ return (e && (e.nm || (e.tg ? tgLabel(e.tg) : ""))) || "без имени"; }
   var rvOpen = {}, rvCollapse = "";
   function toggleBk(sec, open){
     var b = sec.querySelector(".bk-body"), t = sec.querySelector(".bk-t"), c = sec.getAttribute("data-c"); if(!b) return;
@@ -2902,9 +2903,9 @@ chips(); render();
         '<div class="bk-a"><button type="button" class="rv-g" data-g="off" data-c="' + g.code + '">Снять всю бронь</button><button type="button" class="rv-g rv-s" data-g="sold" data-c="' + g.code + '">Продано всё</button><button type="button" class="rv-g" data-g="dt" data-c="' + g.code + '">' + (g.dt ? "Изменить дату" : "Дата продажи") + '</button><button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Изменить имя</button></div>';
       if(g.nm || g.tg){
         var open = !!rvOpen[g.code] || rvCollapse === g.code;
-        html += '<section class="bk bk-c" data-c="' + g.code + '" data-l="' + esc(g.nm || tgLabel(g.tg)) + '"><button type="button" class="bk-t" aria-expanded="' + (open ? "true" : "false") + '"><span class="bk-no">№' + g.code + '</span><b class="bk-name">' + nameHtml(g) + '</b>' + (dtc || (when ? '<span class="rv-u">' + when + '</span>' : '')) + '<span class="bk-sum">' + t.s + '</span><svg class="bk-ch" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="bk-body"' + (open ? '' : ' hidden') + '><div class="bk-in">' + inner + '</div></div></section>';
+        html += '<section class="bk bk-c" data-c="' + g.code + '" data-w="' + when + '" data-l="' + esc(g.nm || tgLabel(g.tg)) + '"><button type="button" class="bk-t" aria-expanded="' + (open ? "true" : "false") + '"><b class="bk-name">' + nameHtml(g) + '</b>' + (dtc || (when ? '<span class="rv-u">' + when + '</span>' : '')) + '<span class="bk-sum">' + t.s + '</span><svg class="bk-ch" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="bk-body"' + (open ? '' : ' hidden') + '><div class="bk-in">' + inner + '</div></div></section>';
       } else {
-        html += '<section class="bk" data-c="' + g.code + '" data-l=""><div class="bk-h"><b>Бронь №' + g.code + '</b>' + (dtc ? ' ' + dtc : when ? ' <span class="rv-u">' + when + '</span>' : '') + ' <button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Добавить имя</button></div>' + inner.replace('<button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Изменить имя</button>', '') + '</section>';
+        html += '<section class="bk" data-c="' + g.code + '" data-w="' + when + '" data-l=""><div class="bk-h"><b>Бронь без имени</b>' + (dtc ? ' ' + dtc : when ? ' <span class="rv-u">' + when + '</span>' : '') + ' <button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Добавить имя</button></div>' + inner.replace('<button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Изменить имя</button>', '') + '</section>';
       }
     });
     if(free.length){
@@ -2992,17 +2993,17 @@ chips(); render();
         if(!o) return; var nm = o.n.trim(), tgv = tgClean(o.t);
         if(o.t.trim() && !tgv){ say("Не похоже на юз: 4–32 символа, латиница, цифры и _", 3500); return; }
         if(nm || tgv) rvCollapse = code;
-        await rvRun(function(P, codes){ if(!codes[code]) return null; codes[code].nm = nm; codes[code].tg = tgv; return ["Бронь №" + code + ": имя «" + (nm || (tgv ? tgLabel(tgv) : "")) + "»"]; }, "Имя сохранено", "Не удалось сохранить имя");
+        await rvRun(function(P, codes){ if(!codes[code]) return null; codes[code].nm = nm; codes[code].tg = tgv; return ["Имя брони: «" + (nm || (tgv ? tgLabel(tgv) : "")) + "»"]; }, "Имя сохранено", "Не удалось сохранить имя");
       } else if(kind === "dt"){
-        var cur2 = readCodes((rvCtx && rvCtx.P.pre) || PRE)[code], o2 = await form("Когда продаёте? Бронь №" + code + ". Пусто — убрать дату", [{k:"d", l:"Дата продажи", type:"date", v:(cur2 && cur2.dt) || ""}], "Сохранить");
+        var cur2 = readCodes((rvCtx && rvCtx.P.pre) || PRE)[code], o2 = await form("Когда продаёте? Пусто — убрать дату", [{k:"d", l:"Дата продажи", type:"date", v:(cur2 && cur2.dt) || ""}], "Сохранить");
         if(!o2) return; var dv = String(o2.d || "").trim();
         if(dv && !/^\d{4}-\d{2}-\d{2}$/.test(dv)){ say("Не похоже на дату", 2500); return; }
-        await rvRun(function(P, codes){ if(!codes[code]) return null; codes[code].dt = dv; return ["Бронь №" + code + ": " + (dv ? "дата продажи " + dv.slice(8, 10) + "." + dv.slice(5, 7) : "дата продажи убрана")]; }, dv ? "Дата сохранена" : "Дата убрана", "Не удалось сохранить дату");
+        await rvRun(function(P, codes){ if(!codes[code]) return null; codes[code].dt = dv; return ["Бронь «" + bkNm(codes[code]) + "»: " + (dv ? "дата продажи " + dv.slice(8, 10) + "." + dv.slice(5, 7) : "дата продажи убрана")]; }, dv ? "Дата сохранена" : "Дата убрана", "Не удалось сохранить дату");
       } else if(kind === "off"){
-        if((await sheet("Снять всю бронь №" + code + "? Все вкусы вернутся в продажу.", [{t:"Снять бронь", d:1},{t:"Отмена"}], true)) !== 0) return;
-        await rvRun(function(P, codes){ var arr = codes[code], log = []; if(!arr) return null; arr.forEach(function(en){ if(putBack(P, en)) log.push("Снята бронь: " + en.line + " — " + en.fl); }); delete codes[code]; return log.length ? log : ["Бронь №" + code + " снята"]; }, "Бронь снята. На сайте обновится через минуту", "Не удалось снять бронь");
+        if((await sheet("Снять всю бронь «" + bkNm(readCodes((rvCtx && rvCtx.P.pre) || PRE)[code]) + "»? Все вкусы вернутся в продажу.", [{t:"Снять бронь", d:1},{t:"Отмена"}], true)) !== 0) return;
+        await rvRun(function(P, codes){ var arr = codes[code], log = []; if(!arr) return null; arr.forEach(function(en){ if(putBack(P, en)) log.push("Снята бронь: " + en.line + " — " + en.fl); }); delete codes[code]; return log.length ? log : ["Бронь снята"]; }, "Бронь снята. На сайте обновится через минуту", "Не удалось снять бронь");
       } else if(kind === "sold"){
-        if((await sheet("Отметить бронь №" + code + " проданной? Вкусы уберутся из прайса на сайте.", [{t:"Да, продано", d:1},{t:"Отмена"}], true)) !== 0) return;
+        if((await sheet("Отметить бронь «" + bkNm(readCodes((rvCtx && rvCtx.P.pre) || PRE)[code]) + "» проданной? Вкусы уберутся из прайса на сайте.", [{t:"Да, продано", d:1},{t:"Отмена"}], true)) !== 0) return;
         await rvRun(function(P, codes){
           var arr = codes[code], log = []; if(!arr) return null;
           arr.forEach(function(en){
@@ -3010,7 +3011,7 @@ chips(); render();
             if(en.k === "r") f.it.f.splice(f.j, 1);
             log.push("Продано: " + en.line + " — " + en.fl + (en.k === "q" ? " × " + en.v : ""));
           });
-          delete codes[code]; return log.length ? log : ["Бронь №" + code + " закрыта"];
+          delete codes[code]; return log.length ? log : ["Бронь закрыта"];
         }, "Отмечено проданным. На сайте обновится через минуту", "Не удалось отметить проданным");
       } else if(kind === "merge"){
         var pick = {};
@@ -3021,10 +3022,10 @@ chips(); render();
         });
         var refs = Object.keys(pick).map(function(k){ return pick[k]; }), total = refs.reduce(function(a, r){ return a + r.n; }, 0);
         if(!refs.length){ say("Отметьте вкусы галочками", 2500); return; }
-        var existing = Array.prototype.map.call(rv.box.querySelectorAll(".bk[data-c]"), function(x){ return {c:x.getAttribute("data-c"), l:x.getAttribute("data-l")}; });
+        var existing = Array.prototype.map.call(rv.box.querySelectorAll(".bk[data-c]"), function(x){ return {c:x.getAttribute("data-c"), l:x.getAttribute("data-l"), w:x.getAttribute("data-w")}; });
         var target = "", nameNew = "", tgNew = "";
         if(existing.length){
-          var opts = [{t:"Новая бронь"}].concat(existing.map(function(x){ return {t:"К брони №" + x.c + (x.l ? " · " + x.l : "")}; })).concat([{t:"Отмена"}]);
+          var opts = [{t:"Новая бронь"}].concat(existing.map(function(x){ return {t:"К брони: " + (x.l || ("без имени" + (x.w ? ", " + x.w : "")))}; })).concat([{t:"Отмена"}]);
           var pk = await sheet("Куда добавить " + total + " шт?", opts, true);
           if(pk < 0 || pk >= opts.length - 1) return;
           if(pk > 0) target = existing[pk - 1].c;
@@ -3054,7 +3055,7 @@ chips(); render();
           if(!log.length) return null;
           if(!target){ arr.nm = nameNew; arr.tg = tgNew; arr.ts = Math.floor(Date.now() / 1000); var nc = freeCode(codes); codes[nc] = arr; if(nameNew || tgNew) rvCollapse = nc; }
           return log;
-        }, target ? "Добавлено в бронь №" + target : "Объединено в одну бронь", "Не удалось объединить");
+        }, target ? "Добавлено в существующую бронь" : "Объединено в одну бронь", "Не удалось объединить");
       }
       return;
     }
