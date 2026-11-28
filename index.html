@@ -274,6 +274,8 @@ body.editing{padding-top:calc(var(--ebh,112px) + 8px)}
 .rv-dt.td{background:var(--accent);color:var(--accent-fg)}
 .rv-dt.ex{background:var(--resv);color:#1a1524}
 .rv-dl{color:var(--muted);font-size:12.5px;margin:6px 0 2px}
+.rv-nt{margin:6px 0 2px;display:inline-block;width:auto}.rv-nt::after{content:" ▾"}.rv-nt[aria-expanded="true"]::after{content:" ▴"}
+.rv-note{margin:4px 0 6px;padding:10px 12px;border-radius:10px;background:var(--bg);color:var(--fg);font-size:13.5px;line-height:1.4;white-space:pre-wrap;word-break:break-word}
 body.editing .card h3,body.editing .pills,body.editing ul.fl li,body.editing .pic{cursor:pointer;-webkit-tap-highlight-color:transparent}
 body.editing ul.fl li{border-radius:8px}
 body.editing ul.fl li:hover,body.editing .card h3:hover{background:var(--surface-2)}
@@ -2612,7 +2614,8 @@ chips(); render();
         var nm = x.match(/^имя:(.*)$/); if(nm){ arr.nm = nm[1].trim(); return; }
         var tgm = x.match(/^тг:(.*)$/); if(tgm){ arr.tg = tgClean(tgm[1]); return; }
         var tm = x.match(/^t:(\d+)$/); if(tm){ arr.ts = +tm[1]; return; }
-        var dm = x.match(/^дата:(\d{4}-\d{2}-\d{2})$/); if(dm){ arr.dt = dm[1]; return; }
+        var dm = x.match(/^дата:(\d{4}-\d{2}-\d{2})(?:\s+(\d{2}:\d{2}))?$/); if(dm){ arr.dt = dm[1]; arr.tm = dm[2] || ""; return; }
+        var dsm = x.match(/^опис:(.*)$/); if(dsm){ arr.ds = dsm[1].trim(); return; }
         var q = x.match(/^([rq]):(.*)$/); if(!q) return;
         var a = q[2].split("::").map(function(y){ return y.trim(); });
         arr.push({k:q[1], line:a[0], fl:a[1], v:a[2] || ""});
@@ -2627,7 +2630,8 @@ chips(); render();
     if(arr.nm) head.push("имя:" + String(arr.nm).replace(/[|]/g, " ").trim());
     if(arr.tg) head.push("тг:" + arr.tg);
     if(arr.ts) head.push("t:" + arr.ts);
-    if(arr.dt) head.push("дата:" + arr.dt);
+    if(arr.dt) head.push("дата:" + arr.dt + (arr.tm ? " " + arr.tm : ""));
+    if(arr.ds) head.push("опис:" + String(arr.ds).replace(/[`\\]/g, "").replace(/\$\{/g, "").replace(/\|/g, "/").replace(/\s+/g, " ").trim().slice(0, 300));
     return "//код " + c + " | " + head.concat(arr.map(function(en){ return en.k + ":" + en.line + " :: " + en.fl + " :: " + en.v; })).join(" | ");
   }
   function norm(x){ return String(x || "").trim().toLowerCase().replace(/ё/g,"е"); }
@@ -2852,7 +2856,7 @@ chips(); render();
     Object.keys(cds).forEach(function(c){
       var arr = cds[c], key;
       if(arr.man){ arr.forEach(function(e){ if(e.k === "q"){ key = norm(e.line) + "|" + norm(e.fl); manQ[key] = (manQ[key] || 0) + (parseInt(e.v, 10) || 0); } }); return; }
-      var gr = {code:c, nm:arr.nm, tg:arr.tg, ts:arr.ts || 0, dt:arr.dt || "", rows:[]};
+      var gr = {code:c, nm:arr.nm, tg:arr.tg, ts:arr.ts || 0, dt:arr.dt || "", tm:arr.tm || "", ds:arr.ds || "", rows:[]};
       arr.forEach(function(e){
         key = norm(e.line) + "|" + norm(e.fl); var ref = idx[key]; if(!ref) return;
         if(e.k === "q"){ var n = parseInt(e.v, 10) || 0; if(n > 0) gr.rows.push({ref:ref, n:n, ri:null}); }
@@ -2861,13 +2865,13 @@ chips(); render();
       if(gr.rows.length) groups.push(gr);
     });
     groups.sort(function(a, b){   // сначала у кого скоро продажа, потом без даты — свежие сверху
-      if(a.dt && b.dt) return a.dt < b.dt ? -1 : a.dt > b.dt ? 1 : b.ts - a.ts;
+      if(a.dt && b.dt){ var ka = a.dt + " " + (a.tm || "99:99"), kb = b.dt + " " + (b.tm || "99:99"); return ka < kb ? -1 : ka > kb ? 1 : b.ts - a.ts; }
       if(a.dt) return -1; if(b.dt) return 1; return b.ts - a.ts;
     });
-    function dtInfo(d){
+    function dtInfo(d, tm){
       if(!d) return null;
-      var today = mskStr(Date.now()).slice(0, 10), diff = Math.round((Date.parse(d + "T00:00:00Z") - Date.parse(today + "T00:00:00Z")) / 864e5);
-      return {lab:d.slice(8, 10) + "." + d.slice(5, 7), cls:diff < 0 ? "ex" : diff === 0 ? "td" : "", hint:diff < 0 ? "просрочено" : diff === 0 ? "сегодня" : diff === 1 ? "завтра" : "через " + diff + " дн."};
+      var nowS = mskStr(Date.now()), today = nowS.slice(0, 10), late = !!tm && d === today && nowS.slice(11, 16) > tm, diff = Math.round((Date.parse(d + "T00:00:00Z") - Date.parse(today + "T00:00:00Z")) / 864e5);
+      return {lab:d.slice(8, 10) + "." + d.slice(5, 7) + (tm ? " " + tm : ""), cls:diff < 0 || late ? "ex" : diff === 0 ? "td" : "", hint:diff < 0 || late ? "просрочено" : diff === 0 ? "сегодня" : diff === 1 ? "завтра" : "через " + diff + " дн."};
     }
     var free = [];
     Object.keys(idx).forEach(function(key){ var ref = idx[key]; if(ref.ri && !claimed[key]) free.push({ref:ref, n:0, ri:ref.ri}); });
@@ -2898,9 +2902,9 @@ chips(); render();
     groups.forEach(function(g){
       var t = tot(g.rows); all.c += t.c; all.s += t.s;
       var when = g.ts ? esc(mskStr(g.ts * 1000).replace(/^\d{4}-(\d{2})-(\d{2})/, "$2.$1")) : "";
-      var dti = dtInfo(g.dt), dtc = dti ? '<span class="rv-dt' + (dti.cls ? " " + dti.cls : "") + '">' + dti.lab + '</span>' : "";
-      var inner = rowsHtml(g.rows, false, g.code) + (dti ? '<div class="rv-dl">Продажа: ' + dti.lab + ' · ' + dti.hint + '</div>' : '') + '<div class="bk-f"><span>' + t.c + ' шт</span><b>' + t.s + '</b></div>' +
-        '<div class="bk-a"><button type="button" class="rv-g" data-g="off" data-c="' + g.code + '">Снять всю бронь</button><button type="button" class="rv-g rv-s" data-g="sold" data-c="' + g.code + '">Продано всё</button><button type="button" class="rv-g" data-g="dt" data-c="' + g.code + '">' + (g.dt ? "Изменить дату" : "Дата продажи") + '</button><button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Изменить имя</button></div>';
+      var dti = dtInfo(g.dt, g.tm), dtc = dti ? '<span class="rv-dt' + (dti.cls ? " " + dti.cls : "") + '">' + dti.lab + '</span>' : "";
+      var inner = rowsHtml(g.rows, false, g.code) + (dti ? '<div class="rv-dl">Продажа: ' + dti.lab + ' · ' + dti.hint + '</div>' : '') + (g.ds ? '<button type="button" class="rv-g rv-nt" data-g="note" aria-expanded="false">Описание</button><div class="rv-note" hidden>' + esc(g.ds) + '</div>' : '') + '<div class="bk-f"><span>' + t.c + ' шт</span><b>' + t.s + '</b></div>' +
+        '<div class="bk-a"><button type="button" class="rv-g" data-g="off" data-c="' + g.code + '">Снять всю бронь</button><button type="button" class="rv-g rv-s" data-g="sold" data-c="' + g.code + '">Продано всё</button><button type="button" class="rv-g" data-g="dt" data-c="' + g.code + '">' + (g.dt || g.ds ? "Изменить дату/описание" : "Дата, время и описание") + '</button><button type="button" class="rv-g rv-l" data-g="rn" data-c="' + g.code + '">Изменить имя</button></div>';
       if(g.nm || g.tg){
         var open = !!rvOpen[g.code] || rvCollapse === g.code;
         html += '<section class="bk bk-c" data-c="' + g.code + '" data-w="' + when + '" data-l="' + esc(g.nm || tgLabel(g.tg)) + '"><button type="button" class="bk-t" aria-expanded="' + (open ? "true" : "false") + '"><b class="bk-name">' + nameHtml(g) + '</b>' + (dtc || (when ? '<span class="rv-u">' + when + '</span>' : '')) + '<span class="bk-sum">' + t.s + '</span><svg class="bk-ch" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="bk-body"' + (open ? '' : ' hidden') + '><div class="bk-in">' + inner + '</div></div></section>';
@@ -2939,7 +2943,7 @@ chips(); render();
         var en = arr[i]; if(en.k !== "q" || norm(en.line) !== norm(line) || norm(en.fl) !== norm(fl)) continue;
         var have = parseInt(en.v, 10) || 0, t = Math.min(have, left); left -= t; en.v = String(have - t);
       }
-      codes[c] = Object.assign(arr.filter(function(en){ return !(en.k === "q" && (parseInt(en.v, 10) || 0) <= 0); }), {man:arr.man, nm:arr.nm, tg:arr.tg, ts:arr.ts, dt:arr.dt});
+      codes[c] = Object.assign(arr.filter(function(en){ return !(en.k === "q" && (parseInt(en.v, 10) || 0) <= 0); }), {man:arr.man, nm:arr.nm, tg:arr.tg, ts:arr.ts, dt:arr.dt, tm:arr.tm, ds:arr.ds});
       if(!codes[c].length) delete codes[c];
     });
     return n - left;
@@ -2986,6 +2990,10 @@ chips(); render();
     var tg = e.target.closest && e.target.closest(".bk-t");
     if(tg){ toggleBk(tg.parentNode, tg.getAttribute("aria-expanded") !== "true"); return; }
     var gb = e.target.closest && e.target.closest(".rv-g");
+    if(gb && gb.getAttribute("data-g") === "note"){
+      var nbx = gb.nextElementSibling, opn = gb.getAttribute("aria-expanded") !== "true";
+      gb.setAttribute("aria-expanded", opn ? "true" : "false"); if(nbx) nbx.hidden = !opn; return;
+    }
     if(gb && !rvBusy){
       var kind = gb.getAttribute("data-g"), code = gb.getAttribute("data-c");
       if(kind === "rn"){
@@ -2995,10 +3003,11 @@ chips(); render();
         if(nm || tgv) rvCollapse = code;
         await rvRun(function(P, codes){ if(!codes[code]) return null; codes[code].nm = nm; codes[code].tg = tgv; return ["Имя брони: «" + (nm || (tgv ? tgLabel(tgv) : "")) + "»"]; }, "Имя сохранено", "Не удалось сохранить имя");
       } else if(kind === "dt"){
-        var cur2 = readCodes((rvCtx && rvCtx.P.pre) || PRE)[code], o2 = await form("Когда продаёте? Пусто — убрать дату", [{k:"d", l:"Дата продажи", type:"date", v:(cur2 && cur2.dt) || ""}], "Сохранить");
-        if(!o2) return; var dv = String(o2.d || "").trim();
+        var cur2 = readCodes((rvCtx && rvCtx.P.pre) || PRE)[code], o2 = await form("Когда продаёте и что важно помнить? Пусто — убрать", [{k:"d", l:"Дата продажи", type:"date", v:(cur2 && cur2.dt) || ""},{k:"tm", l:"Время (необязательно)", type:"time", v:(cur2 && cur2.tm) || ""},{k:"ds", l:"Описание (необязательно)", v:(cur2 && cur2.ds) || ""}], "Сохранить");
+        if(!o2) return; var dv = String(o2.d || "").trim(), tmv = String(o2.tm || "").trim(), dsv = String(o2.ds || "").replace(/[`\\]/g, "").replace(/\$\{/g, "").replace(/\|/g, "/").replace(/\s+/g, " ").trim().slice(0, 300);
         if(dv && !/^\d{4}-\d{2}-\d{2}$/.test(dv)){ say("Не похоже на дату", 2500); return; }
-        await rvRun(function(P, codes){ if(!codes[code]) return null; codes[code].dt = dv; return ["Бронь «" + bkNm(codes[code]) + "»: " + (dv ? "дата продажи " + dv.slice(8, 10) + "." + dv.slice(5, 7) : "дата продажи убрана")]; }, dv ? "Дата сохранена" : "Дата убрана", "Не удалось сохранить дату");
+        if(!dv) tmv = ""; else if(tmv && !/^\d{2}:\d{2}$/.test(tmv)){ say("Не похоже на время", 2500); return; }
+        await rvRun(function(P, codes){ if(!codes[code]) return null; codes[code].dt = dv; codes[code].tm = tmv; codes[code].ds = dsv; return ["Бронь «" + bkNm(codes[code]) + "»: " + (dv ? "продажа " + dv.slice(8, 10) + "." + dv.slice(5, 7) + (tmv ? " " + tmv : "") : "дата продажи убрана") + (dsv ? ", есть описание" : "")]; }, "Сохранено", "Не удалось сохранить");
       } else if(kind === "off"){
         if((await sheet("Снять всю бронь «" + bkNm(readCodes((rvCtx && rvCtx.P.pre) || PRE)[code]) + "»? Все вкусы вернутся в продажу.", [{t:"Снять бронь", d:1},{t:"Отмена"}], true)) !== 0) return;
         await rvRun(function(P, codes){ var arr = codes[code], log = []; if(!arr) return null; arr.forEach(function(en){ if(putBack(P, en)) log.push("Снята бронь: " + en.line + " — " + en.fl); }); delete codes[code]; return log.length ? log : ["Бронь снята"]; }, "Бронь снята. На сайте обновится через минуту", "Не удалось снять бронь");
@@ -3044,7 +3053,7 @@ chips(); render();
             if(ref.q){ v = takeQ(codes, it.n, name, ref.n); if(v <= 0) return; }
             else {
               var taken = "";
-              Object.keys(codes).forEach(function(c){ if(!codes[c].man) return; codes[c] = Object.assign(codes[c].filter(function(en){ if(en.k === "r" && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ taken = en.v; return false; } return true; }), {man:codes[c].man, nm:codes[c].nm, tg:codes[c].tg, ts:codes[c].ts, dt:codes[c].dt}); if(!codes[c].length) delete codes[c]; });
+              Object.keys(codes).forEach(function(c){ if(!codes[c].man) return; codes[c] = Object.assign(codes[c].filter(function(en){ if(en.k === "r" && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ taken = en.v; return false; } return true; }), {man:codes[c].man, nm:codes[c].nm, tg:codes[c].tg, ts:codes[c].ts, dt:codes[c].dt, tm:codes[c].tm, ds:codes[c].ds}); if(!codes[c].length) delete codes[c]; });
               v = taken;
             }
             var ex = null; arr.forEach(function(en){ if(en.k === (ref.q ? "q" : "r") && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)) ex = en; });
@@ -3076,7 +3085,7 @@ chips(); render();
       var name = nm.split(" · ")[0], back = "", took = qn;
       if(isQ) took = takeQ(codes, it.n, name, qn, bcode);
       else Object.keys(codes).forEach(function(c){
-        codes[c] = Object.assign(codes[c].filter(function(en){ if(en.k === "r" && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ back = en.v; return false; } return true; }), {man:codes[c].man, nm:codes[c].nm, tg:codes[c].tg, ts:codes[c].ts, dt:codes[c].dt});
+        codes[c] = Object.assign(codes[c].filter(function(en){ if(en.k === "r" && norm(en.line) === norm(it.n) && norm(en.fl) === norm(name)){ back = en.v; return false; } return true; }), {man:codes[c].man, nm:codes[c].nm, tg:codes[c].tg, ts:codes[c].ts, dt:codes[c].dt, tm:codes[c].tm, ds:codes[c].ds});
         if(!codes[c].length) delete codes[c];
       });
       if(sold){ if(!isQ) it.f.splice(jj, 1); }
